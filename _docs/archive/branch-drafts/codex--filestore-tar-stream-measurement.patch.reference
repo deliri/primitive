@@ -1,0 +1,151 @@
+diff --git a/filestore/tar_stream_performance_test.go b/filestore/tar_stream_performance_test.go
+new file mode 100644
+index 00000000..40b8385e
+--- /dev/null
++++ b/filestore/tar_stream_performance_test.go
+@@ -0,0 +1,145 @@
++package filestore_test
++
++import (
++	"bytes"
++	"context"
++	"flag"
++	"fmt"
++	"io"
++	"math"
++	"runtime"
++	"runtime/debug"
++	"testing"
++	"time"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/filestore"
++	"github.com/deliri/primitive/v2026/testserial"
++)
++
++type tarStreamPerformanceSample struct {
++	Ordinal            int    `json:"ordinal"`
++	Variant            string `json:"variant"`
++	ElapsedNanoseconds int64  `json:"elapsed_nanoseconds"`
++	AllocatedBytes     uint64 `json:"allocated_bytes"`
++	Allocations        uint64 `json:"allocations"`
++	SourceFiles        int    `json:"source_files"`
++	SourceBytes        uint64 `json:"source_bytes"`
++	EncodedBytes       uint64 `json:"encoded_bytes"`
++	ArchiveSHA256      string `json:"archive_sha256"`
++	GOMAXPROCS         int    `json:"gomaxprocs"`
++	GoVersion          string `json:"go_version"`
++	GOOS               string `json:"goos"`
++	HeapSoftLimitBytes int64  `json:"heap_soft_limit_bytes"`
++}
++
++// Explicit-root only, kept off the publication source. This measures the
++// in-process native Go TAR stage with warm immutable inputs and io.Discard;
++// Anvil correctness execution is race instrumented, not shipped CLI/native IO.
++func TestManualTARStreamPerformance(t *testing.T) {
++	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
++	if flag.Lookup("test.run").Value.String() != "^TestManualTARStreamPerformance$" {
++		t.Skip("manual matched TAR stage measurement requires exact root")
++	}
++	heap := debug.SetMemoryLimit(-1)
++	if runtime.GOMAXPROCS(0) != 1 || heap < 512<<20 || heap == math.MaxInt64 {
++		t.Fatal("requires actual semantic CPU1 and finite soft heap >=512MiB before setup")
++	}
++	const files = 15000
++	const bodyBytes = 20480
++	// One immutable body is repeated through a reset reader; descriptors and
++	// checksum setup stay outside every measured interval. No source-sized copy.
++	body := make([]byte, bodyBytes)
++	for i := range body {
++		body[i] = byte((i*13 + 7) % 251)
++	}
++	bodyDigest := core.SHA256Of(body)
++	extent, err := core.NewByteLength(bodyBytes)
++	if err != nil {
++		t.Fatal(err)
++	}
++	paths := make([]core.RelativePath, files)
++	for i := range paths {
++		paths[i], err = core.ParseRelativePath(fmt.Sprintf("payload/file-%05d.dat", i))
++		if err != nil {
++			t.Fatal(err)
++		}
++	}
++	reader := bytes.NewReader(body)
++	produce := func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
++		for _, path := range paths {
++			reader.Reset(body)
++			observed, err := add(filestore.TAREntry{Kind: filestore.PathKindRegularFile, Path: path, Source: reader, Bytes: extent, Mode: 0600})
++			if err != nil {
++				return err
++			}
++			if observed.Extent != extent || observed.Digest != bodyDigest {
++				t.Fatal("entry checksum/extent changed")
++			}
++		}
++		return nil
++	}
++	request := filestore.TARWriteRequest{Destination: io.Discard, Compression: filestore.TARPlain, Produce: produce}
++	// Untimed warm-up and full byte-hash agreement. New writer's measured sink
++	// remains identical io.Discard; this extra verification hash is setup only.
++	indexed, err := filestore.WriteTAR(t.Context(), request)
++	if err != nil {
++		t.Fatal(err)
++	}
++	verified := core.NewDigestWriter()
++	request.Destination = verified
++	streamed, err := filestore.StreamTAR(t.Context(), request)
++	if err != nil {
++		t.Fatal(err)
++	}
++	sum, length, err := verified.Seal()
++	if err != nil || length != streamed || streamed != indexed.Extent || sum != indexed.Digest {
++		t.Fatalf("setup archive byte agreement failed: %v", err)
++	}
++	digest, err := sum.Hex()
++	if err != nil {
++		t.Fatal(err)
++	}
++	request.Destination = io.Discard
++	for ordinal, indexedMode := range []bool{true, false, false, true} {
++		runtime.GC() // identical untimed GC boundary; caches remain warm.
++		var before, after runtime.MemStats
++		runtime.ReadMemStats(&before)
++		started := time.Now()
++		var observed core.ByteLength
++		var measuredDigest core.SHA256Digest
++		if indexedMode {
++			value, err := filestore.WriteTAR(t.Context(), request)
++			if err != nil {
++				t.Fatal(err)
++			}
++			observed = value.Extent
++			measuredDigest = value.Digest
++		} else {
++			observed, err = filestore.StreamTAR(t.Context(), request)
++			if err != nil {
++				t.Fatal(err)
++			}
++		}
++		elapsed := time.Since(started)
++		runtime.ReadMemStats(&after)
++		if indexedMode && measuredDigest != sum {
++			t.Fatal("measured indexed digest changed")
++		}
++		if observed != length {
++			t.Fatal("measured archive extent changed")
++		}
++		variant := "stream"
++		if indexedMode {
++			variant = "indexed"
++		}
++		sample := tarStreamPerformanceSample{Ordinal: ordinal, Variant: variant, ElapsedNanoseconds: elapsed.Nanoseconds(), AllocatedBytes: after.TotalAlloc - before.TotalAlloc, Allocations: after.Mallocs - before.Mallocs, SourceFiles: files, SourceBytes: files * bodyBytes, EncodedBytes: observed.Uint64(), ArchiveSHA256: digest, GOMAXPROCS: runtime.GOMAXPROCS(0), GoVersion: runtime.Version(), GOOS: runtime.GOOS, HeapSoftLimitBytes: heap}
++		raw, err := core.MarshalCanonicalJSONDocument(sample)
++		if err != nil {
++			t.Fatal(err)
++		}
++		t.Logf("TAR_STREAM_ABBA %s", raw)
++	}
++	runtime.KeepAlive(body)
++	runtime.KeepAlive(paths)
++}

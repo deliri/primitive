@@ -1,0 +1,1127 @@
+diff --git a/process/architecture_test.go b/process/architecture_test.go
+index 249b679d..3ed41885 100644
+--- a/process/architecture_test.go
++++ b/process/architecture_test.go
+@@ -15,6 +15,10 @@ import (
+ // and fixed stream observations; every internal carrier must remain visible.
+ func productionStructRoles() map[string]string {
+ 	return map[string]string{
++		"MemoryCapObservation":   "verified own-scope local memory event snapshot",
++		"memoryEvents":           "fixed native local event fold",
++		"memoryCapOwner":         "fresh native scope identity, PID and requested limit",
++		"memoryCapObserver":      "one owned sampler task joined before result projection",
+ 		"GroupMemoryRequest":     "validated native group usage observation request",
+ 		"GroupUsage":             "native group RSS and CPU time sample",
+ 		"LentRequest":            "validated order of standard streams a parent lent",
+@@ -68,6 +72,8 @@ func productionStructRoles() map[string]string {
+ func productionImportAllowlist() []string {
+ 	return []string{
+ 		"context",
++		"bufio",
++		"crypto/rand",
+ 		"encoding/json/v2",
+ 		"encoding/xml",
+ 		"errors",
+@@ -399,6 +405,13 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T)
+ 		ast.Inspect(file, func(node ast.Node) bool {
+ 			switch typed := node.(type) {
+ 			case *ast.GoStmt:
++				if production.name == "memory_cap_observation.go" {
++					if call, ok := typed.Call.Fun.(*ast.SelectorExpr); ok && call.Sel.Name == "run" {
++						if owner, ok := call.X.(*ast.Ident); ok && owner.Name == "o" && len(typed.Call.Args) == 1 {
++							break
++						}
++					}
++				}
+ 				t.Errorf(
+ 					"production go statement at token position %d, want os/exec-owned execution",
+ 					typed.Go,
+diff --git a/process/external_ingress_inventory_test.go b/process/external_ingress_inventory_test.go
+index 1020cc87..e565ccd0 100644
+--- a/process/external_ingress_inventory_test.go
++++ b/process/external_ingress_inventory_test.go
+@@ -232,7 +232,7 @@ func processParsedExternalDoors(file *ast.File) []string {
+ 		}
+ 		name := function.Name.Name
+ 		if function.Recv == nil {
+-			if ast.IsExported(name) || name == "snapshotSighting" {
++			if ast.IsExported(name) || name == "snapshotSighting" || name == "readMemoryEvents" {
+ 				doors = append(doors, name)
+ 			}
+ 			continue
+diff --git a/process/memory_cap_events.go b/process/memory_cap_events.go
+new file mode 100644
+index 00000000..58160043
+--- /dev/null
++++ b/process/memory_cap_events.go
+@@ -0,0 +1,88 @@
++package process
++
++import (
++	"bufio"
++	"io"
++	"math"
++)
++
++// memoryEvents is a fixed fold of the local cgroup kernel counters.
++type memoryEvents struct{ oom, kills uint64 }
++
++// readMemoryEvents consumes flat kernel records with fixed memory, including
++// future unknown keys. A missing, duplicate, malformed or truncated known fact
++// refuses the entire sample rather than manufacturing zero.
++func readMemoryEvents(source io.Reader) (memoryEvents, bool) {
++	reader := bufio.NewReaderSize(source, 4096)
++	var result memoryEvents
++	var seen uint8
++	for {
++		var key [32]byte
++		length := 0
++		for {
++			b, err := reader.ReadByte()
++			if err == io.EOF && length == 0 {
++				return result, seen == 3
++			}
++			if err != nil {
++				return memoryEvents{}, false
++			}
++			if b == ' ' {
++				break
++			}
++			if b < 'a' || b > 'z' {
++				if b != '_' {
++					return memoryEvents{}, false
++				}
++			}
++			if length < len(key) {
++				key[length] = b
++			}
++			if length <= len(key) {
++				length++
++			}
++		}
++		if length == 0 {
++			return memoryEvents{}, false
++		}
++		var value uint64
++		digits := false
++		for {
++			b, err := reader.ReadByte()
++			if err != nil {
++				return memoryEvents{}, false
++			}
++			if b == '\n' {
++				if !digits {
++					return memoryEvents{}, false
++				}
++				break
++			}
++			if b < '0' || b > '9' {
++				return memoryEvents{}, false
++			}
++			digit := uint64(b - '0')
++			if value > (math.MaxUint64-digit)/10 {
++				return memoryEvents{}, false
++			}
++			value = value*10 + digit
++			digits = true
++		}
++		if length <= len(key) {
++			switch string(key[:length]) {
++			case "oom":
++				if seen&1 != 0 {
++					return memoryEvents{}, false
++				}
++				seen |= 1
++				result.oom = value
++			case "oom_kill":
++				if seen&2 != 0 {
++					return memoryEvents{}, false
++				}
++				seen |= 2
++				result.kills = value
++			}
++		}
++	}
++}
+diff --git a/process/memory_cap_events_test.go b/process/memory_cap_events_test.go
+new file mode 100644
+index 00000000..6d40a54b
+--- /dev/null
++++ b/process/memory_cap_events_test.go
+@@ -0,0 +1,133 @@
++package process
++
++import (
++	"bytes"
++	"errors"
++	"io"
++	"strconv"
++	"strings"
++	"testing"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
++)
++
++func TestMemoryCapObservationValidationAndRoundTrip(t *testing.T) {
++	t.Parallel()
++	limit, _ := core.NewByteLength(256 << 20)
++	zero, _ := core.NewByteLength(0)
++	duration, _ := temporal.DurationFromNanoseconds(0)
++	for _, row := range []struct {
++		name  string
++		fact  *MemoryCapObservation
++		valid bool
++	}{
++		{name: "uncapped", valid: true},
++		{name: "unknown", fact: &MemoryCapObservation{Limit: limit}, valid: true},
++		{name: "observed-zero-is-only-a-snapshot", fact: &MemoryCapObservation{Limit: limit, State: MemoryCapObserved}, valid: true},
++		{name: "local-positive-with-successful-parent", fact: &MemoryCapObservation{Limit: limit, State: MemoryCapObserved, LocalOOMEvents: 1, LocalOOMKills: 1}, valid: true},
++		{name: "kill-alone-is-not-local-limit", fact: &MemoryCapObservation{Limit: limit, State: MemoryCapObserved, LocalOOMKills: 1}, valid: true},
++		{name: "unknown-counters", fact: &MemoryCapObservation{Limit: limit, LocalOOMEvents: 1}},
++		{name: "unknown-kills", fact: &MemoryCapObservation{Limit: limit, LocalOOMKills: 1}},
++		{name: "no-limit", fact: &MemoryCapObservation{Limit: zero, State: MemoryCapObserved}},
++		{name: "foreign-state", fact: &MemoryCapObservation{Limit: limit, State: 255}},
++	} {
++		t.Run(row.name, func(t *testing.T) {
++			t.Parallel()
++			value := ResultObservation{CPUTime: duration, StdinBytes: zero, StdoutBytes: zero, StderrBytes: zero, MemoryCap: row.fact}
++			err := value.Validate()
++			if !row.valid {
++				if !errors.Is(err, core.ErrProcessContract) {
++					t.Fatalf("contradiction not owned: %v", err)
++				}
++				return
++			}
++			if err != nil {
++				t.Fatal(err)
++			}
++			raw, err := core.MarshalCanonicalJSONDocument(value)
++			if err != nil {
++				t.Fatal(err)
++			}
++			got, err := core.DecodeStrictJSON[ResultObservation](bytes.NewReader(raw), core.DefaultStrictJSONLimits())
++			if err != nil {
++				t.Fatal(err)
++			}
++			if (got.MemoryCap == nil) != (value.MemoryCap == nil) || got.MemoryCap != nil && *got.MemoryCap != *value.MemoryCap {
++				t.Fatalf("lost exact cap snapshot: %+v", got)
++			}
++		})
++	}
++}
++
++// Independent whole-record reference belongs only to the fuzz proof. Product
++// parsing streams once in fixed memory even across arbitrarily long new keys.
++func referenceMemoryEvents(raw string) (memoryEvents, bool) {
++	var result memoryEvents
++	if !strings.HasSuffix(raw, "\n") {
++		return result, false
++	}
++	oom, kills := false, false
++	for line := range strings.SplitSeq(strings.TrimSuffix(raw, "\n"), "\n") {
++		key, value, ok := strings.Cut(line, " ")
++		if !ok || key == "" || value == "" {
++			return memoryEvents{}, false
++		}
++		for _, c := range key {
++			if (c < 'a' || c > 'z') && c != '_' {
++				return memoryEvents{}, false
++			}
++		}
++		for _, c := range value {
++			if c < '0' || c > '9' {
++				return memoryEvents{}, false
++			}
++		}
++		count, err := strconv.ParseUint(value, 10, 64)
++		if err != nil {
++			return memoryEvents{}, false
++		}
++		switch key {
++		case "oom":
++			if oom {
++				return memoryEvents{}, false
++			}
++			oom = true
++			result.oom = count
++		case "oom_kill":
++			if kills {
++				return memoryEvents{}, false
++			}
++			kills = true
++			result.kills = count
++		}
++	}
++	return result, oom && kills
++}
++func FuzzMemoryCapLocalEvents(f *testing.F) {
++	for _, raw := range []string{"oom 0\noom_kill 0\n", "low 0\nhigh 1\nmax 4\noom 2\noom_kill 1\noom_group_kill 0\n", "oom 18446744073709551615\noom_kill 1\n", "oom 1\noom 2\noom_kill 1\n", "oom 1\noom_kill 2", ""} {
++		f.Add(raw)
++	}
++	f.Fuzz(func(t *testing.T, raw string) {
++		want, wantOK := referenceMemoryEvents(raw)
++		got, ok := readMemoryEvents(strings.NewReader(raw))
++		if ok != wantOK || ok && got != want {
++			t.Fatalf("native parser %+v/%v reference %+v/%v", got, ok, want, wantOK)
++		}
++		// One-byte fragmented transport is the same actual decoder, no mirrored
++		// production algorithm and no dependency on bufio's refill boundaries.
++		fragmented, fragmentOK := readMemoryEvents(&memoryEventByteReader{source: strings.NewReader(raw)})
++		if fragmentOK != ok || fragmentOK && fragmented != got {
++			t.Fatalf("fragmentation changed facts")
++		}
++	})
++}
++
++type memoryEventByteReader struct{ source io.Reader }
++
++func (r *memoryEventByteReader) Read(p []byte) (int, error) {
++	if len(p) > 1 {
++		p = p[:1]
++	}
++	return r.source.Read(p)
++}
+diff --git a/process/memory_cap_linux.go b/process/memory_cap_linux.go
+index 3e9379e1..a7e44a4e 100644
+--- a/process/memory_cap_linux.go
++++ b/process/memory_cap_linux.go
+@@ -3,6 +3,7 @@
+ package process
+ 
+ import (
++	"crypto/rand"
+ 	"strconv"
+ 
+ 	"github.com/deliri/primitive/v2026/core"
+@@ -14,11 +15,12 @@ const memoryCapLauncher = "/usr/bin/systemd-run"
+ 
+ // cappedCommand runs path inside a transient user scope whose MemoryMax is
+ // max and whose swap is zero; a zero max runs path as it is.
+-func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, error) {
++func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, memoryCapUnit, error) {
+ 	if max.Uint64() == 0 {
+-		return path, arguments, nil
++		return path, arguments, "", nil
+ 	}
++	unit := memoryCapUnit("primitive-" + rand.Text() + ".scope")
+ 	limit := strconv.FormatUint(max.Uint64(), 10)
+-	argv := append([]string{"--user", "--scope", "--quiet", "--collect", "-p", "MemoryMax=" + limit, "-p", "MemorySwapMax=0", "--", path}, arguments...)
+-	return memoryCapLauncher, argv, nil
++	argv := append([]string{"--user", "--scope", "--quiet", "--collect", "--unit=" + string(unit), "-p", "MemoryMax=" + limit, "-p", "MemorySwapMax=0", "--", path}, arguments...)
++	return memoryCapLauncher, argv, unit, nil
+ }
+diff --git a/process/memory_cap_observation.go b/process/memory_cap_observation.go
+new file mode 100644
+index 00000000..c3737db4
+--- /dev/null
++++ b/process/memory_cap_observation.go
+@@ -0,0 +1,140 @@
++package process
++
++import (
++	"context"
++	"errors"
++	"sync"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
++)
++
++// MemoryCapState distinguishes unavailable evidence from an actual in-lifetime
++// sample. Observed with zero counters is NOT proof of no OOM over the lifetime.
++type MemoryCapState uint8
++
++const (
++	MemoryCapUnknown MemoryCapState = iota
++	MemoryCapObserved
++)
++
++// MemoryCapObservation is a scope-local kernel observation with the exact
++// enforced limit verified. LocalOOMEvents > 0 positively identifies allocation
++// failure at this scope's own limit. Kills alone may have another OOM origin.
++// Missing or collected scopes remain unknown; capture is not guaranteed.
++type MemoryCapObservation struct {
++	Limit          core.ByteLength `json:"limit_bytes"`
++	State          MemoryCapState  `json:"state"`
++	LocalOOMEvents uint64          `json:"local_oom_events"`
++	LocalOOMKills  uint64          `json:"local_oom_kills"`
++}
++
++func validateMemoryCap(o *MemoryCapObservation) error {
++	if o == nil {
++		return nil
++	}
++	if err := o.Limit.Validate(); err != nil {
++		return errors.Join(core.ErrProcessContract, err)
++	}
++	if o.Limit.Uint64() == 0 {
++		return contractError("memory cap observation has no limit")
++	}
++	switch o.State {
++	case MemoryCapUnknown:
++		if o.LocalOOMEvents != 0 || o.LocalOOMKills != 0 {
++			return contractError("unknown memory cap carries counters")
++		}
++	case MemoryCapObserved:
++	default:
++		return contractError("memory cap observation state is invalid")
++	}
++	return nil
++}
++
++type memoryCapUnit string
++
++type memoryCapOwner struct {
++	unit  memoryCapUnit
++	pid   ProcessIdentity
++	limit core.ByteLength
++}
++
++// memoryCapObserver owns one bounded native sampler task; finish cancels and
++// joins it before publishing a snapshot. It never changes the native outcome.
++type memoryCapObserver struct {
++	owner       memoryCapOwner
++	cancel      context.CancelFunc
++	done        chan struct{}
++	mu          sync.Mutex
++	observation MemoryCapObservation
++}
++
++func newMemoryCapObserver(parent context.Context, owner memoryCapOwner) *memoryCapObserver {
++	if owner.unit == "" || owner.limit.Uint64() == 0 {
++		return nil
++	}
++	ctx, cancel := context.WithCancel(parent)
++	o := &memoryCapObserver{owner: owner, cancel: cancel, done: make(chan struct{}), observation: MemoryCapObservation{Limit: owner.limit}}
++	go o.run(ctx)
++	return o
++}
++func (o *memoryCapObserver) run(ctx context.Context) {
++	defer close(o.done)
++	defer func() {
++		o.mu.Lock()
++		defer o.mu.Unlock()
++		if o.observation.LocalOOMEvents == 0 {
++			o.observation = MemoryCapObservation{Limit: o.owner.limit}
++		}
++	}()
++	interval, err := temporal.DurationFromMilliseconds(10)
++	if err != nil {
++		return
++	}
++	ticker, err := temporal.OpenTicker(temporal.TickerRequest{Interval: interval})
++	if err != nil {
++		return
++	}
++	defer ticker.Stop()
++	for {
++		select {
++		case <-ctx.Done():
++			return
++		default:
++		}
++		observed := observeMemoryCap(o.owner)
++		o.mu.Lock()
++		// A positive local event is immutable evidence, even if later collection or
++		// cancellation makes another read impossible. No zero/no-OOM claim is kept.
++		if o.observation.LocalOOMEvents == 0 {
++			o.observation = observed
++		}
++		positive := o.observation.LocalOOMEvents > 0
++		o.mu.Unlock()
++		if positive {
++			return
++		}
++		select {
++		case <-ctx.Done():
++			return
++		case <-ticker.Ticks():
++		}
++	}
++}
++func (o *memoryCapObserver) snapshot() *MemoryCapObservation {
++	if o == nil {
++		return nil
++	}
++	o.mu.Lock()
++	defer o.mu.Unlock()
++	value := o.observation
++	return &value
++}
++func (o *memoryCapObserver) finish() *MemoryCapObservation {
++	if o == nil {
++		return nil
++	}
++	o.cancel()
++	<-o.done
++	return o.snapshot()
++}
+diff --git a/process/memory_cap_observer_linux.go b/process/memory_cap_observer_linux.go
+new file mode 100644
+index 00000000..fc55b5c7
+--- /dev/null
++++ b/process/memory_cap_observer_linux.go
+@@ -0,0 +1,117 @@
++//go:build linux
++
++package process
++
++import (
++	"io"
++	"os"
++	"strconv"
++	"strings"
++	"syscall"
++)
++
++func observeMemoryCap(owner memoryCapOwner) MemoryCapObservation {
++	unknown := MemoryCapObservation{Limit: owner.limit}
++	membership, ok := memoryCapMembership(owner)
++	if !ok {
++		return unknown
++	}
++	directory, ok := openMemoryCapDirectory(membership)
++	if !ok {
++		return unknown
++	}
++	defer directory.Close()
++	maximum, ok := readMemoryCapFile(directory, "memory.max")
++	if !ok || maximum != strconv.FormatUint(owner.limit.Uint64(), 10)+"\n" {
++		return unknown
++	}
++	file, err := openMemoryCapFile(directory, "memory.events.local")
++	if err != nil {
++		return unknown
++	}
++	events, valid := readMemoryEvents(file)
++	closeErr := file.Close()
++	if !valid || closeErr != nil {
++		return unknown
++	}
++	// Verify membership again while the command still has this exact owned
++	// scope, rather than trusting a stale PID or another cgroup's counters.
++	maximumAfter, sameLimit := readMemoryCapFile(directory, "memory.max")
++	if !sameLimit || maximumAfter != maximum {
++		return unknown
++	}
++	after, ok := memoryCapMembership(owner)
++	if !ok || after != membership {
++		return unknown
++	}
++	return MemoryCapObservation{Limit: owner.limit, State: MemoryCapObserved, LocalOOMEvents: events.oom, LocalOOMKills: events.kills}
++}
++func memoryCapMembership(owner memoryCapOwner) (string, bool) {
++	if owner.pid <= 0 || owner.unit == "" {
++		return "", false
++	}
++	file, err := os.Open("/proc/" + strconv.Itoa(int(owner.pid)) + "/cgroup")
++	if err != nil {
++		return "", false
++	}
++	raw, ok := readMemoryCapScalar(file)
++	closeErr := file.Close()
++	if !ok || closeErr != nil || !strings.HasPrefix(raw, "0::/") || !strings.HasSuffix(raw, "/"+string(owner.unit)+"\n") || strings.Count(raw, "\n") != 1 {
++		return "", false
++	}
++	return strings.TrimSuffix(strings.TrimPrefix(raw, "0::"), "\n"), true
++}
++func openMemoryCapDirectory(path string) (*os.File, bool) {
++	if !strings.HasPrefix(path, "/") {
++		return nil, false
++	}
++	root, err := os.Open("/sys/fs/cgroup")
++	if err != nil {
++		return nil, false
++	}
++	var facts syscall.Statfs_t
++	if syscall.Fstatfs(int(root.Fd()), &facts) != nil || facts.Type != 0x63677270 {
++		root.Close()
++		return nil, false
++	}
++	directory := root
++	for component := range strings.SplitSeq(strings.TrimPrefix(path, "/"), "/") {
++		if component == "" || component == "." || component == ".." {
++			directory.Close()
++			return nil, false
++		}
++		fd, err := syscall.Openat(int(directory.Fd()), component, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0)
++		directory.Close()
++		if err != nil {
++			return nil, false
++		}
++		directory = os.NewFile(uintptr(fd), component)
++	}
++	return directory, true
++}
++func openMemoryCapFile(directory *os.File, name string) (*os.File, error) {
++	fd, err := syscall.Openat(int(directory.Fd()), name, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, 0)
++	if err != nil {
++		return nil, err
++	}
++	return os.NewFile(uintptr(fd), name), nil
++}
++func readMemoryCapFile(directory *os.File, name string) (string, bool) {
++	file, err := openMemoryCapFile(directory, name)
++	if err != nil {
++		return "", false
++	}
++	raw, ok := readMemoryCapScalar(file)
++	closeErr := file.Close()
++	return raw, ok && closeErr == nil
++}
++func readMemoryCapScalar(source io.Reader) (string, bool) {
++	// Linux proc cgroup paths are PATH_MAX bounded. One additional byte rejects
++	// truncation; this never retains input proportional to source extent.
++	var buffer [4097]byte
++	n, err := io.ReadFull(source, buffer[:])
++	if err != io.EOF && err != io.ErrUnexpectedEOF {
++		return "", false
++	}
++	return string(buffer[:n]), true
++}
+diff --git a/process/memory_cap_observer_linux_test.go b/process/memory_cap_observer_linux_test.go
+new file mode 100644
+index 00000000..188e8a39
+--- /dev/null
++++ b/process/memory_cap_observer_linux_test.go
+@@ -0,0 +1,320 @@
++//go:build linux
++
++package process
++
++import (
++	"bufio"
++	"context"
++	"errors"
++	"io"
++	"os"
++	"os/exec"
++	"os/signal"
++	"runtime"
++	"runtime/debug"
++	"strings"
++	"syscall"
++	"testing"
++	"time"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
++	"github.com/deliri/primitive/v2026/testserial"
++)
++
++// These are real caller programs inside the actual capped scope, not a
++// production keeper. The parent catches systemd's TERM after its child OOMs,
++// then remains owned by the test's stdin until the positive sample is seen.
++func TestMemoryCapNativeHelper(t *testing.T) {
++	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
++	role := os.Args[len(os.Args)-1]
++	switch role {
++	case "memory-cap-allocate":
++		data := make([]byte, 512<<20)
++		for i := 0; i < len(data); i += 4096 {
++			data[i] = 1
++		}
++		runtime.KeepAlive(data)
++		os.Exit(91) // surviving this allocation means the positive setup failed.
++	case "memory-cap-parent":
++		signals := make(chan os.Signal, 1)
++		signal.Notify(signals, syscall.SIGTERM)
++		defer signal.Stop(signals)
++		reader := bufio.NewReader(os.Stdin)
++		if command, err := reader.ReadString('\n'); err != nil || command != "allocate\n" {
++			os.Exit(92)
++		}
++		binary, err := os.Executable()
++		if err != nil {
++			os.Exit(93)
++		}
++		child := exec.Command(binary, "-test.run=^TestMemoryCapNativeHelper$", "--", "memory-cap-allocate")
++		child.Stdout = os.Stdout
++		child.Stderr = os.Stderr
++		err = child.Run()
++		exit, ok := err.(*exec.ExitError)
++		if !ok || !exit.ProcessState.Sys().(syscall.WaitStatus).Signaled() || exit.ProcessState.Sys().(syscall.WaitStatus).Signal() != syscall.SIGKILL {
++			os.Exit(94)
++		}
++		if command, err := reader.ReadString('\n'); err != nil || command != "release\n" {
++			os.Exit(95)
++		}
++		os.Exit(0)
++	case "memory-cap-hold":
++		_, _ = io.Copy(io.Discard, os.Stdin)
++		os.Exit(0)
++	case "memory-cap-fail":
++		os.Exit(7)
++	}
++}
++
++func memoryCapNativeBudget(t *testing.T) {
++	t.Helper()
++	if runtime.GOMAXPROCS(0) < 4 || debug.SetMemoryLimit(-1) < 2<<30 || debug.SetMemoryLimit(-1) == int64(^uint64(0)>>1) {
++		t.Fatal("native memory-cap fixture requires admitted semantic CPU >=4 and finite GOMEMLIMIT >=2GiB before effects")
++	}
++	// Driver soft heap512MiB plus the entire native subtree hard cap256MiB
++	// fit below this finite >=2GiB prerequisite with >1GiB remaining headroom.
++	// This is a conservative admission check, not a claim soft heaps are caps.
++	oldCPU := runtime.GOMAXPROCS(1)
++	t.Cleanup(func() { runtime.GOMAXPROCS(oldCPU) })
++	oldMemory := debug.SetMemoryLimit(512 << 20)
++	t.Cleanup(func() { debug.SetMemoryLimit(oldMemory) })
++	t.Setenv("GOMAXPROCS", "1")
++	t.Setenv("GOMEMLIMIT", "128MiB")
++}
++func memoryCapNativeRequest(t *testing.T, role string, input io.Reader) Request {
++	t.Helper()
++	binary, err := os.Executable()
++	if err != nil {
++		t.Fatal(err)
++	}
++	cwd, err := os.Getwd()
++	if err != nil {
++		t.Fatal(err)
++	}
++	command, err := core.ParseAbsolutePath(binary)
++	if err != nil {
++		t.Fatal(err)
++	}
++	directory, err := core.ParseAbsolutePath(cwd)
++	if err != nil {
++		t.Fatal(err)
++	}
++	argv, err := ParseArguments([]string{"-test.run=^TestMemoryCapNativeHelper$", "--", role})
++	if err != nil {
++		t.Fatal(err)
++	}
++	cap, err := core.NewByteLength(256 << 20)
++	if err != nil {
++		t.Fatal(err)
++	}
++	maximum, err := core.NewByteCount(64 << 10)
++	if err != nil {
++		t.Fatal(err)
++	}
++	delay, err := temporal.DurationFromSeconds(2)
++	if err != nil {
++		t.Fatal(err)
++	}
++	return Request{Command: command, WorkingDirectory: directory, Arguments: argv, Environment: Environment{Mode: EnvironmentModeInherit}, Streams: Streams{Stdin: input, Stdout: io.Discard, Stderr: io.Discard}, OutputPolicy: OutputPolicy{Mode: OutputModeBounded, Maximum: maximum}, WaitDelay: delay, Containment: Containment{Isolation: IsolationGroup, CancelSignal: CancelSignalKill, MemoryMax: cap}}
++}
++func awaitMemoryCap(t *testing.T, ctx context.Context, o *memoryCapObserver, positive bool) {
++	t.Helper()
++	ticker := time.NewTicker(10 * time.Millisecond)
++	defer ticker.Stop()
++	for {
++		value := o.snapshot()
++		if value != nil && value.State == MemoryCapObserved && (value.LocalOOMEvents > 0) == positive {
++			return
++		}
++		select {
++		case <-ctx.Done():
++			t.Fatalf("actual owned memory observation positive=%v not captured: %+v: %v", positive, value, ctx.Err())
++		case <-ticker.C:
++		}
++	}
++}
++func TestMemoryCapCapturesOwnedLocalExhaustion(t *testing.T) {
++	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
++	memoryCapNativeBudget(t)
++	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
++	defer cancel()
++	input, output, err := os.Pipe()
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer input.Close()
++	defer output.Close()
++	execution, err := Begin(ctx, memoryCapNativeRequest(t, "memory-cap-parent", input))
++	if err != nil {
++		t.Fatal(err)
++	}
++	waited := false
++	t.Cleanup(func() {
++		output.Close()
++		cancel()
++		if !waited {
++			_, _ = execution.Wait()
++		}
++		if err := execution.Sweep(); err != nil {
++			t.Error(err)
++		}
++	})
++	awaitMemoryCap(t, ctx, execution.prepared.memoryCap, false)
++	// A real live owned scope with a different claimed limit is refused.
++	mismatched := execution.prepared.memoryCap.owner
++	mismatched.limit, _ = core.NewByteLength(128 << 20)
++	if got := observeMemoryCap(mismatched); got.State != MemoryCapUnknown || got.LocalOOMEvents != 0 {
++		t.Fatalf("wrong actual limit admitted: %+v", got)
++	}
++	if _, err := io.WriteString(output, "allocate\n"); err != nil {
++		t.Fatal(err)
++	}
++	awaitMemoryCap(t, ctx, execution.prepared.memoryCap, true)
++	if _, err := io.WriteString(output, "release\n"); err != nil {
++		t.Fatal(err)
++	}
++	// The final caller-owned stdin handshake is complete. Close its writer
++	// before Wait so os/exec can join its stdin copy on every native outcome.
++	output.Close()
++	result, err := execution.Wait()
++	waited = true
++	if err != nil {
++		t.Fatal(err)
++	}
++	select {
++	case <-execution.prepared.memoryCap.done:
++	default:
++		t.Fatal("sampler task outlived Wait")
++	}
++	observation, err := result.Observation()
++	if err != nil {
++		t.Fatal(err)
++	}
++	if observation.ExitCode != 0 || observation.TerminationSignal != nil {
++		t.Fatalf("native parent outcome changed: %+v", observation)
++	}
++	fact := observation.MemoryCap
++	if fact == nil || fact.State != MemoryCapObserved || fact.Limit.Uint64() != 256<<20 || fact.LocalOOMEvents == 0 || fact.LocalOOMKills == 0 {
++		t.Fatalf("missing real owned local exhaustion: %+v", fact)
++	}
++	raw, err := core.MarshalCanonicalJSONDocument(observation)
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Logf("OWNED_MEMORY_CAP_NATIVE pid=%d unit=%s observation=%s", execution.prepared.memoryCap.owner.pid, execution.prepared.memoryCap.owner.unit, raw)
++	// Projection owns its snapshot, rather than exposing the private result.
++	fact.LocalOOMEvents = 0
++	again, err := result.Observation()
++	if err != nil || again.MemoryCap.LocalOOMEvents == 0 {
++		t.Fatalf("projection aliases result: %+v %v", again, err)
++	}
++}
++func TestMemoryCapDoesNotInferExhaustionFromTermination(t *testing.T) {
++	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
++	memoryCapNativeBudget(t)
++	for _, role := range []string{"ordinary-success", "ordinary-failure", "external-term", "caller-cancel"} {
++		t.Run(role, func(t *testing.T) {
++			testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
++			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
++			defer cancel()
++			input, output, err := os.Pipe()
++			if err != nil {
++				t.Fatal(err)
++			}
++			defer input.Close()
++			defer output.Close()
++			helper := "memory-cap-hold"
++			if role == "ordinary-failure" {
++				helper = "memory-cap-fail"
++			}
++			execution, err := Begin(ctx, memoryCapNativeRequest(t, helper, input))
++			if err != nil {
++				t.Fatal(err)
++			}
++			waited := false
++			t.Cleanup(func() {
++				output.Close()
++				cancel()
++				if !waited {
++					_, _ = execution.Wait()
++				}
++				if err := execution.Sweep(); err != nil {
++					t.Error(err)
++				}
++			})
++			if role != "ordinary-failure" {
++				awaitMemoryCap(t, ctx, execution.prepared.memoryCap, false)
++				if role == "ordinary-success" {
++					output.Close()
++				} else if role == "caller-cancel" {
++					cancel()
++				} else if err := execution.Deliver(CancelSignalTerminate); err != nil {
++					t.Fatal(err)
++				}
++			}
++			// The final caller-owned stdin handshake is complete. Close its writer
++			// before Wait so os/exec can join its stdin copy on every native outcome.
++			output.Close()
++			result, err := execution.Wait()
++			waited = true
++			if role == "caller-cancel" {
++				if !errors.Is(err, context.Canceled) {
++					t.Fatalf("cancel lost: %v", err)
++				}
++			} else if err != nil {
++				t.Fatal(err)
++			}
++			observation, err := result.Observation()
++			if err != nil {
++				t.Fatal(err)
++			}
++			if observation.MemoryCap == nil || observation.MemoryCap.State != MemoryCapUnknown || observation.MemoryCap.LocalOOMEvents != 0 || observation.MemoryCap.LocalOOMKills != 0 {
++				t.Fatalf("termination manufactured OOM: %+v", observation)
++			}
++			if role == "ordinary-success" && observation.ExitCode != 0 {
++				t.Fatalf("success changed: %+v", observation)
++			}
++			if role == "ordinary-failure" && observation.ExitCode != 7 {
++				t.Fatalf("exit=%d want7", observation.ExitCode)
++			}
++			if role == "external-term" && (observation.TerminationSignal == nil || *observation.TerminationSignal != 15) {
++				t.Fatalf("actual TERM missing: %+v", observation)
++			}
++		})
++	}
++}
++func TestMemoryCapRejectsForeignAndCollectedOwners(t *testing.T) {
++	t.Parallel()
++	cap, _ := core.NewByteLength(256 << 20)
++	for _, owner := range []memoryCapOwner{{unit: "not-owned.scope", pid: ProcessIdentity(os.Getpid()), limit: cap}, {unit: "collected.scope", pid: 0, limit: cap}} {
++		got := observeMemoryCap(owner)
++		if got.State != MemoryCapUnknown || got.LocalOOMEvents != 0 || got.LocalOOMKills != 0 {
++			t.Fatalf("foreign owner admitted: %+v", got)
++		}
++	}
++	// A filesystem alias cannot redirect cgroup custody.
++	if file, ok := openMemoryCapDirectory("/../tmp"); ok {
++		file.Close()
++		t.Fatal("parent traversal admitted")
++	}
++	if file, ok := openMemoryCapDirectory("/."); ok {
++		file.Close()
++		t.Fatal("dot traversal admitted")
++	}
++}
++
++func TestMemoryCapLocalParserRejectsHostileFacts(t *testing.T) {
++	t.Parallel()
++	for _, raw := range []string{"oom 0\n", "oom 1\noom 2\noom_kill 1\n", "oom -1\noom_kill 0\n", "oom 18446744073709551616\noom_kill 0\n", "oom 1\noom_kill 1", "oom 1\noom_kill 1\ntruncated"} {
++		if got, ok := readMemoryEvents(strings.NewReader(raw)); ok {
++			t.Fatalf("hostile %q admitted %+v", raw, got)
++		}
++	}
++	raw := "unknown_" + strings.Repeat("x", 10000) + " 0\noom 5\noom_kill 2\n"
++	got, ok := readMemoryEvents(strings.NewReader(raw))
++	if !ok || got.oom != 5 || got.kills != 2 {
++		t.Fatalf("future unknown record lost exact local facts: %+v %v", got, ok)
++	}
++}
+diff --git a/process/memory_cap_observer_other.go b/process/memory_cap_observer_other.go
+new file mode 100644
+index 00000000..36f8e44a
+--- /dev/null
++++ b/process/memory_cap_observer_other.go
+@@ -0,0 +1,7 @@
++//go:build !linux
++
++package process
++
++func observeMemoryCap(owner memoryCapOwner) MemoryCapObservation {
++	return MemoryCapObservation{Limit: owner.limit}
++}
+diff --git a/process/memory_cap_other.go b/process/memory_cap_other.go
+index 1fd1beb0..eaf213a3 100644
+--- a/process/memory_cap_other.go
++++ b/process/memory_cap_other.go
+@@ -6,9 +6,9 @@ import "github.com/deliri/primitive/v2026/core"
+ 
+ // cappedCommand runs path as it is; this platform has no per-tree memory
+ // limit, so a nonzero max is refused rather than silently ignored.
+-func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, error) {
++func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, memoryCapUnit, error) {
+ 	if max.Uint64() != 0 {
+-		return "", nil, core.ErrProcessUnsupported
++		return "", nil, "", core.ErrProcessUnsupported
+ 	}
+-	return path, arguments, nil
++	return path, arguments, "", nil
+ }
+diff --git a/process/native_fuzz_inventory_test.go b/process/native_fuzz_inventory_test.go
+index 4a21d0b0..ea42aaea 100644
+--- a/process/native_fuzz_inventory_test.go
++++ b/process/native_fuzz_inventory_test.go
+@@ -20,11 +20,13 @@ func ProcessNativeFuzzDoorNames() []string {
+ 		QuotePOSIXArgument   nativeFuzzDoor[func(Argument) (Argument, error)]
+ 		WriteServiceDocument nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]
+ 		Plan_UnmarshalJSON   nativeFuzzDoor[func(*Plan, []byte) error]
++		readMemoryEvents     nativeFuzzDoor[func(io.Reader) (memoryEvents, bool)]
+ 		snapshotSighting     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]
+ 	}{
+ 		QuotePOSIXArgument:   nativeFuzzDoor[func(Argument) (Argument, error)]{Call: QuotePOSIXArgument, Fuzz: FuzzPOSIXArgumentSemanticClosure},
+ 		WriteServiceDocument: nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]{Call: WriteServiceDocument, Fuzz: FuzzServiceDocumentProjection},
+ 		Plan_UnmarshalJSON:   nativeFuzzDoor[func(*Plan, []byte) error]{Call: (*Plan).UnmarshalJSON, Fuzz: FuzzPlanJSONExternalIngress},
++		readMemoryEvents:     nativeFuzzDoor[func(io.Reader) (memoryEvents, bool)]{Call: readMemoryEvents, Fuzz: FuzzMemoryCapLocalEvents},
+ 		snapshotSighting:     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]{Call: snapshotSighting, Fuzz: FuzzSnapshotSightingNativeIngress},
+ 	}
+ 	var names []string
+diff --git a/process/result.go b/process/result.go
+index 803d6b8d..e8ad0e47 100644
+--- a/process/result.go
++++ b/process/result.go
+@@ -80,6 +80,7 @@ func (n SignalNumber) Int() (int, error) {
+ 
+ // Result contains fixed-size observations from one started and reaped child.
+ type Result struct {
++	memoryCap          *MemoryCapObservation
+ 	exit               ExitCode
+ 	cpu                temporal.Duration
+ 	stdinBytes         core.ByteLength
+@@ -96,13 +97,14 @@ type Result struct {
+ // direct child. It retains exact exit, CPU, byte, and signal facts. A nil
+ // PeakMemoryBytes means Go did not report that observation, not measured zero.
+ type ResultObservation struct {
+-	TerminationSignal *SignalNumber     `json:"termination_signal,omitempty"`
+-	CPUTime           temporal.Duration `json:"cpu_time_nanoseconds"`
+-	StdinBytes        core.ByteLength   `json:"stdin_bytes"`
+-	StdoutBytes       core.ByteLength   `json:"stdout_bytes"`
+-	StderrBytes       core.ByteLength   `json:"stderr_bytes"`
+-	PeakMemoryBytes   *core.ByteLength  `json:"peak_memory_bytes,omitempty"`
+-	ExitCode          int64             `json:"exit_code"`
++	MemoryCap         *MemoryCapObservation `json:"memory_cap,omitempty"`
++	TerminationSignal *SignalNumber         `json:"termination_signal,omitempty"`
++	CPUTime           temporal.Duration     `json:"cpu_time_nanoseconds"`
++	StdinBytes        core.ByteLength       `json:"stdin_bytes"`
++	StdoutBytes       core.ByteLength       `json:"stdout_bytes"`
++	StderrBytes       core.ByteLength       `json:"stderr_bytes"`
++	PeakMemoryBytes   *core.ByteLength      `json:"peak_memory_bytes,omitempty"`
++	ExitCode          int64                 `json:"exit_code"`
+ }
+ 
+ func (o ResultObservation) Validate() error {
+@@ -117,6 +119,9 @@ func (o ResultObservation) Validate() error {
+ 			return errors.Join(core.ErrProcessContract, err)
+ 		}
+ 	}
++	if err := validateMemoryCap(o.MemoryCap); err != nil {
++		return err
++	}
+ 	var signal SignalNumber
+ 	if o.TerminationSignal != nil {
+ 		signal = *o.TerminationSignal
+@@ -146,6 +151,10 @@ func (r Result) Observation() (ResultObservation, error) {
+ 		ExitCode: int64(r.exit.value), CPUTime: r.cpu,
+ 		StdinBytes: r.stdinBytes, StdoutBytes: r.stdoutBytes, StderrBytes: r.stderrBytes,
+ 	}
++	if r.memoryCap != nil {
++		value := *r.memoryCap
++		observation.MemoryCap = &value
++	}
+ 	if r.peakMemoryReported {
+ 		memory := r.peakMemory
+ 		observation.PeakMemoryBytes = &memory
+@@ -175,6 +184,9 @@ func (r Result) Validate() error {
+ 	if !r.peakMemoryReported && r.peakMemory.Uint64() != 0 {
+ 		return contractError("unreported peak memory carries a value")
+ 	}
++	if err := validateMemoryCap(r.memoryCap); err != nil {
++		return err
++	}
+ 	return validateResultSignal(int64(r.exit.value), r.signal, r.signalReported)
+ }
+ 
+diff --git a/process/result_fuzz_upgrade_test.go b/process/result_fuzz_upgrade_test.go
+index 78ea7391..c68075a2 100644
+--- a/process/result_fuzz_upgrade_test.go
++++ b/process/result_fuzz_upgrade_test.go
+@@ -39,6 +39,10 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
+ 	for _, change := range []func(*process.ResultObservation){
+ 		func(*process.ResultObservation) {},
+ 		func(o *process.ResultObservation) { o.PeakMemoryBytes = nil },
++		func(o *process.ResultObservation) { o.MemoryCap = &process.MemoryCapObservation{Limit: maximum} },
++		func(o *process.ResultObservation) {
++			o.MemoryCap = &process.MemoryCapObservation{Limit: maximum, State: process.MemoryCapObserved, LocalOOMEvents: 1, LocalOOMKills: 1}
++		},
+ 		func(o *process.ResultObservation) { o.PeakMemoryBytes = &zero },
+ 		func(o *process.ResultObservation) { o.PeakMemoryBytes = &maximum },
+ 		func(o *process.ResultObservation) { o.ExitCode = core.ProcessExitCodeMaximum },
+@@ -77,7 +81,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
+ 		}
+ 		f.Add(encoded)
+ 	}
+-	for _, data := range [][]byte{nil, []byte("null"), []byte("[]"), []byte(`{"unowned":1}`)} {
++	for _, data := range [][]byte{nil, []byte("null"), []byte("[]"), []byte(`{"unowned":1}`), []byte(`{"memory_cap":{"limit_bytes":0,"state":1}}`), []byte(`{"memory_cap":{"limit_bytes":1,"state":255}}`), []byte(`{"memory_cap":{"limit_bytes":1,"state":0,"local_oom_events":1}}`)} {
+ 		f.Add(data)
+ 	}
+ 	f.Fuzz(func(t *testing.T, input []byte) {
+@@ -85,6 +89,10 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
+ 		trimmed := bytes.TrimSpace(input)
+ 		wantAccepted := syntaxErr == nil && len(trimmed) != 0 && trimmed[0] == '{' && wire.ExitCode >= core.ProcessExitCodeSignaled && wire.ExitCode <= core.ProcessExitCodeMaximum
+ 		wantAccepted = wantAccepted && (wire.TerminationSignal == nil || wire.ExitCode == core.ProcessExitCodeSignaled && *wire.TerminationSignal > 0)
++		if wire.MemoryCap != nil {
++			cap := wire.MemoryCap
++			wantAccepted = wantAccepted && cap.Limit.Uint64() > 0 && (cap.State == process.MemoryCapObserved || cap.State == process.MemoryCapUnknown && cap.LocalOOMEvents == 0 && cap.LocalOOMKills == 0)
++		}
+ 		before := bytes.Clone(input)
+ 		got, err := core.DecodeStrictJSON[process.ResultObservation](bytes.NewReader(input), core.DefaultStrictJSONLimits())
+ 		if !bytes.Equal(input, before) {
+@@ -99,7 +107,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
+ 			}
+ 			return
+ 		}
+-		if err != nil || got.Validate() != nil || got.ExitCode != wire.ExitCode || got.CPUTime != wire.CPUTime || got.StdinBytes != wire.StdinBytes || got.StdoutBytes != wire.StdoutBytes || got.StderrBytes != wire.StderrBytes || (got.PeakMemoryBytes == nil) != (wire.PeakMemoryBytes == nil) || got.PeakMemoryBytes != nil && wire.PeakMemoryBytes != nil && *got.PeakMemoryBytes != *wire.PeakMemoryBytes || (got.TerminationSignal == nil) != (wire.TerminationSignal == nil) || got.TerminationSignal != nil && wire.TerminationSignal != nil && *got.TerminationSignal != *wire.TerminationSignal {
++		if err != nil || got.Validate() != nil || (got.MemoryCap == nil) != (wire.MemoryCap == nil) || got.MemoryCap != nil && wire.MemoryCap != nil && *got.MemoryCap != *wire.MemoryCap || got.ExitCode != wire.ExitCode || got.CPUTime != wire.CPUTime || got.StdinBytes != wire.StdinBytes || got.StdoutBytes != wire.StdoutBytes || got.StderrBytes != wire.StderrBytes || (got.PeakMemoryBytes == nil) != (wire.PeakMemoryBytes == nil) || got.PeakMemoryBytes != nil && wire.PeakMemoryBytes != nil && *got.PeakMemoryBytes != *wire.PeakMemoryBytes || (got.TerminationSignal == nil) != (wire.TerminationSignal == nil) || got.TerminationSignal != nil && wire.TerminationSignal != nil && *got.TerminationSignal != *wire.TerminationSignal {
+ 			t.Fatalf("result admission changed exact observations: %v", err)
+ 		}
+ 		encoded, err := core.MarshalCanonicalJSONDocument(got)
+@@ -107,7 +115,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
+ 			t.Fatalf("accepted result cannot publish: %v", err)
+ 		}
+ 		next, err := core.DecodeStrictJSON[process.ResultObservation](bytes.NewReader(encoded), core.DefaultStrictJSONLimits())
+-		if err != nil || next.ExitCode != got.ExitCode || next.CPUTime != got.CPUTime || next.StdinBytes != got.StdinBytes || next.StdoutBytes != got.StdoutBytes || next.StderrBytes != got.StderrBytes || (next.PeakMemoryBytes == nil) != (got.PeakMemoryBytes == nil) || next.PeakMemoryBytes != nil && got.PeakMemoryBytes != nil && *next.PeakMemoryBytes != *got.PeakMemoryBytes || (next.TerminationSignal == nil) != (got.TerminationSignal == nil) || next.TerminationSignal != nil && got.TerminationSignal != nil && *next.TerminationSignal != *got.TerminationSignal {
++		if err != nil || (next.MemoryCap == nil) != (got.MemoryCap == nil) || next.MemoryCap != nil && got.MemoryCap != nil && *next.MemoryCap != *got.MemoryCap || next.ExitCode != got.ExitCode || next.CPUTime != got.CPUTime || next.StdinBytes != got.StdinBytes || next.StdoutBytes != got.StdoutBytes || next.StderrBytes != got.StderrBytes || (next.PeakMemoryBytes == nil) != (got.PeakMemoryBytes == nil) || next.PeakMemoryBytes != nil && got.PeakMemoryBytes != nil && *next.PeakMemoryBytes != *got.PeakMemoryBytes || (next.TerminationSignal == nil) != (got.TerminationSignal == nil) || next.TerminationSignal != nil && got.TerminationSignal != nil && *next.TerminationSignal != *got.TerminationSignal {
+ 			t.Fatalf("result round trip lost facts: %v", err)
+ 		}
+ 		again, err := core.MarshalCanonicalJSONDocument(next)
+diff --git a/process/run.go b/process/run.go
+index d698d7f3..811cf918 100644
+--- a/process/run.go
++++ b/process/run.go
+@@ -68,7 +68,9 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
+ 		// must not orphan it: the cancel delivers the kill and the wait reaps
+ 		// the corpse, because no Execution will exist to do either later.
+ 		cancel(nil)
+-		return nil, errors.Join(identityErr, prepared.command.Wait())
++		waitErr := prepared.command.Wait()
++		prepared.memoryCap.finish()
++		return nil, errors.Join(identityErr, waitErr)
+ 	}
+ 	return &Execution{
+ 		prepared:    prepared,
+@@ -85,6 +87,7 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
+ type preparedCommand struct {
+ 	command      *exec.Cmd
+ 	cancellation *atomic.Bool
++	memoryCap    *memoryCapObserver
+ }
+ 
+ func prepareCommand(
+@@ -92,7 +95,7 @@ func prepareCommand(
+ 	request Request,
+ 	streams commandStreams,
+ ) (preparedCommand, error) {
+-	path, argv, err := cappedCommand(request.Containment.MemoryMax, request.Command.String(), request.projectArguments())
++	path, argv, unit, err := cappedCommand(request.Containment.MemoryMax, request.Command.String(), request.projectArguments())
+ 	if err != nil {
+ 		return preparedCommand{}, err
+ 	}
+@@ -147,6 +150,7 @@ func prepareCommand(
+ 	}
+ 	return preparedCommand{
+ 		command: command, cancellation: cancellation,
++		memoryCap: newMemoryCapObserver(ctx, memoryCapOwner{unit: unit, pid: ProcessIdentity(command.Process.Pid), limit: request.Containment.MemoryMax}),
+ 	}, nil
+ }
+ 
+@@ -162,10 +166,12 @@ type waitRequest struct {
+ func waitCommand(request waitRequest) (Result, error) {
+ 	waitErr := request.prepared.command.Wait()
+ 	request.reaped.Store(true)
++	memoryCap := request.prepared.memoryCap.finish()
+ 	result, resultErr := newResult(
+ 		request.prepared.command.ProcessState,
+ 		request.streams,
+ 	)
++	result.memoryCap = memoryCap
+ 	if resultErr != nil {
+ 		return Result{}, newFailure(FailureKindWait, request.commandPath, resultErr)
+ 	}

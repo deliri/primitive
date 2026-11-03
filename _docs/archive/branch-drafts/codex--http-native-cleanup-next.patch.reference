@@ -1,0 +1,2074 @@
+diff --git a/exchange/architecture_test.go b/exchange/architecture_test.go
+index 5f37cc4e..881a4ab2 100644
+--- a/exchange/architecture_test.go
++++ b/exchange/architecture_test.go
+@@ -185,12 +185,13 @@ type exchangeContractInventory struct {
+ 	DownloadRequest        protocolContract[DownloadRequest]
+ 	StreamRoundTripRequest protocolContract[StreamRoundTripRequest]
+ 
+-	Client               capabilityWrapper[Client]
+-	SessionClientRequest protocolContract[SessionClientRequest]
+-	JSONCall             protocolContract[JSONCall[inventoryDocument]]
+-	NoBodyJSONCall       protocolContract[NoBodyJSONCall]
+-	BoundedCall          protocolContract[BoundedCall]
+-	NoBodyBoundedCall    protocolContract[NoBodyBoundedCall]
++	Client                   capabilityWrapper[Client]
++	HTTPClientCleanupRequest capabilityWrapper[HTTPClientCleanupRequest]
++	SessionClientRequest     protocolContract[SessionClientRequest]
++	JSONCall                 protocolContract[JSONCall[inventoryDocument]]
++	NoBodyJSONCall           protocolContract[NoBodyJSONCall]
++	BoundedCall              protocolContract[BoundedCall]
++	NoBodyBoundedCall        protocolContract[NoBodyBoundedCall]
+ 
+ 	aggregateRequest               internalFlow[aggregateRequest]
+ 	aggregateCall                  internalFlow[aggregateCall]
+@@ -473,6 +474,7 @@ func productionStructNames(t *testing.T) []string {
+ func classifiedStructNames(t *testing.T) []string {
+ 	t.Helper()
+ 	inventory := exchangeContractInventory{
++		socketStallWriter:              internalFlow[socketStallWriter]{},
+ 		producedResponseWriter:         internalFlow[producedResponseWriter]{},
+ 		producedExtentWriter:           internalFlow[producedExtentWriter]{},
+ 		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},
+diff --git a/exchange/client.go b/exchange/client.go
+index a2e16684..6dbbcaf3 100644
+--- a/exchange/client.go
++++ b/exchange/client.go
+@@ -86,11 +86,7 @@ func (c Client) CloseIdleConnections() error {
+ 	if err := c.Validate(); err != nil {
+ 		return err
+ 	}
+-	if transport, ok := c.http.Transport.(*http.Transport); ok && transport == nil {
+-		return core.ErrExchangeContract
+-	}
+-	c.http.CloseIdleConnections()
+-	return nil
++	return CloseHTTPClientIdleConnections(HTTPClientCleanupRequest{Client: c.http})
+ }
+ 
+ // JSONCall supplies one complete typed JSON client operation.
+@@ -685,7 +681,9 @@ func newAggregateHTTPRequest(
+ 		identityContentCoding().String(),
+ 	)
+ 	applyRequestHeaders(request, input.headers)
+-	applySecretHeaders(request, input.secretHeaders)
++	if err := applySecretHeaders(request, input.secretHeaders); err != nil {
++		return nil, requestError(err)
++	}
+ 	applyIdempotencyKey(request, input.semantics)
+ 	return request, nil
+ }
+@@ -806,9 +804,9 @@ func readAggregateResponseBody(input aggregateReadRequest) ([]byte, uint64, erro
+ 	}
+ 	destination := input.destination
+ 	if input.failureDestination != nil {
+-		expected, err := input.expectedStatus.Int()
+-		if err != nil {
+-			return nil, 0, err
++		expected, statusErr := input.expectedStatus.Int()
++		if statusErr != nil {
++			return nil, 0, statusErr
+ 		}
+ 		if input.response.StatusCode != expected {
+ 			destination = input.failureDestination
+@@ -1155,12 +1153,14 @@ func exchangeContextError(ctx context.Context) error {
+ 		return err
+ 	}
+ 	switch state {
++	case contextstate.StateNone:
++		return nil
+ 	case contextstate.StateCancelled:
+ 		return cancelledError(errors.Join(context.Canceled, exchangeCancellationCause(ctx)))
+ 	case contextstate.StateDeadlineExceeded:
+ 		return cancelledError(errors.Join(context.DeadlineExceeded, exchangeCancellationCause(ctx)))
+ 	default:
+-		return nil
++		return core.ErrContextStateContract
+ 	}
+ }
+ 
+diff --git a/exchange/client_cleanup.go b/exchange/client_cleanup.go
+new file mode 100644
+index 00000000..854563e2
+--- /dev/null
++++ b/exchange/client_cleanup.go
+@@ -0,0 +1,34 @@
++package exchange
++
++import (
++	"net/http"
++
++	"github.com/deliri/primitive/v2026/core"
++)
++
++// HTTPClientCleanupRequest borrows the exact native client whose idle pool the
++// caller owns or is authorized to release. A nil Transport selects Go's shared
++// default pool; the request does not create ownership of that shared pool.
++// Request timeouts are unrelated to idle cleanup and remain unchanged.
++type HTTPClientCleanupRequest struct {
++	Client *http.Client
++}
++
++func (r HTTPClientCleanupRequest) Validate() error {
++	if r.Client == nil || r.Client.Transport != nil && core.IsNil(r.Client.Transport) {
++		return core.ErrExchangeContract
++	}
++	return nil
++}
++
++// CloseHTTPClientIdleConnections delegates to the exact borrowed Go client.
++// Go closes idle connections, preserves active calls, and invokes an optional
++// custom transport cleanup method. Its operation has no error result. No live
++// operation context or request-client timeout policy gates this cleanup.
++func CloseHTTPClientIdleConnections(request HTTPClientCleanupRequest) error {
++	if err := request.Validate(); err != nil {
++		return err
++	}
++	request.Client.CloseIdleConnections()
++	return nil
++}
+diff --git a/exchange/client_cleanup_test.go b/exchange/client_cleanup_test.go
+new file mode 100644
+index 00000000..b85189e0
+--- /dev/null
++++ b/exchange/client_cleanup_test.go
+@@ -0,0 +1,304 @@
++package exchange_test
++
++import (
++	"context"
++	"errors"
++	"io"
++	"net"
++	"net/http"
++	"net/http/httptest"
++	"sync"
++	"sync/atomic"
++	"testing"
++	"time"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/exchange"
++)
++
++type cleanupCountingTransport struct {
++	closes atomic.Int32
++	trips  atomic.Int32
++}
++
++func (t *cleanupCountingTransport) RoundTrip(*http.Request) (*http.Response, error) {
++	t.trips.Add(1)
++	return nil, core.ErrExchangeTransport
++}
++func (t *cleanupCountingTransport) CloseIdleConnections() { t.closes.Add(1) }
++
++type cleanupRequestOnlyTransport struct{ trips atomic.Int32 }
++
++func (t *cleanupRequestOnlyTransport) RoundTrip(*http.Request) (*http.Response, error) {
++	t.trips.Add(1)
++	return nil, core.ErrExchangeTransport
++}
++
++func TestHTTPClientCleanupRequestLayerTriad(t *testing.T) {
++	t.Parallel()
++	for _, tc := range []struct {
++		name          string
++		client        func() *http.Client
++		wantErr       error
++		admissionOnly bool
++	}{
++		{name: "missing native client refuses before dereference", client: func() *http.Client { return nil }, wantErr: core.ErrExchangeContract},
++		{name: "typed nil standard transport refuses before native cleanup", client: func() *http.Client { return &http.Client{Transport: (*http.Transport)(nil)} }, wantErr: core.ErrExchangeContract},
++		{name: "typed nil custom cleanup transport refuses before receiver call", client: func() *http.Client { return &http.Client{Transport: (*cleanupCountingTransport)(nil)} }, wantErr: core.ErrExchangeContract},
++		{name: "nil transport admits Go shared default without exercising unowned pool", client: func() *http.Client { return &http.Client{} }, admissionOnly: true},
++		{name: "finite timeout keeps exact custom transport and request policy", client: func() *http.Client { return &http.Client{Transport: &cleanupCountingTransport{}, Timeout: time.Second} }},
++		{name: "zero timeout delegates optional custom cleanup", client: func() *http.Client { return &http.Client{Transport: &cleanupCountingTransport{}} }},
++		{name: "custom transport without cleanup method remains native no effect", client: func() *http.Client {
++			return &http.Client{Transport: &cleanupRequestOnlyTransport{}, Timeout: time.Second}
++		}},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			t.Parallel()
++			native := tc.client()
++			request := exchange.HTTPClientCleanupRequest{Client: native}
++			if err := request.Validate(); !errors.Is(err, tc.wantErr) {
++				t.Fatalf("cleanup admission = %v, want %v", err, tc.wantErr)
++			}
++			if tc.admissionOnly {
++				return // Native nil-transport pool semantics are source-qualified, not executed on a shared pool.
++			}
++			var timeout time.Duration
++			var transport http.RoundTripper
++			if native != nil {
++				timeout, transport = native.Timeout, native.Transport
++			}
++			if err := exchange.CloseHTTPClientIdleConnections(request); !errors.Is(err, tc.wantErr) {
++				t.Fatalf("cleanup execution = %v, want %v", err, tc.wantErr)
++			}
++			if tc.wantErr != nil {
++				return
++			}
++			if native.Timeout != timeout || native.Transport != transport || request.Client != native {
++				t.Fatalf("native timeout/transport/client identity = %v/%t/%t, want %v/true/true", native.Timeout, native.Transport == transport, request.Client == native, timeout)
++			}
++			switch owned := transport.(type) {
++			case *cleanupCountingTransport:
++				if owned.closes.Load() != 1 || owned.trips.Load() != 0 {
++					t.Fatalf("native custom cleanup/request calls = %d/%d, want 1/0", owned.closes.Load(), owned.trips.Load())
++				}
++			case *cleanupRequestOnlyTransport:
++				if owned.trips.Load() != 0 {
++					t.Fatalf("native request calls during no-method cleanup = %d, want 0", owned.trips.Load())
++				}
++			}
++			if timeout != 0 {
++				if _, err := exchange.NewClient(native); !errors.Is(err, core.ErrExchangeContract) {
++					t.Fatalf("unchanged request-client timeout admission = %v, want Exchange contract", err)
++				}
++			}
++		})
++	}
++}
++
++func TestHTTPClientCleanupClosesNativeIdleAfterOperationCancellation(t *testing.T) {
++	t.Parallel()
++	idle, closed := make(chan struct{}), make(chan struct{})
++	var idleOnce, closedOnce sync.Once
++	peer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
++		if _, err := io.WriteString(w, "idle"); err != nil {
++			t.Errorf("loopback response write = %v, want nil", err)
++		}
++	}))
++	peer.Config.ConnState = func(_ net.Conn, state http.ConnState) {
++		switch state {
++		case http.StateIdle:
++			idleOnce.Do(func() { close(idle) })
++		case http.StateClosed:
++			closedOnce.Do(func() { close(closed) })
++		}
++	}
++	peer.Start()
++	t.Cleanup(peer.Close)
++	network := &http.Transport{}
++	t.Cleanup(network.CloseIdleConnections)
++	native := &http.Client{Transport: network, Timeout: 5 * time.Second}
++	ctx, cancel := context.WithCancel(t.Context())
++	defer cancel()
++	request, err := http.NewRequestWithContext(ctx, http.MethodGet, peer.URL, http.NoBody)
++	if err != nil {
++		t.Fatal(err)
++	}
++	response, err := native.Do(request)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var body [4]byte
++	_, readErr := io.ReadFull(response.Body, body[:])
++	_, drainErr := io.Copy(io.Discard, response.Body)
++	closeErr := response.Body.Close()
++	if readErr != nil || drainErr != nil || closeErr != nil || string(body[:]) != "idle" {
++		t.Fatalf("native response = %q/%v/%v/%v, want idle/nil/nil/nil", body, readErr, drainErr, closeErr)
++	}
++	select {
++	case <-idle:
++	case <-time.After(10 * time.Second):
++		t.Fatal("native connection idle = false, want observed idle state")
++	}
++	cancel()
++	select {
++	case <-closed:
++		t.Fatal("native connection closed before cleanup = true, want false")
++	default:
++	}
++	if err := exchange.CloseHTTPClientIdleConnections(exchange.HTTPClientCleanupRequest{Client: native}); err != nil {
++		t.Fatalf("finite timeout cleanup after operation cancellation = %v, want nil", err)
++	}
++	if native.Timeout != 5*time.Second || native.Transport != network {
++		t.Fatalf("native timeout/transport identity = %v/%t, want 5s/true", native.Timeout, native.Transport == network)
++	}
++	select {
++	case <-closed:
++	case <-time.After(10 * time.Second):
++		t.Fatal("native connection closed after cleanup = false, want server-observed closure")
++	}
++	if err := exchange.CloseHTTPClientIdleConnections(exchange.HTTPClientCleanupRequest{Client: native}); err != nil {
++		t.Fatalf("repeated cleanup of closed idle pool = %v, want nil", err)
++	}
++}
++
++func TestHTTPClientCleanupPreservesNativeActiveResponse(t *testing.T) {
++	t.Parallel()
++	entered, release := make(chan struct{}), make(chan struct{})
++	var releaseOnce sync.Once
++	peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		close(entered)
++		select {
++		case <-release:
++			if _, err := io.WriteString(w, "active"); err != nil {
++				t.Errorf("active loopback write = %v, want nil", err)
++			}
++		case <-r.Context().Done():
++		}
++	}))
++	t.Cleanup(peer.Close)
++	network := &http.Transport{}
++	t.Cleanup(network.CloseIdleConnections)
++	native := &http.Client{Transport: network, Timeout: 5 * time.Second}
++	ctx, cancel := context.WithCancel(t.Context())
++	defer cancel()
++	defer releaseOnce.Do(func() { close(release) })
++	done, joined := make(chan error, 1), make(chan struct{})
++	go func() {
++		defer close(joined)
++		request, err := http.NewRequestWithContext(ctx, http.MethodGet, peer.URL, http.NoBody)
++		if err != nil {
++			done <- err
++			return
++		}
++		response, err := native.Do(request)
++		if err != nil {
++			done <- err
++			return
++		}
++		var body [6]byte
++		_, readErr := io.ReadFull(response.Body, body[:])
++		_, drainErr := io.Copy(io.Discard, response.Body)
++		closeErr := response.Body.Close()
++		if string(body[:]) != "active" {
++			done <- errors.Join(core.ErrExchangeResponse, readErr, drainErr, closeErr)
++			return
++		}
++		done <- errors.Join(readErr, drainErr, closeErr)
++	}()
++	t.Cleanup(func() {
++		cancel()
++		releaseOnce.Do(func() { close(release) })
++		select {
++		case <-joined:
++		case <-time.After(10 * time.Second):
++			t.Error("native active caller joined = false, want true after cancellation")
++		}
++	})
++	select {
++	case <-entered:
++	case <-time.After(10 * time.Second):
++		t.Fatal("active handler entered = false, want observed barrier")
++	}
++	if err := exchange.CloseHTTPClientIdleConnections(exchange.HTTPClientCleanupRequest{Client: native}); err != nil {
++		t.Fatalf("native active cleanup = %v, want nil", err)
++	}
++	select {
++	case err := <-done:
++		t.Fatalf("active call completed before release = %v, want blocked handler", err)
++	default:
++	}
++	releaseOnce.Do(func() { close(release) })
++	select {
++	case err := <-done:
++		if err != nil {
++			t.Fatalf("native active response after cleanup = %v, want exact response and nil", err)
++		}
++	case <-time.After(10 * time.Second):
++		t.Fatal("native response completed = false, want completion after handler release")
++	}
++}
++
++func TestHTTPClientCleanupTargetsOnlyBorrowedNativePool(t *testing.T) {
++	t.Parallel()
++	var pools [2]struct {
++		client   *http.Client
++		server   *httptest.Server
++		requests chan string
++		closed   chan struct{}
++	}
++	for index := range pools {
++		requests, closed := make(chan string, 2), make(chan struct{})
++		var closeOnce sync.Once
++		peer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++			requests <- r.RemoteAddr
++			if _, err := io.WriteString(w, "pool"); err != nil {
++				t.Errorf("owned pool response write = %v, want nil", err)
++			}
++		}))
++		peer.Config.ConnState = func(_ net.Conn, state http.ConnState) {
++			if state == http.StateClosed {
++				closeOnce.Do(func() { close(closed) })
++			}
++		}
++		peer.Start()
++		t.Cleanup(peer.Close)
++		network := &http.Transport{}
++		t.Cleanup(network.CloseIdleConnections)
++		pools[index].client = &http.Client{Transport: network, Timeout: 5 * time.Second}
++		pools[index].server, pools[index].requests, pools[index].closed = peer, requests, closed
++	}
++	var addresses [2]string
++	for index := range pools {
++		response, err := pools[index].client.Get(pools[index].server.URL)
++		if err != nil {
++			t.Fatal(err)
++		}
++		_, readErr := io.Copy(io.Discard, response.Body)
++		closeErr := response.Body.Close()
++		if readErr != nil || closeErr != nil {
++			t.Fatalf("owned pool response read/close = %v/%v, want nil/nil", readErr, closeErr)
++		}
++		addresses[index] = <-pools[index].requests
++	}
++	if err := exchange.CloseHTTPClientIdleConnections(exchange.HTTPClientCleanupRequest{Client: pools[0].client}); err != nil {
++		t.Fatalf("selected native pool cleanup = %v, want nil", err)
++	}
++	select {
++	case <-pools[0].closed:
++	case <-time.After(10 * time.Second):
++		t.Fatal("selected native pool closed = false, want server-observed closure")
++	}
++	response, err := pools[1].client.Get(pools[1].server.URL)
++	if err != nil {
++		t.Fatal(err)
++	}
++	_, readErr := io.Copy(io.Discard, response.Body)
++	closeErr := response.Body.Close()
++	if readErr != nil || closeErr != nil {
++		t.Fatalf("other native pool response read/close = %v/%v, want nil/nil", readErr, closeErr)
++	}
++	got := <-pools[1].requests
++	if got != addresses[1] {
++		t.Fatalf("other native pool peer = %q, want retained connection %q", got, addresses[1])
++	}
++}
+diff --git a/exchange/idle_connections_test.go b/exchange/idle_connections_test.go
+index 7f29fe93..983f994f 100644
+--- a/exchange/idle_connections_test.go
++++ b/exchange/idle_connections_test.go
+@@ -16,8 +16,8 @@ import (
+ func TestCloseIdleConnectionsRevalidatesNativeClient(t *testing.T) {
+ 	t.Parallel()
+ 	for _, tc := range []struct {
+-		name            string
+-		zero            bool
++		name             string
++		zero             bool
+ 		competingTimeout bool
+ 	}{
+ 		{name: "zero client refuses without native dereference", zero: true},
+@@ -98,13 +98,13 @@ func TestCloseIdleConnectionsPreservesActiveNativeCall(t *testing.T) {
+ 		select {
+ 		case <-joined:
+ 		case <-time.After(10 * time.Second):
+-			t.Error("owned native call did not join after cancellation")
++			t.Error("owned native call joined after cancellation = false, want true")
+ 		}
+ 	})
+ 	select {
+ 	case <-entered:
+ 	case <-time.After(10 * time.Second):
+-		t.Fatal("native call never entered provider")
++		t.Fatal("native provider entered = false, want true")
+ 	}
+ 	if err := client.CloseIdleConnections(); err != nil {
+ 		t.Fatal(err)
+@@ -116,6 +116,6 @@ func TestCloseIdleConnectionsPreservesActiveNativeCall(t *testing.T) {
+ 			t.Fatalf("active native call after cleanup = %v, want exact completed response", err)
+ 		}
+ 	case <-time.After(10 * time.Second):
+-		t.Fatal("active native call failed to complete after provider release")
++		t.Fatal("native call completed after provider release = false, want true")
+ 	}
+ }
+diff --git a/exchange/ingress_inventory_external_test.go b/exchange/ingress_inventory_external_test.go
+index f21723fa..685622a3 100644
+--- a/exchange/ingress_inventory_external_test.go
++++ b/exchange/ingress_inventory_external_test.go
+@@ -104,6 +104,7 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
+ 		{Door: exchange.NewOfficialSDKResponseTransport, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzOfficialSDKResponseTransportSemanticBoundary},
+ 		{Door: exchange.NewOfficialSDKHTTPClient, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzOfficialSDKResponseTransportSemanticBoundary},
+ 		{Door: exchange.NewClient, Kind: exchange.IngressCapabilityForTest, Proof: TestClientTimeoutOwnershipLayerTriad, Reason: "Admits a Go client capability, not an external representation."},
++		{Door: exchange.CloseHTTPClientIdleConnections, Kind: exchange.IngressCapabilityForTest, Proof: TestHTTPClientCleanupRequestLayerTriad, Reason: "Borrows an existing Go client for native idle cleanup; no external bytes, representation decoding or request execution."},
+ 		{Door: exchange.NewStandardClient, Kind: exchange.IngressCapabilityForTest, Proof: TestNewStandardClientProducesTheShapeNewClientDemands, Reason: "Creates the standard Go client without input material."},
+ 		{Door: exchange.NewClientSocket, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
+ 		{Door: exchange.NewServerSocket, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
+diff --git a/exchange/multipart_lifetime_external_test.go b/exchange/multipart_lifetime_external_test.go
+index b04d5a7c..6ca7fc75 100644
+--- a/exchange/multipart_lifetime_external_test.go
++++ b/exchange/multipart_lifetime_external_test.go
+@@ -139,15 +139,15 @@ func TestMultipartGoexitJoinsNativeOwnedLifetimesAndPreservesFutureCustody(t *te
+ 			awaitMultipartJoin(t, done, "Goexit producer and consuming scope")
+ 			awaitMultipartJoin(t, writerDone, "native fixture writer")
+ 			if active.closed.Load() != 1 || future.closed.Load() != 0 || !active.readStarted.Load() {
+-				t.Fatalf("Goexit native custody = (closes%d,future%d,read%t), want one admitted close/no future close/actual native Read", active.closed.Load(), future.closed.Load(), active.readStarted.Load())
++				t.Fatalf("Goexit native custody = (closes%d,future%d,read%t), want closes1/future0/readtrue", active.closed.Load(), future.closed.Load(), active.readStarted.Load())
+ 			}
+ 			if row.kind == 1 {
+ 				if returned.Load() || !consumerExiting.Load() {
+-					t.Fatalf("consumer lifetime = (returned%t,exiting%t), want actual Goexit with deferred scope join", returned.Load(), consumerExiting.Load())
++					t.Fatalf("consumer lifetime = (returned%t,exiting%t), want returnedfalse/exitingtrue after deferred scope join", returned.Load(), consumerExiting.Load())
+ 				}
+ 			} else {
+ 				if !returned.Load() {
+-					t.Fatal("producer Goexit did not publish its cause and join the consumer")
++					t.Fatal("producer Goexit returned after joining consumer = false, want true")
+ 				}
+ 				resultErr := <-result
+ 				if !errors.Is(resultErr, core.ErrExchangeCallbackExit) || errors.Is(resultErr, core.ErrExchangeCallbackPanic) {
+diff --git a/exchange/multipart_source.go b/exchange/multipart_source.go
+index 62c0c2d5..a5aedd09 100644
+--- a/exchange/multipart_source.go
++++ b/exchange/multipart_source.go
+@@ -180,7 +180,7 @@ func produceMultipart(ctx context.Context, owner *multipartLifetime, form *multi
+ 		if err := part.Validate(); err != nil {
+ 			return err
+ 		}
+-		if err := writeMultipartPart(ctx, owner, form, part, buffer); err != nil {
++		if err := owner.writePart(ctx, form, part, buffer); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -190,7 +190,7 @@ func produceMultipart(ctx context.Context, owner *multipartLifetime, form *multi
+ 	return form.Close()
+ }
+ 
+-func writeMultipartPart(ctx context.Context, owner *multipartLifetime, form *multipart.Writer, part MultipartPart, buffer []byte) (resultErr error) {
++func (owner *multipartLifetime) writePart(ctx context.Context, form *multipart.Writer, part MultipartPart, buffer []byte) (resultErr error) {
+ 	var destination io.Writer
+ 	var source io.Reader
+ 	switch part.Kind {
+diff --git a/exchange/official_sdk.go b/exchange/official_sdk.go
+index 9eb5b26f..5f3f2157 100644
+--- a/exchange/official_sdk.go
++++ b/exchange/official_sdk.go
+@@ -555,7 +555,6 @@ func validateOfficialSDKResponsePayload(
+ 	if representation != OfficialSDKResponseRepresentationJSON || len(payload) == 0 {
+ 		return nil
+ 	}
+-	// doctrine:local-allowed=external-wire
+ 	if !jsontext.Value(payload).IsValid() {
+ 		return responseError(core.ErrJSONContract)
+ 	}
+diff --git a/exchange/scalar_contract_test.go b/exchange/scalar_contract_test.go
+new file mode 100644
+index 00000000..93cc3696
+--- /dev/null
++++ b/exchange/scalar_contract_test.go
+@@ -0,0 +1,378 @@
++package exchange
++
++import (
++	"crypto/sha256"
++	"encoding/hex"
++	json "encoding/json/v2"
++	"errors"
++	"fmt"
++	"math"
++	"net/url"
++	"strconv"
++	"strings"
++	"testing"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
++)
++
++func TestMultipartNativeFormattingDoesNotSupplyAdmissionAuthority(t *testing.T) {
++	t.Parallel()
++	for raw := range 256 {
++		kind := MultipartPartKind(raw)
++		want := ""
++		switch kind {
++		case MultipartPartField:
++			want = "field"
++		case MultipartPartFile:
++			want = "file"
++		}
++		var wantErr error
++		if want == "" {
++			wantErr = core.ErrExchangeContract
++		}
++		if !errors.Is(kind.Validate(), wantErr) || kind.IsValid() != (wantErr == nil) {
++			t.Fatalf("framing admission byte%d = (%v,%t), want (%v,%t)", raw, kind.Validate(), kind.IsValid(), wantErr, wantErr == nil)
++		}
++		for _, projection := range []struct{ format, want string }{
++			{format: "%s", want: want},
++			// Numeric formatting deliberately exposes the native ordinal even
++			// when String is empty. Neither rendering supplies admission.
++			{format: "%d", want: strconv.FormatUint(uint64(raw), 10)},
++		} {
++			if got := fmt.Sprintf(projection.format, kind); got != projection.want {
++				t.Fatalf("native framing diagnostic byte%d format%s = %q, want %q after independent typed admission", raw, projection.format, got, projection.want)
++			}
++		}
++	}
++}
++
++func TestOfficialSDKNativeJSONValueGrammarBoundary(t *testing.T) {
++	t.Parallel()
++	canonical, err := json.Marshal(struct {
++		Value string `json:"value"`
++	}{Value: "native grammar"})
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, tc := range []struct {
++		name           string
++		payload        []byte
++		representation OfficialSDKResponseRepresentation
++		wantErr        error
++	}{
++		{name: "typed native encoder output is accepted", representation: OfficialSDKResponseRepresentationJSON, payload: canonical},
++		{name: "empty response is neutral before JSON grammar", representation: OfficialSDKResponseRepresentationJSON},
++		{name: "binary response retains nonJSON bytes", representation: OfficialSDKResponseRepresentationBinary, payload: []byte("{")},
++		{name: "incomplete JSON is refused", representation: OfficialSDKResponseRepresentationJSON, payload: []byte("{"), wantErr: core.ErrJSONContract},
++		{name: "invalid UTF8 JSON is refused", representation: OfficialSDKResponseRepresentationJSON, payload: []byte{'"', 0xff, '"'}, wantErr: core.ErrJSONContract},
++		{name: "second JSON value is refused", representation: OfficialSDKResponseRepresentationJSON, payload: append(append([]byte{}, canonical...), canonical...), wantErr: core.ErrJSONContract},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			t.Parallel()
++			gotErr := validateOfficialSDKResponsePayload(tc.representation, tc.payload)
++			if !errors.Is(gotErr, tc.wantErr) || tc.wantErr != nil && !errors.Is(gotErr, core.ErrExchangeResponse) {
++				t.Fatalf("native grammar boundary error = %v, want %v and owning response class on refusal", gotErr, tc.wantErr)
++			}
++		})
++	}
++}
++
++func TestSecretHeaderSchemeExhaustsNativeByteDomain(t *testing.T) {
++	t.Parallel()
++	for raw := range 256 {
++		scheme := SecretHeaderScheme(raw)
++		wantValid := scheme == SecretHeaderLiteral || scheme == SecretHeaderBearer
++		wantLabel := core.UnknownEnumDiagnostic
++		if scheme == SecretHeaderLiteral {
++			wantLabel = "literal"
++		}
++		if scheme == SecretHeaderBearer {
++			wantLabel = "bearer"
++		}
++		var wantErr error
++		if !wantValid {
++			wantErr = core.ErrExchangeContract
++		}
++		if scheme.IsValid() != wantValid || !errors.Is(scheme.Validate(), wantErr) || scheme.String() != wantLabel {
++			t.Fatalf("scheme byte%d = (%t,%v,%q), want (%t,%v,%q)", raw, scheme.IsValid(), scheme.Validate(), scheme.String(), wantValid, wantErr, wantLabel)
++		}
++	}
++}
++
++// The public request preflight already refuses this input. This direct internal
++// constructor ratchet proves a bypassed preflight returns a typed refusal rather
++// than panicking or publishing a partially built native request. No Do occurs.
++func TestAggregateUnknownSecretSchemeRefusesWithoutNativeRequest(t *testing.T) {
++	t.Parallel()
++	target, err := core.ParseHTTPEndpoint("https://provider.example.test/owned")
++	if err != nil {
++		t.Fatal(err)
++	}
++	name, err := core.ParseHTTPHeaderName("X-Owned-Key")
++	if err != nil {
++		t.Fatal(err)
++	}
++	got, gotErr := newAggregateHTTPRequest(t.Context(), aggregateRequest{
++		target: target, semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt},
++		secretHeaders: []SecretHeader{{Name: name, Value: []byte("synthetic"), Scheme: SecretHeaderScheme(255)}},
++	})
++	if got != nil || !errors.Is(gotErr, core.ErrExchangeRequest) || !errors.Is(gotErr, core.ErrExchangeContract) {
++		t.Fatalf("unknown scheme constructor = (request present%t,%v), want absent/ExchangeRequest/ExchangeContract", got != nil, gotErr)
++	}
++}
++
++func TestV4QueryEncodedIngressPreservesEveryNativeByte(t *testing.T) {
++	t.Parallel()
++	for raw := range 256 {
++		decoded := string([]byte{byte(raw)})
++		encoded := url.QueryEscape(decoded)
++		name, nameErr := parseV4QueryName(encoded)
++		value, valueErr := parseV4QueryValue(encoded)
++		if nameErr != nil || valueErr != nil || name.String() != decoded || value.String() != decoded {
++			t.Fatalf("encoded byte%d closure = (%v,%v,name equal%t,value equal%t), want nil/nil/true/true", raw, nameErr, valueErr, name.String() == decoded, value.String() == decoded)
++		}
++	}
++	for _, decoded := range []string{"", "a+b = % /", "雪", "a\x00\xffb", strings.Repeat("x", 32769)} {
++		encoded := v4QueryEncoding(decoded)
++		name, nameErr := parseV4QueryName(encoded)
++		value, valueErr := parseV4QueryValue(encoded)
++		if nameErr != nil || valueErr != nil || name.String() != decoded || value.String() != decoded || v4QueryEncoding(name.String()) != encoded || v4QueryEncoding(value.String()) != encoded {
++			t.Fatalf("native query closure at%dbytes = (%v,%v), want exact decoded/canonical bytes and nil", len(decoded), nameErr, valueErr)
++		}
++	}
++	for _, encoded := range []string{"%", "%0", "%GG", "prefix%0tail"} {
++		name, nameErr := parseV4QueryName(encoded)
++		value, valueErr := parseV4QueryValue(encoded)
++		_, nativeErr := url.QueryUnescape(encoded)
++		var nameNative, valueNative url.EscapeError
++		if nativeErr == nil || name != "" || value != "" || !errors.Is(nameErr, core.ErrExchangeRequest) || !errors.Is(valueErr, core.ErrExchangeRequest) || !errors.As(nameErr, &nameNative) || !errors.As(valueErr, &valueNative) {
++			t.Fatalf("malformed native query = (%v,%v), want zero values and ExchangeRequest retaining native EscapeError", nameErr, valueErr)
++		}
++	}
++}
++
++func TestV4MalformedEncodedQueryCannotPublishSignedOutput(t *testing.T) {
++	t.Parallel()
++	for _, query := range []string{"%GG=value", "name=%GG"} {
++		intent := signingFixture(t)
++		target := intent.Target.HTTPURL()
++		target.RawQuery = query
++		var err error
++		intent.Target, err = core.ParseHTTPEndpoint(target.String())
++		if err != nil {
++			t.Fatalf("native query URL fixture admission = %v, want nil before percent component parsing", err)
++		}
++		got, gotErr := PresignV4(t.Context(), intent)
++		var native url.EscapeError
++		if got != (core.HTTPEndpoint{}) || !errors.Is(gotErr, core.ErrExchangeRequest) || !errors.As(gotErr, &native) {
++			t.Fatalf("malformed query signing = (output present%t,%v), want absent/ExchangeRequest/native EscapeError", got != (core.HTTPEndpoint{}), gotErr)
++		}
++	}
++}
++
++func TestV4TimestampOwnsCalendarAndProducerNanosecondEdges(t *testing.T) {
++	t.Parallel()
++	for _, nanos := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
++		text, err := temporal.InstantFromNanoseconds(nanos).CompactUTCSeconds()
++		if err != nil {
++			t.Fatal(err)
++		}
++		got, gotErr := parseV4Timestamp(text)
++		if gotErr != nil || got.Validate() != nil || got.String() != text {
++			t.Fatalf("timestamp producer closure at%d = (%v,equal%t), want nil/true", nanos, gotErr, got.String() == text)
++		}
++	}
++	for _, text := range []string{"", "19700101T000000", "19700101T000000z", "19700101T000060Z", "19700230T000000Z", "19700101T000000.0Z", "16770921T001242Z", "22620411T234717Z"} {
++		got, gotErr := parseV4Timestamp(text)
++		if got != "" || !errors.Is(gotErr, core.ErrExchangeRequest) || (v4Timestamp(text)).Validate() == nil {
++			t.Fatalf("timestamp refusal = (zero%t,%v), want true/ExchangeRequest and invalid unadmitted value", got == "", gotErr)
++		}
++	}
++}
++
++func TestV4CredentialScopeOwnsNativeCalendarAndExactSeparators(t *testing.T) {
++	t.Parallel()
++	for _, text := range []string{"19700101/r/s/aws4_request", "20000229/region/service/aws4_request", "16770921/r/s/aws4_request", "22620411/r/s/aws4_request", "19700101/\xff/\x00/aws4_request", "19700101/" + strings.Repeat("r", 32769) + "/s/aws4_request"} {
++		got, gotErr := parseV4CredentialScope(text)
++		if gotErr != nil || got.Validate() != nil || got.String() != text {
++			t.Fatalf("scope closure at%dbytes = (%v,equal%t), want nil/true", len(text), gotErr, got.String() == text)
++		}
++	}
++	for _, text := range []string{"", "1970010/r/s/aws4_request", "19700230/r/s/aws4_request", "19700101//s/aws4_request", "19700101/r//aws4_request", "19700101/r/s/other", "19700101/r/s/aws4_request/extra", "19700101/r\r/s/aws4_request", "19700101/r/s\n/aws4_request"} {
++		got, gotErr := parseV4CredentialScope(text)
++		if got != "" || !errors.Is(gotErr, core.ErrExchangeRequest) || (v4CredentialScope(text)).Validate() == nil {
++			t.Fatalf("scope refusal = (zero%t,%v), want true/ExchangeRequest and invalid unadmitted value", got == "", gotErr)
++		}
++	}
++}
++
++func TestV4CredentialSeparatesBorrowedKeyFromScopeAtRightBoundary(t *testing.T) {
++	t.Parallel()
++	for _, key := range []string{"key", "key/with/slashes", "/", "\x00\xff\r\n", strings.Repeat("k", 32769)} {
++		text := key + "/19700101/r/s/aws4_request"
++		got, gotErr := parseV4Credential(text)
++		if gotErr != nil || got.Validate() != nil || got.String() != text {
++			t.Fatalf("credential closure at%dkeybytes = (%v,equal%t), want nil/true", len(key), gotErr, got.String() == text)
++		}
++	}
++	for _, text := range []string{"", "key", "/19700101/r/s/aws4_request", "key/19700101/r/s/other", "key/19700230/r/s/aws4_request", "key/19700101//s/aws4_request"} {
++		got, gotErr := parseV4Credential(text)
++		if got != "" || !errors.Is(gotErr, core.ErrExchangeRequest) || (v4Credential(text)).Validate() == nil {
++			t.Fatalf("credential refusal = (zero%t,%v), want true/ExchangeRequest and invalid unadmitted value", got == "", gotErr)
++		}
++	}
++}
++
++func TestV4SignedHeaderNamesOwnSortedUniqueLowercaseHostSet(t *testing.T) {
++	t.Parallel()
++	for _, text := range []string{"host", "content-length;host", "content-type;host;x-owned", "a;host;z"} {
++		got, gotErr := parseV4SignedHeaders(text)
++		if gotErr != nil || got.Validate() != nil || got.String() != text {
++			t.Fatalf("signed header closure = (%v,equal%t), want nil/true", gotErr, got.String() == text)
++		}
++	}
++	for _, text := range []string{"", "x-owned", "Host", "host;host", "z;host", "host;", ";host", "host;x bad", "host;x\n", "authorization;host", "host;user-agent"} {
++		got, gotErr := parseV4SignedHeaders(text)
++		if got != "" || !errors.Is(gotErr, core.ErrExchangeRequest) || (v4SignedHeaders(text)).Validate() == nil {
++			t.Fatalf("signed header refusal = (zero%t,%v), want true/ExchangeRequest and invalid unadmitted value", got == "", gotErr)
++		}
++	}
++}
++
++// The pinned SDK sorts decoded query keys. Native byte keys can therefore
++// disagree with its order: the owning canonical contract sorts encoded names.
++// Pin that entire query independently, then use ordinary ASCII keys to retain
++// full SDK crypto agreement and a one-byte input-to-MAC mutation at both edges.
++func TestV4NativeByteNameOrderAndSDKValueOracleAtInstantEdges(t *testing.T) {
++	t.Parallel()
++	for _, nanos := range []int64{math.MinInt64, math.MaxInt64} {
++		intent := signingFixture(t)
++		intent.SignedAt = temporal.InstantFromNanoseconds(nanos)
++		intent.AccessKey = []byte("key/with/slashes")
++		name, err := core.ParseHTTPHeaderName("X-Owned-Proof")
++		if err != nil {
++			t.Fatal(err)
++		}
++		first, err := NewHeaderValue("  first   middle  ")
++		if err != nil {
++			t.Fatal(err)
++		}
++		second, err := NewHeaderValue("second")
++		if err != nil {
++			t.Fatal(err)
++		}
++		intent.Headers = Headers{Values: []Header{{Name: name, Values: []HeaderValue{first, second}}}}
++		if nanos == math.MaxInt64 {
++			intent.Region, intent.Service = "\xff", "\x00"
++		}
++		target := intent.Target.HTTPURL()
++		target.RawQuery = "%00=%FF&%FF=%00&empty=&=value"
++		intent.Target, err = core.ParseHTTPEndpoint(target.String())
++		if err != nil {
++			t.Fatal(err)
++		}
++		got, gotErr := PresignV4(t.Context(), intent)
++		if gotErr != nil {
++			t.Fatalf("native byte-name signing at%d error = %v, want nil", nanos, gotErr)
++		}
++		stamp, err := intent.SignedAt.CompactUTCSeconds()
++		if err != nil {
++			t.Fatal(err)
++		}
++		scope := stamp[:8] + "/" + intent.Region + "/" + intent.Service + "/aws4_request"
++		wantQuery := "=value&%00=%FF&%FF=%00&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=" + url.QueryEscape(string(intent.AccessKey)+"/"+scope) + "&X-Amz-Date=" + stamp + "&X-Amz-SignedHeaders=host%3Bx-owned-proof&empty="
++		query, signature, present := strings.Cut(got.HTTPURL().RawQuery, "&X-Amz-Signature=")
++		mac, macErr := hex.DecodeString(signature)
++		if !present || query != wantQuery || macErr != nil || len(signature) != hex.EncodedLen(sha256.Size) || len(mac) != sha256.Size {
++			t.Fatalf("native byte-name query/mac at%d = (query equal%t,signature present%t,%v,%dbytes), want true/true/nil/%d", nanos, query == wantQuery, present, macErr, len(mac), sha256.Size)
++		}
++		previous := signature
++		for _, rawQuery := range []string{"zero=%00&high=%FF&empty=", "zero=%01&high=%FF&empty="} {
++			target.RawQuery = rawQuery
++			intent.Target, err = core.ParseHTTPEndpoint(target.String())
++			if err != nil {
++				t.Fatal(err)
++			}
++			got, gotErr = PresignV4(t.Context(), intent)
++			if gotErr != nil || got.String() != v4OfficialSDKOracle(t, intent) {
++				t.Fatalf("native byte-value URL equals SDK at%d = false, want true; error%v", nanos, gotErr)
++			}
++			_, signature, present = strings.Cut(got.HTTPURL().RawQuery, "&X-Amz-Signature=")
++			mac, macErr = hex.DecodeString(signature)
++			if !present || signature == previous || macErr != nil || len(signature) != hex.EncodedLen(sha256.Size) || len(mac) != sha256.Size {
++				t.Fatalf("changed native input mac at%d = (present%t,changed%t,%v,%dbytes), want true/true/nil/%d", nanos, present, signature != previous, macErr, len(mac), sha256.Size)
++			}
++			previous = signature
++		}
++	}
++}
++
++func FuzzV4ScalarNativeAndPublicSigningClosure(f *testing.F) {
++	seed := signingFixture(f)
++	canonical, err := seed.SignedAt.CompactUTCSeconds()
++	if err != nil {
++		f.Fatal(err)
++	}
++	parsed, err := parseV4QueryValue(url.QueryEscape(canonical))
++	if err != nil {
++		f.Fatal(err)
++	}
++	f.Add(v4QueryEncoding(parsed.String()), seed.Region, seed.Service, string(seed.AccessKey), int64(0))
++	f.Add("%00%FF", "r", "s", "key/with/slashes", int64(math.MinInt64))
++	f.Add("%GG", "r", "s", "key", int64(math.MaxInt64))
++	f.Add("", "bad/region", "s", "", int64(0))
++	f.Fuzz(func(t *testing.T, encoded, region, service, key string, nanos int64) {
++		name, nameErr := parseV4QueryName(encoded)
++		value, valueErr := parseV4QueryValue(encoded)
++		native, nativeErr := url.QueryUnescape(encoded)
++		if nativeErr != nil {
++			var nativeName, nativeValue url.EscapeError
++			if name != "" || value != "" || !errors.Is(nameErr, core.ErrExchangeRequest) || !errors.Is(valueErr, core.ErrExchangeRequest) || !errors.As(nameErr, &nativeName) || !errors.As(valueErr, &nativeValue) {
++				t.Fatalf("native escape refusal = (%v,%v), want typed causes/zero values", nameErr, valueErr)
++			}
++		} else {
++			if nameErr != nil || valueErr != nil || name.String() != native || value.String() != native {
++				t.Fatalf("native decoded equality = (%v,%v,%t,%t), want nil/nil/true/true", nameErr, valueErr, name.String() == native, value.String() == native)
++			}
++			canonical := v4QueryEncoding(native)
++			nameAgain, nameAgainErr := parseV4QueryName(canonical)
++			valueAgain, valueAgainErr := parseV4QueryValue(canonical)
++			if nameAgainErr != nil || valueAgainErr != nil || nameAgain != name || valueAgain != value || v4QueryEncoding(nameAgain.String()) != canonical || v4QueryEncoding(valueAgain.String()) != canonical {
++				t.Fatalf("native canonical closure = (%v,%v), want exact byte value and stable canonical encoding", nameAgainErr, valueAgainErr)
++			}
++		}
++		intent := signingFixture(t)
++		intent.Region, intent.Service, intent.AccessKey = region, service, []byte(key)
++		intent.SignedAt = temporal.InstantFromNanoseconds(nanos)
++		target := intent.Target.HTTPURL()
++		target.RawQuery = "input=" + url.QueryEscape(encoded)
++		var targetErr error
++		intent.Target, targetErr = core.ParseHTTPEndpoint(target.String())
++		if targetErr != nil {
++			got, gotErr := PresignV4(t.Context(), intent)
++			if intent.Target != (core.HTTPEndpoint{}) || !errors.Is(targetErr, core.ErrPrimitiveContract) || got != (core.HTTPEndpoint{}) || !errors.Is(gotErr, core.ErrExchangeRequest) {
++				t.Fatalf("owning URL refusal = (%v,%v), want typed native/Exchange refusal and zero endpoints", targetErr, gotErr)
++			}
++			return
++		}
++		got, gotErr := PresignV4(t.Context(), intent)
++		if intent.Validate() != nil {
++			if got != (core.HTTPEndpoint{}) || !errors.Is(gotErr, core.ErrExchangeRequest) {
++				t.Fatalf("invalid signing = (zero%t,%v), want true/ExchangeRequest", got == (core.HTTPEndpoint{}), gotErr)
++			}
++			return
++		}
++		want := v4OfficialSDKOracle(t, intent)
++		_, wantEndpointErr := core.ParseHTTPEndpoint(want)
++		if wantEndpointErr != nil {
++			if got != (core.HTTPEndpoint{}) || !errors.Is(wantEndpointErr, core.ErrPrimitiveContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
++				t.Fatalf("signed endpoint owning admission = (%v,%v), want matching typed refusal and zero output", gotErr, wantEndpointErr)
++			}
++			return
++		}
++		if gotErr != nil || got.String() != want {
++			t.Fatal("admitted native signature equals official SDK = false, want true")
++		}
++	})
++}
+diff --git a/exchange/secret_header.go b/exchange/secret_header.go
+index c4af649e..91f42d98 100644
+--- a/exchange/secret_header.go
++++ b/exchange/secret_header.go
+@@ -19,13 +19,26 @@ const (
+ 
+ func (SecretHeaderScheme) OffWireEnum() {}
+ 
+-func (s SecretHeaderScheme) Validate() error {
++func (s SecretHeaderScheme) IsValid() bool {
++	return s == SecretHeaderLiteral || s == SecretHeaderBearer
++}
++
++func (s SecretHeaderScheme) String() string {
+ 	switch s {
+-	case SecretHeaderLiteral, SecretHeaderBearer:
+-		return nil
++	case SecretHeaderLiteral:
++		return "literal"
++	case SecretHeaderBearer:
++		return "bearer"
+ 	default:
++		return core.UnknownEnumDiagnostic
++	}
++}
++
++func (s SecretHeaderScheme) Validate() error {
++	if !s.IsValid() {
+ 		return core.ErrExchangeContract
+ 	}
++	return nil
+ }
+ 
+ // SecretHeader borrows secret bytes until the native request finishes. Unlike
+@@ -93,7 +106,7 @@ func validateSecretHeaders(headers []SecretHeader, ordinary Headers) error {
+ 	return nil
+ }
+ 
+-func applySecretHeaders(request *http.Request, headers []SecretHeader) {
++func applySecretHeaders(request *http.Request, headers []SecretHeader) error {
+ 	for _, header := range headers {
+ 		switch header.Scheme {
+ 		case SecretHeaderLiteral:
+@@ -101,7 +114,8 @@ func applySecretHeaders(request *http.Request, headers []SecretHeader) {
+ 		case SecretHeaderBearer:
+ 			request.Header.Set(header.Name.String(), BearerAuthorizationScheme+" "+string(header.Value))
+ 		default:
+-			panic(core.ErrExchangeContract) // Preflight validation excludes this arm.
++			return core.ErrExchangeContract
+ 		}
+ 	}
++	return nil
+ }
+diff --git a/exchange/server_produced_extent_external_test.go b/exchange/server_produced_extent_external_test.go
+index c9c13ca2..f9fa24c4 100644
+--- a/exchange/server_produced_extent_external_test.go
++++ b/exchange/server_produced_extent_external_test.go
+@@ -132,7 +132,7 @@ func TestWriteProducedExactExtentClientEOFPrecedesHandlerCleanup(t *testing.T) {
+ 	}
+ 	select {
+ 	case <-joined:
+-		t.Fatal("handler cleanup joined before its release, want caller EOF while cleanup remains held")
++		t.Fatal("handler cleanup joined before release = true, want false after caller EOF")
+ 	default:
+ 	}
+ }
+diff --git a/exchange/signature_v4.go b/exchange/signature_v4.go
+index d7331091..7af75e29 100644
+--- a/exchange/signature_v4.go
++++ b/exchange/signature_v4.go
+@@ -8,12 +8,14 @@ import (
+ 	"hash"
+ 	"io"
+ 	"iter"
++	"math"
+ 	"net/url"
+ 	"strconv"
+ 	"strings"
+ 
+ 	"github.com/deliri/primitive/v2026/contextstate"
+ 	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
+ )
+ 
+ // Borrowed query facts are selected directly from one request. No map, sorted
+@@ -22,6 +24,29 @@ import (
+ type v4QueryName string
+ type v4QueryValue string
+ 
++// Query components are decoded native byte strings, not UTF-8 text domains.
++// Go admits empty strings and every byte after percent decoding. The encoded
++// ingress owns malformed-escape refusal; imposing decoded-value restrictions
++// would change the canonical signature of an admitted URL.
++func parseV4QueryName(encoded string) (v4QueryName, error) {
++	decoded, err := url.QueryUnescape(encoded)
++	if err != nil {
++		return "", requestError(err)
++	}
++	return v4QueryName(decoded), nil
++}
++
++func parseV4QueryValue(encoded string) (v4QueryValue, error) {
++	decoded, err := url.QueryUnescape(encoded)
++	if err != nil {
++		return "", requestError(err)
++	}
++	return v4QueryValue(decoded), nil
++}
++
++func (n v4QueryName) String() string  { return string(n) }
++func (v v4QueryValue) String() string { return string(v) }
++
+ type v4QueryPair struct {
+ 	name    v4QueryName
+ 	value   v4QueryValue
+@@ -32,6 +57,115 @@ type v4CredentialScope string
+ type v4Credential string
+ type v4SignedHeaders string
+ 
++func parseV4Timestamp(text string) (v4Timestamp, error) {
++	value := v4Timestamp(text)
++	if err := value.Validate(); err != nil {
++		return "", err
++	}
++	return value, nil
++}
++
++func (v v4Timestamp) Validate() error {
++	_, parseErr := temporal.ParseCompactUTC(v.String())
++	if parseErr == nil {
++		return nil
++	}
++	// CompactUTCSeconds deliberately drops fractional precision. At the
++	// minimum signed-nanosecond instant its preceding complete second cannot
++	// be represented by Instant, but is an actual owning producer output.
++	minimum, err := temporal.InstantFromNanoseconds(math.MinInt64).CompactUTCSeconds()
++	if err != nil {
++		return requestError(err)
++	}
++	if v.String() == minimum {
++		return nil
++	}
++	return requestError(parseErr)
++}
++
++func (v v4Timestamp) String() string { return string(v) }
++
++func parseV4CredentialScope(text string) (v4CredentialScope, error) {
++	value := v4CredentialScope(text)
++	if err := value.Validate(); err != nil {
++		return "", err
++	}
++	return value, nil
++}
++
++func (v v4CredentialScope) Validate() error {
++	date, rest, datePresent := strings.Cut(v.String(), core.SignatureV4PathSeparator)
++	region, rest, regionPresent := strings.Cut(rest, core.SignatureV4PathSeparator)
++	service, terminal, servicePresent := strings.Cut(rest, core.SignatureV4PathSeparator)
++	if !datePresent || !regionPresent || !servicePresent || len(date) != 8 ||
++		region == "" || service == "" || terminal != core.SignatureV4ScopeTerminator ||
++		strings.ContainsAny(region, "\r\n") || strings.ContainsAny(service, "\r\n") {
++		return core.ErrExchangeRequest
++	}
++	_, err := temporal.ParseCivilDate(date[:4] + "-" + date[4:6] + "-" + date[6:])
++	if err != nil {
++		return requestError(err)
++	}
++	return nil
++}
++
++func (v v4CredentialScope) String() string { return string(v) }
++
++func parseV4Credential(text string) (v4Credential, error) {
++	value := v4Credential(text)
++	if err := value.Validate(); err != nil {
++		return "", err
++	}
++	return value, nil
++}
++
++func (v v4Credential) Validate() error {
++	split := len(v.String())
++	// The access-key bytes are borrowed and may themselves contain slashes.
++	// Only the final four separators belong to the credential-scope grammar.
++	for range 4 {
++		split = strings.LastIndex(v.String()[:split], core.SignatureV4PathSeparator)
++		if split < 0 {
++			return core.ErrExchangeRequest
++		}
++	}
++	if split == 0 {
++		return core.ErrExchangeRequest
++	}
++	return v4CredentialScope(v.String()[split+1:]).Validate()
++}
++
++func (v v4Credential) String() string { return string(v) }
++
++func parseV4SignedHeaders(text string) (v4SignedHeaders, error) {
++	value := v4SignedHeaders(text)
++	if err := value.Validate(); err != nil {
++		return "", err
++	}
++	return value, nil
++}
++
++func (v v4SignedHeaders) Validate() error {
++	previous, host := "", false
++	for name := range strings.SplitSeq(v.String(), core.SignatureV4HeaderSeparator) {
++		header, err := core.ParseHTTPHeaderName(name)
++		if err != nil {
++			return requestError(err)
++		}
++		if name != strings.ToLower(header.String()) || name <= previous || v4HeaderIgnored(name) {
++			return core.ErrExchangeRequest
++		}
++		host = host || name == core.SignatureV4HostHeader
++		previous = name
++	}
++	if !host {
++		return core.ErrExchangeRequest
++	}
++	return nil
++}
++
++func (v v4SignedHeaders) String() string { return string(v) }
++
+ type v4SigningFacts struct {
+ 	stamp         v4Timestamp
+ 	scope         v4CredentialScope
+@@ -63,13 +197,13 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
+ 		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldAlgorithm.String()), value: v4QueryValue(core.SignatureV4Algorithm), ordinal: 0}, nil) {
+ 			return
+ 		}
+-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldCredential.String()), value: v4QueryValue(facts.credential), ordinal: 1}, nil) {
++		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldCredential.String()), value: v4QueryValue(facts.credential.String()), ordinal: 1}, nil) {
+ 			return
+ 		}
+-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldDate.String()), value: v4QueryValue(facts.stamp), ordinal: 2}, nil) {
++		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldDate.String()), value: v4QueryValue(facts.stamp.String()), ordinal: 2}, nil) {
+ 			return
+ 		}
+-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldSignedHeaders.String()), value: v4QueryValue(facts.signedHeaders), ordinal: 3}, nil) {
++		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldSignedHeaders.String()), value: v4QueryValue(facts.signedHeaders.String()), ordinal: 3}, nil) {
+ 			return
+ 		}
+ 		ordinal := 4
+@@ -83,25 +217,30 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
+ 				yield(v4QueryPair{}, core.ErrExchangeRequest)
+ 				return
+ 			}
+-			name, value, _ := strings.Cut(part, core.SignatureV4ValueSeparator)
+-			name, err := url.QueryUnescape(name)
++			encodedName, encodedValue, _ := strings.Cut(part, core.SignatureV4ValueSeparator)
++			name, err := parseV4QueryName(encodedName)
+ 			if err != nil {
+-				yield(v4QueryPair{}, requestError(err))
++				yield(v4QueryPair{}, err)
+ 				return
+ 			}
+-			value, err = url.QueryUnescape(value)
++			value, err := parseV4QueryValue(encodedValue)
+ 			if err != nil {
+-				yield(v4QueryPair{}, requestError(err))
++				yield(v4QueryPair{}, err)
+ 				return
+ 			}
+-			switch v4QueryField(name) {
++			switch v4QueryField(name.String()) {
+ 			case core.SignatureV4QueryFieldAlgorithm, core.SignatureV4QueryFieldCredential, core.SignatureV4QueryFieldDate, core.SignatureV4QueryFieldSignedHeaders:
+ 				continue
+ 			case core.SignatureV4QueryFieldSignature:
+ 				yield(v4QueryPair{}, core.ErrExchangeRequest)
+ 				return
++			case core.SignatureV4QueryFieldUnknown:
++				// Provider-owned names remain opaque data, not signer controls.
++			default:
++				yield(v4QueryPair{}, core.ErrExchangeRequest)
++				return
+ 			}
+-			if !yield(v4QueryPair{name: v4QueryName(name), value: v4QueryValue(value), ordinal: ordinal}, nil) {
++			if !yield(v4QueryPair{name: name, value: value, ordinal: ordinal}, nil) {
+ 				return
+ 			}
+ 			ordinal++
+@@ -110,10 +249,10 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
+ }
+ 
+ func v4QueryPairLess(left, right v4QueryPair) bool {
+-	if order := v4QueryEncodingCompare(string(left.name), string(right.name)); order != 0 {
++	if order := v4QueryEncodingCompare(left.name.String(), right.name.String()); order != 0 {
+ 		return order < 0
+ 	}
+-	if order := v4QueryEncodingCompare(string(left.value), string(right.value)); order != 0 {
++	if order := v4QueryEncodingCompare(left.value.String(), right.value.String()); order != 0 {
+ 		return order < 0
+ 	}
+ 	return left.ordinal < right.ordinal
+@@ -178,9 +317,9 @@ func v4CanonicalQuery(ctx context.Context, target url.URL, facts v4SigningFacts)
+ 		if hasPrevious {
+ 			query.WriteByte('&')
+ 		}
+-		v4WriteEscaped(&query, string(next.name), false)
++		v4WriteEscaped(&query, next.name.String(), false)
+ 		query.WriteByte('=')
+-		v4WriteEscaped(&query, string(next.value), false)
++		v4WriteEscaped(&query, next.value.String(), false)
+ 		previous = next
+ 		hasPrevious = true
+ 	}
+@@ -282,20 +421,8 @@ func v4WriteCanonicalHeaders(target hash.Hash, intent V4PresignRequest) error {
+ 		case core.SignatureV4ContentLengthHeader:
+ 			_, _ = io.WriteString(target, strconv.FormatUint(intent.ContentLength.Bytes().Uint64(), 10))
+ 		default:
+-			for _, header := range intent.Headers.Values {
+-				if strings.ToLower(header.Name.String()) != name {
+-					continue
+-				}
+-				for index, value := range header.Values {
+-					if index > 0 {
+-						_, _ = io.WriteString(target, core.SignatureV4ValueListSeparator)
+-					}
+-					text, err := value.Value()
+-					if err != nil {
+-						return err
+-					}
+-					v4WriteHeaderValue(target, text)
+-				}
++			if err := v4WriteSelectedHeaderValues(target, intent.Headers, name); err != nil {
++				return err
+ 			}
+ 		}
+ 		_, _ = io.WriteString(target, core.SignatureV4LineSeparator)
+@@ -303,6 +430,25 @@ func v4WriteCanonicalHeaders(target hash.Hash, intent V4PresignRequest) error {
+ 	}
+ }
+ 
++func v4WriteSelectedHeaderValues(target hash.Hash, headers Headers, name string) error {
++	for _, header := range headers.Values {
++		if strings.ToLower(header.Name.String()) != name {
++			continue
++		}
++		for index, value := range header.Values {
++			if index > 0 {
++				_, _ = io.WriteString(target, core.SignatureV4ValueListSeparator)
++			}
++			text, err := value.Value()
++			if err != nil {
++				return err
++			}
++			v4WriteHeaderValue(target, text)
++		}
++	}
++	return nil
++}
++
+ func v4MAC(key []byte, message string) []byte {
+ 	mac := hmac.New(sha256.New, key)
+ 	_, _ = io.WriteString(mac, message)
+@@ -326,13 +472,35 @@ func v4SecretDateMAC(secret []byte, date string) []byte {
+ 	return v4MAC(digest.Sum(key[:0]), date)
+ }
+ 
++func newV4SigningFacts(intent V4PresignRequest) (v4SigningFacts, error) {
++	stampText, err := intent.SignedAt.CompactUTCSeconds()
++	if err != nil {
++		return v4SigningFacts{}, err
++	}
++	stamp, err := parseV4Timestamp(stampText)
++	if err != nil {
++		return v4SigningFacts{}, err
++	}
++	scope, err := parseV4CredentialScope(stamp.String()[:8] + core.SignatureV4PathSeparator + intent.Region + core.SignatureV4PathSeparator + intent.Service + core.SignatureV4PathSeparator + core.SignatureV4ScopeTerminator)
++	if err != nil {
++		return v4SigningFacts{}, err
++	}
++	headers, err := parseV4SignedHeaders(v4SignedHeaderNames(intent))
++	if err != nil {
++		return v4SigningFacts{}, err
++	}
++	credential, err := parseV4Credential(string(intent.AccessKey) + core.SignatureV4PathSeparator + scope.String())
++	if err != nil {
++		return v4SigningFacts{}, err
++	}
++	return v4SigningFacts{stamp: stamp, scope: scope, credential: credential, signedHeaders: headers}, nil
++}
++
+ func v4PresignedEndpoint(ctx context.Context, intent V4PresignRequest) (core.HTTPEndpoint, error) {
+-	stamp, err := intent.SignedAt.CompactUTCSeconds()
++	facts, err := newV4SigningFacts(intent)
+ 	if err != nil {
+ 		return core.HTTPEndpoint{}, err
+ 	}
+-	facts := v4SigningFacts{stamp: v4Timestamp(stamp), scope: v4CredentialScope(stamp[:8] + core.SignatureV4PathSeparator + intent.Region + core.SignatureV4PathSeparator + intent.Service + core.SignatureV4PathSeparator + core.SignatureV4ScopeTerminator), signedHeaders: v4SignedHeaders(v4SignedHeaderNames(intent))}
+-	facts.credential = v4Credential(string(intent.AccessKey) + core.SignatureV4PathSeparator + string(facts.scope))
+ 	endpoint := intent.Target.HTTPURL()
+ 	query, err := v4CanonicalQuery(ctx, endpoint, facts)
+ 	if err != nil {
+@@ -357,14 +525,14 @@ func v4PresignedEndpoint(ctx context.Context, intent V4PresignRequest) (core.HTT
+ 		return core.HTTPEndpoint{}, err
+ 	}
+ 	_, _ = io.WriteString(digest, core.SignatureV4LineSeparator)
+-	_, _ = io.WriteString(digest, string(facts.signedHeaders))
++	_, _ = io.WriteString(digest, facts.signedHeaders.String())
+ 	_, _ = io.WriteString(digest, core.SignatureV4LineSeparator)
+ 	_, _ = io.WriteString(digest, intent.PayloadHash)
+-	key := v4SecretDateMAC(intent.SecretKey, stamp[:8])
++	key := v4SecretDateMAC(intent.SecretKey, facts.stamp.String()[:8])
+ 	key = v4MAC(key, intent.Region)
+ 	key = v4MAC(key, intent.Service)
+ 	key = v4MAC(key, core.SignatureV4ScopeTerminator)
+-	signature := v4MAC(key, core.SignatureV4Algorithm+core.SignatureV4LineSeparator+stamp+core.SignatureV4LineSeparator+string(facts.scope)+core.SignatureV4LineSeparator+hex.EncodeToString(digest.Sum(nil)))
++	signature := v4MAC(key, core.SignatureV4Algorithm+core.SignatureV4LineSeparator+facts.stamp.String()+core.SignatureV4LineSeparator+facts.scope.String()+core.SignatureV4LineSeparator+hex.EncodeToString(digest.Sum(nil)))
+ 	endpoint.RawQuery = query + core.SignatureV4QuerySeparator + core.SignatureV4SignatureQuery + core.SignatureV4ValueSeparator + hex.EncodeToString(signature)
+ 	if err := contextstate.Validate(ctx); err != nil {
+ 		return core.HTTPEndpoint{}, err
+diff --git a/exchange/signature_v4_sdk_test.go b/exchange/signature_v4_sdk_test.go
+index f30250e5..21c0db98 100644
+--- a/exchange/signature_v4_sdk_test.go
++++ b/exchange/signature_v4_sdk_test.go
+@@ -138,7 +138,7 @@ func TestV4PresignRefusesPartialOrAlreadySignedCanonicalInput(t *testing.T) {
+ 	cancel()
+ 	got, err := PresignV4(ctx, intent)
+ 	if !errors.Is(err, context.Canceled) || got != (core.HTTPEndpoint{}) {
+-		t.Fatal("cancel admitted signature")
++		t.Fatalf("canceled signing = (%v,%v), want zero endpoint and Canceled", got, err)
+ 	}
+ }
+ 
+@@ -158,7 +158,7 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
+ 		got, err := PresignV4(t.Context(), intent)
+ 		if intent.Validate() != nil {
+ 			if !errors.Is(err, core.ErrExchangeRequest) || got != (core.HTTPEndpoint{}) {
+-				t.Fatal("invalid request has no typed refusal")
++				t.Fatalf("invalid signing = (%v,%v), want zero endpoint and ExchangeRequest", got, err)
+ 			}
+ 			return
+ 		}
+@@ -170,7 +170,7 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
+ 		}
+ 		// The whole mutated value is signed. No prefix-only oracle or fuzz quota.
+ 		if !strings.Contains(got.HTTPURL().RawQuery, "X-Amz-Signature=") {
+-			t.Fatal("signature absent")
++			t.Fatalf("signature query present = %t, want true", strings.Contains(got.HTTPURL().RawQuery, "X-Amz-Signature="))
+ 		}
+ 	})
+ }
+@@ -179,16 +179,21 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
+ // the non-ASCII/reserved ordering the former decoded-key SDK map did not seal.
+ func TestV4PresignCanonicalQuerySortsEncodedNamesAndValues(t *testing.T) {
+ 	t.Parallel()
+-	facts := v4SigningFacts{stamp: "stamp", credential: "id/scope", signedHeaders: "host"}
++	facts, err := newV4SigningFacts(signingFixture(t))
++	if err != nil {
++		t.Fatal(err)
++	}
++	prefix := "X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=" + url.QueryEscape(facts.credential.String()) + "&X-Amz-Date=" + facts.stamp.String() + "&X-Amz-SignedHeaders=" + facts.signedHeaders.String()
+ 	for _, query := range []string{"Z=last&é=first", "é=first&Z=last", "a=Z&a=é&a=Z", "a=é&a=Z&a=Z"} {
+ 		t.Run(query, func(t *testing.T) {
++			t.Parallel()
+ 			got, err := v4CanonicalQuery(t.Context(), url.URL{RawQuery: query}, facts)
+ 			if err != nil {
+ 				t.Fatal(err)
+ 			}
+-			want := "X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=id%2Fscope&X-Amz-Date=stamp&X-Amz-SignedHeaders=host&a=%C3%A9&a=Z&a=Z"
++			want := prefix + "&a=%C3%A9&a=Z&a=Z"
+ 			if strings.Contains(query, "last") {
+-				want = "%C3%A9=first&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=id%2Fscope&X-Amz-Date=stamp&X-Amz-SignedHeaders=host&Z=last"
++				want = "%C3%A9=first&" + prefix + "&Z=last"
+ 			}
+ 			if got != want {
+ 				t.Fatalf("canonical pair order=%q want=%q", got, want)
+@@ -223,7 +228,7 @@ func BenchmarkV4PresignGoCryptoBorrowedQuery64(b *testing.B) {
+ 		benchmarkV4PresignSink = signed
+ 	}
+ 	if !strings.Contains(benchmarkV4PresignSink.HTTPURL().RawQuery, "X-Amz-Signature=") {
+-		b.Fatal("presigned endpoint has no signature")
++		b.Fatalf("presigned signature query present = %t, want true", strings.Contains(benchmarkV4PresignSink.HTTPURL().RawQuery, "X-Amz-Signature="))
+ 	}
+ }
+ 
+@@ -249,7 +254,7 @@ func TestV4PresignLongBorrowedSecretsMatchNativeHMACKeyNormalization(t *testing.
+ 				}
+ 				for i, b := range intent.SecretKey {
+ 					if b != byte(i*17+mode) {
+-						t.Fatal("signing mutated borrowed secret")
++						t.Fatalf("borrowed secret byte unchanged at index%d = false, want true", i)
+ 					}
+ 				}
+ 			})
+diff --git a/exchange/signing_content_length_test.go b/exchange/signing_content_length_test.go
+index ba614af0..1430964e 100644
+--- a/exchange/signing_content_length_test.go
++++ b/exchange/signing_content_length_test.go
+@@ -75,8 +75,8 @@ func TestV4PresignSignedContentLengthLayerTriad(t *testing.T) {
+ 			}
+ 			larger := intent
+ 			larger.ContentLength = signedContentLengthFixture(t, tc.bytes+1)
+-			if signingProofMatches(larger, got) {
+-				t.Fatal("one more byte retained signature validity, want refusal")
++			if matches := signingProofMatches(larger, got); matches {
++				t.Fatalf("signature validity after one more byte = %t, want false", matches)
+ 			}
+ 		})
+ 	}
+diff --git a/exchange/socket_write_stall.go b/exchange/socket_write_stall.go
+index 8d9fc499..4459268e 100644
+--- a/exchange/socket_write_stall.go
++++ b/exchange/socket_write_stall.go
+@@ -55,32 +55,29 @@ func ServeSocketWithWriteStall(r SocketWriteStallRequest) (resultErr error) {
+ 	joined := make(chan struct{})
+ 	stop := context.AfterFunc(w.ctx, func() {
+ 		defer close(joined)
+-		w.mutex.Lock()
+-		defer w.mutex.Unlock()
+-		w.cancelLocked()
++		w.cancel()
+ 	})
+ 	defer func() {
+ 		if !stop() {
+ 			<-joined
+ 		}
+-		w.mutex.Lock()
+-		defer w.mutex.Unlock()
+ 		// An unconsumed final HTTP chunk must still have a finite bound.
+-		if w.failure == nil {
+-			w.failure = w.armLocked()
++		if w.failure() == nil {
++			_ = w.arm()
+ 		}
+-		resultErr = errors.Join(resultErr, w.failure)
++		resultErr = errors.Join(resultErr, w.failure())
+ 	}()
+ 	r.Handler.ServeHTTP(w, r.Call.request)
+ 	return nil
+ }
+ 
+ type socketStallWriter struct {
+-	writer   http.ResponseWriter
+-	ctx      context.Context
+-	timeout  temporal.Duration
+-	mutex    sync.Mutex
+-	failure  error
++	writer     http.ResponseWriter
++	ctx        context.Context
++	timeout    temporal.Duration
++	mutex      sync.Mutex // Protects failure; never spans an opaque writer call.
++	failureErr error
++	// Only the serial handler and its final cleanup access deadline.
+ 	deadline time.Time
+ }
+ 
+@@ -124,68 +121,87 @@ func (w *socketStallWriter) FlushError() error {
+ func (w *socketStallWriter) Flush() { _ = w.FlushError() }
+ 
+ func (w *socketStallWriter) begin() error {
+-	w.mutex.Lock()
+-	defer w.mutex.Unlock()
+-	if w.failure == nil {
+-		w.failure = w.armLocked()
++	if err := w.failure(); err != nil {
++		return err
+ 	}
+-	return w.failure
++	return w.arm()
+ }
+ 
+ func (w *socketStallWriter) end(cause error) error {
+-	w.mutex.Lock()
+-	defer w.mutex.Unlock()
+-	if cause != nil {
+-		w.failure = errors.Join(w.failure, core.ErrExchangeResponse, core.ErrExchangeWrite, cause)
+-	}
++	w.recordFailure(cause)
+ 	if w.ctx.Err() != nil {
+-		w.cancelLocked()
++		w.cancel()
+ 	}
+-	if w.failure == nil {
++	if w.failure() == nil {
+ 		stamp, err := socketWriteDeadline(temporal.Duration{})
+ 		if err != nil {
+-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
++			w.recordFailure(err)
+ 		} else if !stamp.Before(w.deadline) {
+ 			// A buffered native Write may report success after its deadline.
+ 			// Never clear/rearm that expired response for a later Flush.
+-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, os.ErrDeadlineExceeded)
++			w.recordFailure(os.ErrDeadlineExceeded)
+ 		}
+ 	}
+-	if w.failure == nil {
+-		if err := w.controller().SetWriteDeadline(time.Time{}); err != nil {
+-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+-		}
++	if w.failure() == nil {
++		return w.setDeadline(time.Time{})
+ 	}
+-	return w.failure
++	return w.failure()
+ }
+ 
+-func (w *socketStallWriter) armLocked() error {
++func (w *socketStallWriter) arm() error {
+ 	if w.ctx.Err() != nil {
+-		w.cancelLocked()
+-		return w.failure
++		w.cancel()
++		return w.failure()
+ 	}
+ 	deadline, err := socketWriteDeadline(w.timeout)
+-	if err == nil {
+-		if parent, ok := w.ctx.Deadline(); ok && parent.Before(deadline) {
+-			deadline = parent
+-		}
+-		err = w.controller().SetWriteDeadline(deadline)
+-		if err == nil {
+-			w.deadline = deadline
+-		}
+-	}
+ 	if err != nil {
+-		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
++		w.recordFailure(err)
++		return w.failure()
++	}
++	if parent, ok := w.ctx.Deadline(); ok && parent.Before(deadline) {
++		deadline = parent
++	}
++	if err := w.setDeadline(deadline); err != nil {
++		return err
+ 	}
++	w.deadline = deadline
+ 	return nil
+ }
+ 
+-func (w *socketStallWriter) cancelLocked() {
++// A pending arm or clear can return after cancellation's setter. Recheck only
++// after that opaque call has finished, then expire it again: cancellation must
++// remain terminal even when the earlier setter applied its deadline last.
++func (w *socketStallWriter) setDeadline(deadline time.Time) error {
++	w.recordFailure(w.controller().SetWriteDeadline(deadline))
++	if w.ctx.Err() != nil {
++		w.cancel()
++	}
++	return w.failure()
++}
++
++func (w *socketStallWriter) cancel() {
+ 	deadline, err := socketWriteDeadline(temporal.Duration{})
++	// Publish refusal before opaque I/O, so an in-flight setter cannot prevent
++	// another operation from observing the caller's terminal cancellation.
++	w.recordFailure(errors.Join(w.ctx.Err(), context.Cause(w.ctx), err))
+ 	if err == nil {
+-		err = w.controller().SetWriteDeadline(deadline)
++		w.recordFailure(w.controller().SetWriteDeadline(deadline))
++	}
++}
++
++func (w *socketStallWriter) recordFailure(cause error) {
++	if cause == nil {
++		return
+ 	}
+-	w.failure = errors.Join(w.failure, core.ErrExchangeResponse, core.ErrExchangeWrite, w.ctx.Err(), context.Cause(w.ctx), err)
++	w.mutex.Lock()
++	defer w.mutex.Unlock()
++	w.failureErr = errors.Join(w.failureErr, core.ErrExchangeResponse, core.ErrExchangeWrite, cause)
++}
++
++func (w *socketStallWriter) failure() error {
++	w.mutex.Lock()
++	defer w.mutex.Unlock()
++	return w.failureErr
+ }
+ 
+ func socketWriteDeadline(after temporal.Duration) (time.Time, error) {
+diff --git a/exchange/socket_write_stall_external_test.go b/exchange/socket_write_stall_external_test.go
+index f2d7dbb9..64c942f1 100644
+--- a/exchange/socket_write_stall_external_test.go
++++ b/exchange/socket_write_stall_external_test.go
+@@ -77,7 +77,7 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
+ 				t.Error(err)
+ 			}
+ 		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+-			t.Error("owned server did not join")
++			t.Error("owned server joined = false, want true")
+ 		}
+ 	})
+ 	if err := <-runtime.Ready(); err != nil {
+@@ -112,6 +112,97 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
+ 	}
+ }
+ 
++// HTTP/2 owns a stream deadline timer even while no Write is blocked. This is
++// distinct from HTTP/1's next-write rearming behavior: quiet work must leave the
++// actual stream alive, not merely make a later socket write eligible again.
++func TestSocketWriteStallQuietNativeHTTP2(t *testing.T) {
++	t.Parallel()
++	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
++	defer cancel()
++	entered := make(chan struct{})
++	done := make(chan error, 1)
++	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
++		close(entered)
++		var handlerErr error
++		call, err := exchange.NewSocketServerCall(w, request)
++		if err == nil {
++			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{
++				Call: call, Timeout: stallDuration(t, time.Second),
++				Handler: http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
++					if r.ProtoMajor != 2 {
++						handlerErr = core.ErrExchangeContract
++						return
++					}
++					if _, handlerErr = io.WriteString(writer, "first\n"); handlerErr != nil {
++						return
++					}
++					if handlerErr = http.NewResponseController(writer).Flush(); handlerErr != nil {
++						return
++					}
++					if handlerErr = temporal.Wait(temporal.WaitRequest{Context: r.Context(), Duration: stallDuration(t, 2*time.Second)}); handlerErr != nil {
++						return
++					}
++					if _, handlerErr = io.WriteString(writer, "last\n"); handlerErr == nil {
++						handlerErr = http.NewResponseController(writer).Flush()
++					}
++				}),
++			})
++		}
++		done <- errors.Join(err, handlerErr)
++	}))
++	server.EnableHTTP2 = true
++	server.StartTLS()
++	client := server.Client()
++	handlerJoined := false
++	t.Cleanup(func() {
++		cancel()
++		client.CloseIdleConnections()
++		server.CloseClientConnections()
++		select {
++		case <-entered:
++			if !handlerJoined {
++				select {
++				case err := <-done:
++					if err != nil && !errors.Is(err, context.Canceled) {
++						t.Errorf("native HTTP2 handler joined error = %v, want nil or owned cancellation during cleanup", err)
++					}
++				case <-time.After(10 * time.Second):
++					t.Error("native HTTP2 handler joined = false, want true after owned cancellation")
++				}
++			}
++		default:
++		}
++		server.Close()
++	})
++	request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, http.NoBody)
++	if err != nil {
++		t.Fatal(err)
++	}
++	response, err := client.Do(request)
++	if err != nil {
++		t.Fatalf("native HTTP2 request = %v, want response and nil", err)
++	}
++	defer response.Body.Close()
++	if response.ProtoMajor != 2 {
++		t.Fatalf("native protocol major = %d, want 2", response.ProtoMajor)
++	}
++	reader := bufio.NewReader(response.Body)
++	first, firstErr := reader.ReadString('\n')
++	last, lastErr := reader.ReadString('\n')
++	if first != "first\n" || firstErr != nil || last != "last\n" || lastErr != nil {
++		t.Fatalf("native HTTP2 quiet response = (%q,%v,%q,%v), want first/nil/last/nil", first, firstErr, last, lastErr)
++	}
++	select {
++	case err := <-done:
++		handlerJoined = true
++		if err != nil {
++			t.Fatalf("native HTTP2 handler completion = %v, want nil before caller cancellation", err)
++		}
++	case <-time.After(10 * time.Second):
++		t.Fatal("native HTTP2 handler completed = false, want true after exact response")
++	}
++}
++
+ // Native net.Pipe uses Go's real write-deadline implementation without kernel
+ // socket-buffer guesses. Its peer never consumes a byte, so entered is a real
+ // blocked write. Synctest controls deadline/cancel facts, not scheduler sleeps.
+@@ -162,7 +253,7 @@ func TestSocketWriteStallBlockedNativeWriter(t *testing.T) {
+ 				select {
+ 				case <-writer.entered:
+ 				default:
+-					t.Fatal("handler never entered its owned native write")
++					t.Fatal("handler entered owned native write = false, want true")
+ 				}
+ 				cause := errors.New("owned caller canceled")
+ 				if canceled {
+@@ -239,7 +330,7 @@ func TestSocketWriteStallAdmissionAndFinalBound(t *testing.T) {
+ 			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{Call: call, Timeout: timeout, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ 				calls++
+ 				if r.Context() != ctx {
+-					t.Error("request context changed")
++					t.Error("request context identity preserved = false, want true")
+ 				}
+ 				if writer.writeErr != nil {
+ 					_, first := w.Write([]byte("one"))
+diff --git a/exchange/socket_write_stall_ordering_test.go b/exchange/socket_write_stall_ordering_test.go
+new file mode 100644
+index 00000000..9d8f4662
+--- /dev/null
++++ b/exchange/socket_write_stall_ordering_test.go
+@@ -0,0 +1,172 @@
++package exchange
++
++import (
++	"context"
++	"errors"
++	"io"
++	"net/http"
++	"net/http/httptest"
++	"sync"
++	"testing"
++	"testing/synctest"
++	"time"
++
++	"github.com/deliri/primitive/v2026/core"
++	"github.com/deliri/primitive/v2026/temporal"
++)
++
++// The real ResponseController invokes an opaque setter. Only the selected
++// setter blocks in native pipe I/O, and applies its deadline AFTER the read.
++// That ordering exposes a stale arm/clear overwriting an earlier cancellation.
++type stallOrderingWriter struct {
++	header      http.Header
++	pipe        *io.PipeWriter
++	entered     chan struct{}
++	expired     chan struct{}
++	expiredOnce sync.Once
++	mutex       sync.Mutex
++	calls       int
++	blockCall   int
++	deadline    time.Time
++	initial     time.Time
++	setterErr   error
++	writes      int
++}
++
++func (w *stallOrderingWriter) Header() http.Header { return w.header }
++func (w *stallOrderingWriter) WriteHeader(int)     {}
++func (w *stallOrderingWriter) Write(data []byte) (int, error) {
++	w.writes++
++	return len(data), nil
++}
++func (w *stallOrderingWriter) SetWriteDeadline(deadline time.Time) error {
++	w.mutex.Lock()
++	w.calls++
++	block := w.calls == w.blockCall
++	w.mutex.Unlock()
++	if block {
++		close(w.entered)
++		if _, err := w.pipe.Write([]byte{0xa5}); err != nil {
++			return err
++		}
++	}
++	w.mutex.Lock()
++	w.deadline = deadline
++	w.mutex.Unlock()
++	if !deadline.IsZero() && !deadline.After(w.initial) {
++		w.expiredOnce.Do(func() { close(w.expired) })
++	}
++	if block {
++		return w.setterErr
++	}
++	return nil
++}
++
++func TestSocketWriteStallOpaqueSetterOrdering(t *testing.T) {
++	t.Parallel()
++	for _, tc := range []struct {
++		name      string
++		blockCall int
++		cancel    bool
++		refuse    bool
++	}{
++		{name: "blocked arm permits cancellation and cannot rearm it", blockCall: 2, cancel: true},
++		{name: "blocked clear permits cancellation and cannot erase it", blockCall: 3, cancel: true},
++		{name: "blocked arm refusal and cancellation retain both causes and expiry", blockCall: 2, cancel: true, refuse: true},
++		{name: "blocked clear refusal and cancellation retain both causes and expiry", blockCall: 3, cancel: true, refuse: true},
++		{name: "blocked arm refusal preserves native cause", blockCall: 2, refuse: true},
++		{name: "blocked clear refusal preserves native cause", blockCall: 3, refuse: true},
++		{name: "released arm retains successful write and final bound", blockCall: 2},
++		{name: "released clear retains successful write and final bound", blockCall: 3},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			t.Parallel()
++			synctest.Test(t, func(t *testing.T) {
++				ctx, cancel := context.WithCancelCause(context.Background())
++				defer cancel(nil)
++				reader, writer := io.Pipe()
++				defer reader.Close()
++				defer writer.Close()
++				initial, err := socketWriteDeadline(temporal.Duration{})
++				if err != nil {
++					t.Fatal(err)
++				}
++				nativeCause := errors.New("owned deadline setter refusal")
++				native := &stallOrderingWriter{header: make(http.Header), pipe: writer, entered: make(chan struct{}), expired: make(chan struct{}), blockCall: tc.blockCall, initial: initial}
++				if tc.refuse {
++					native.setterErr = nativeCause
++				}
++				call, err := NewSocketServerCall(native, httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx))
++				if err != nil {
++					t.Fatal(err)
++				}
++				timeout, err := temporal.NewDuration(time.Second)
++				if err != nil {
++					t.Fatal(err)
++				}
++				borrowed := make(chan *socketStallWriter, 1)
++				finished := make(chan error, 1)
++				go func() {
++					finished <- ServeSocketWithWriteStall(SocketWriteStallRequest{Call: call, Timeout: timeout, Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
++						borrowed <- w.(*socketStallWriter)
++						_, _ = w.Write([]byte("owned response"))
++					})})
++				}()
++				synctest.Wait()
++				select {
++				case <-native.entered:
++				default:
++					t.Fatal("opaque setter entered native I/O = false, want true")
++				}
++				owned := <-borrowed
++				mutexAvailable := owned.mutex.TryLock()
++				if !mutexAvailable {
++					t.Error("state mutex available during native setter I/O = false, want true")
++				} else {
++					owned.mutex.Unlock()
++				}
++				callerCause := errors.New("owned caller cancellation")
++				if tc.cancel {
++					cancel(callerCause)
++					// Mutex waits are not durably blocked in synctest. The old
++					// implementation cannot advance its callback until the pipe
++					// is released, so retain that failed fact without wedging the
++					// test's own barrier behind the known held mutex.
++					if mutexAvailable {
++						synctest.Wait()
++					}
++					select {
++					case <-native.expired:
++					default:
++						t.Error("cancellation expired response before releasing older setter = false, want true")
++					}
++				}
++				var octet [1]byte
++				if n, err := io.ReadFull(reader, octet[:]); n != 1 || err != nil || octet[0] != 0xa5 {
++					t.Fatalf("native setter I/O = (%d,%v,%x), want (1,nil,a5)", n, err, octet)
++				}
++				synctest.Wait()
++				var got error
++				select {
++				case got = <-finished:
++				default:
++					t.Fatal("handler and owned cancellation callback joined = false, want true")
++				}
++				if tc.cancel {
++					if !errors.Is(got, context.Canceled) || !errors.Is(got, callerCause) || !errors.Is(got, core.ErrExchangeWrite) || tc.refuse && !errors.Is(got, nativeCause) {
++						t.Errorf("canceled response error = %v, want exact caller cause, write failure and native refusal when present", got)
++					}
++					if native.deadline.IsZero() || native.deadline.After(initial) {
++						t.Errorf("deadline after released stale setter = %v, want expired at or before %v", native.deadline, initial)
++					}
++				} else if tc.refuse {
++					if !errors.Is(got, nativeCause) || !errors.Is(got, core.ErrExchangeWrite) {
++						t.Errorf("setter refusal error = %v, want exact native cause and write failure", got)
++					}
++				} else if got != nil || native.writes != 1 || !native.deadline.After(initial) {
++					t.Errorf("released response = (%v,%d,%v), want nil, one write and finite future deadline", got, native.writes, native.deadline)
++				}
++			})
++		})
++	}
++}
+diff --git a/exchange/stream.go b/exchange/stream.go
+index 76723ee8..ea7a9a98 100644
+--- a/exchange/stream.go
++++ b/exchange/stream.go
+@@ -364,7 +364,9 @@ func newUploadHTTPRequest(
+ 		identityContentCoding().String(),
+ 	)
+ 	applyRequestHeaders(request, input.request.Headers)
+-	applySecretHeaders(request, input.request.SecretHeaders)
++	if err := applySecretHeaders(request, input.request.SecretHeaders); err != nil {
++		return nil, requestError(err)
++	}
+ 	applyIdempotencyKey(request, input.request.Semantics)
+ 	return request, nil
+ }
+@@ -476,7 +478,9 @@ func newDownloadHTTPRequest(
+ 	)
+ 	applyRequestHeaders(request, input.request.Headers)
+ 	applyIdempotencyKey(request, input.request.Semantics)
+-	applySecretHeaders(request, input.request.SecretHeaders)
++	if err := applySecretHeaders(request, input.request.SecretHeaders); err != nil {
++		return nil, requestError(err)
++	}
+ 	return request, nil
+ }
+ 
+@@ -520,7 +524,7 @@ func finishUploadResponse(
+ 		return zero, errors.Join(err, closeErr)
+ 	}
+ 	if status != input.request.ExpectedStatus {
+-		return transferFailureResponse(input.context, input.response, input.request.FailureDestination, nil, response, input.request.ExpectedStatus)
++		return transferFailureResponse(downloadResponseRequest{context: input.context, response: input.response, request: DownloadRequest{Destination: input.request.FailureDestination, ExpectedStatus: input.request.ExpectedStatus}}, response)
+ 	}
+ 	// Upload publishes an acknowledgment, not a response body. Reading an
+ 	// unrequested body can block indefinitely on an otherwise completed upload.
+@@ -564,7 +568,7 @@ func finishDownloadResponse(
+ 	}
+ 	if status != input.request.ExpectedStatus {
+ 		if input.request.FailureDestination != nil {
+-			return transferFailureResponse(input.context, input.response, input.request.FailureDestination, input.request.Buffer, response, input.request.ExpectedStatus)
++			return transferFailureResponse(downloadResponseRequest{context: input.context, response: input.response, request: DownloadRequest{Destination: input.request.FailureDestination, Buffer: input.request.Buffer, ExpectedStatus: input.request.ExpectedStatus}}, response)
+ 		}
+ 		drainErr := drainAndClose(
+ 			streamDrainRequest{
+@@ -583,12 +587,12 @@ func finishDownloadResponse(
+ 	return transferDownloadResponse(input, response)
+ }
+ 
+-func transferFailureResponse(ctx context.Context, native *http.Response, destination io.Writer, buffer []byte, response StreamResponse, expected core.HTTPStatusCode) (StreamResponse, error) {
+-	statusErr := StatusError{status: response.Metadata.Status, expected: expected}
+-	if destination == nil {
+-		return response, errors.Join(statusErr, closeResponseBody(native.Body))
++func transferFailureResponse(input downloadResponseRequest, response StreamResponse) (StreamResponse, error) {
++	statusErr := StatusError{status: response.Metadata.Status, expected: input.request.ExpectedStatus}
++	if input.request.Destination == nil {
++		return response, errors.Join(statusErr, closeResponseBody(input.response.Body))
+ 	}
+-	result, err := transferDownloadResponse(downloadResponseRequest{context: ctx, response: native, request: DownloadRequest{Destination: destination, Buffer: buffer}}, response)
++	result, err := transferDownloadResponse(input, response)
+ 	return result, errors.Join(statusErr, err)
+ }
+ 
+diff --git a/exchange/stream_replay_handoff_internal_test.go b/exchange/stream_replay_handoff_internal_test.go
+index d991dedd..76a7f069 100644
+--- a/exchange/stream_replay_handoff_internal_test.go
++++ b/exchange/stream_replay_handoff_internal_test.go
+@@ -71,43 +71,37 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
+ 		wantExhausted   bool
+ 	}{
+ 		{name: "exact expected status preserves both binary bytes", status: http.StatusOK, payload: []byte{0x00, 0xff}, wantBytes: 2, wantAttempts: 1},
+-		{name: "other successful status cannot satisfy exact expected status", status: http.StatusCreated, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "status immediately below request-timeout retry remains terminal", status: http.StatusProxyAuthRequired, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "request-timeout status consumes exactly the retry budget", status: http.StatusRequestTimeout, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+-		{name: "status immediately above request-timeout retry remains terminal", status: http.StatusConflict, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "status immediately below too-early retry remains terminal", status: http.StatusFailedDependency, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "too-early status consumes exactly the retry budget", status: http.StatusTooEarly, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+-		{name: "status immediately above too-early retry remains terminal", status: http.StatusUpgradeRequired, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "status immediately below rate-limit retry remains terminal", status: http.StatusPreconditionRequired, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "rate-limit status consumes exactly the retry budget", status: http.StatusTooManyRequests, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+-		{name: "status immediately above rate-limit retry remains terminal", status: http.StatusTooManyRequests + 1, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "last client-error status cannot acquire server-error retry", status: http.StatusInternalServerError - 1, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
+-		{name: "first server-error status consumes exactly the retry budget", status: http.StatusInternalServerError, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+-		{name: "last expressible server-error status remains retryable", status: 599, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
++		{name: "other successful status cannot satisfy exact expected status", status: http.StatusCreated, wantProducerErr: statusIdentityOracle(http.StatusCreated), wantErr: statusIdentityOracle(http.StatusCreated), wantAttempts: 1, wantStatusError: true},
++		{name: "status immediately below request-timeout retry remains terminal", status: http.StatusProxyAuthRequired, wantProducerErr: statusIdentityOracle(http.StatusProxyAuthRequired), wantErr: statusIdentityOracle(http.StatusProxyAuthRequired), wantAttempts: 1, wantStatusError: true},
++		{name: "request-timeout status consumes exactly the retry budget", status: http.StatusRequestTimeout, wantProducerErr: statusIdentityOracle(http.StatusRequestTimeout), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
++		{name: "status immediately above request-timeout retry remains terminal", status: http.StatusConflict, wantProducerErr: statusIdentityOracle(http.StatusConflict), wantErr: statusIdentityOracle(http.StatusConflict), wantAttempts: 1, wantStatusError: true},
++		{name: "status immediately below too-early retry remains terminal", status: http.StatusFailedDependency, wantProducerErr: statusIdentityOracle(http.StatusFailedDependency), wantErr: statusIdentityOracle(http.StatusFailedDependency), wantAttempts: 1, wantStatusError: true},
++		{name: "too-early status consumes exactly the retry budget", status: http.StatusTooEarly, wantProducerErr: statusIdentityOracle(http.StatusTooEarly), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
++		{name: "status immediately above too-early retry remains terminal", status: http.StatusUpgradeRequired, wantProducerErr: statusIdentityOracle(http.StatusUpgradeRequired), wantErr: statusIdentityOracle(http.StatusUpgradeRequired), wantAttempts: 1, wantStatusError: true},
++		{name: "status immediately below rate-limit retry remains terminal", status: http.StatusPreconditionRequired, wantProducerErr: statusIdentityOracle(http.StatusPreconditionRequired), wantErr: statusIdentityOracle(http.StatusPreconditionRequired), wantAttempts: 1, wantStatusError: true},
++		{name: "rate-limit status consumes exactly the retry budget", status: http.StatusTooManyRequests, wantProducerErr: statusIdentityOracle(http.StatusTooManyRequests), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
++		{name: "status immediately above rate-limit retry remains terminal", status: http.StatusTooManyRequests + 1, wantProducerErr: statusIdentityOracle(http.StatusTooManyRequests + 1), wantErr: statusIdentityOracle(http.StatusTooManyRequests + 1), wantAttempts: 1, wantStatusError: true},
++		{name: "last client-error status cannot acquire server-error retry", status: http.StatusInternalServerError - 1, wantProducerErr: statusIdentityOracle(http.StatusInternalServerError - 1), wantErr: statusIdentityOracle(http.StatusInternalServerError - 1), wantAttempts: 1, wantStatusError: true},
++		{name: "first server-error status consumes exactly the retry budget", status: http.StatusInternalServerError, wantProducerErr: statusIdentityOracle(http.StatusInternalServerError), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
++		{name: "last expressible server-error status remains retryable", status: 599, wantProducerErr: statusIdentityOracle(599), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+ 		{name: "third successful byte completes without replay", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, wantBytes: 3, wantAttempts: 1},
+-		{name: "larger discarded error body preserves status retry", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantExhausted: true, wantStatusError: true},
++		{name: "larger discarded error body preserves status retry", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, wantProducerErr: statusIdentityOracle(http.StatusServiceUnavailable), wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantExhausted: true, wantStatusError: true},
+ 		{name: "truncated successful stream retains native failure and partial byte count", status: http.StatusOK, payload: []byte{0x00}, fault: replayHandoffReadFailure, wantProducerErr: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRetryExhausted, wantBytes: 1, wantAttempts: 2, wantExhausted: true},
+ 		{name: "truncated error body retains both status and native failure", status: http.StatusServiceUnavailable, payload: []byte{0x00}, fault: replayHandoffReadFailure, wantProducerErr: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+ 		{name: "failed close after successful transfer cannot become success", status: http.StatusOK, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, wantProducerErr: io.ErrClosedPipe, wantErr: core.ErrExchangeRetryExhausted, wantBytes: 2, wantAttempts: 2, wantExhausted: true},
+ 		{name: "failed error-body close retains status and native close failure", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, wantProducerErr: io.ErrClosedPipe, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
+ 		{name: "handoff cancellation retains a completed binary transfer", status: http.StatusOK, payload: []byte{0x00, 0xff}, cancelAtHandoff: true, wantErr: context.Canceled, wantBytes: 2, wantAttempts: 1},
+ 		{name: "empty successful response creates no destination bytes", status: http.StatusOK, wantAttempts: 1},
+-		{name: "handoff cancellation preserves retryable status without another attempt", status: http.StatusServiceUnavailable, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+-		{name: "handoff cancellation preserves terminal status without replacing its cause", status: http.StatusCreated, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
++		{name: "handoff cancellation preserves retryable status without another attempt", status: http.StatusServiceUnavailable, cancelAtHandoff: true, wantProducerErr: statusIdentityOracle(http.StatusServiceUnavailable), wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
++		{name: "handoff cancellation preserves terminal status without replacing its cause", status: http.StatusCreated, cancelAtHandoff: true, wantProducerErr: statusIdentityOracle(http.StatusCreated), wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+ 		{name: "handoff cancellation cannot erase successful-stream native read refusal", status: http.StatusOK, payload: []byte{0x00}, fault: replayHandoffReadFailure, cancelAtHandoff: true, wantProducerErr: io.ErrUnexpectedEOF, wantErr: context.Canceled, wantBytes: 1, wantAttempts: 1},
+ 		{name: "handoff cancellation cannot erase successful-stream native close refusal", status: http.StatusOK, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, cancelAtHandoff: true, wantProducerErr: io.ErrClosedPipe, wantErr: context.Canceled, wantBytes: 2, wantAttempts: 1},
+ 		{name: "handoff cancellation retains all three acknowledged bytes", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantErr: context.Canceled, wantBytes: 3, wantAttempts: 1},
+ 		{name: "handoff cancellation preserves both status and error-body native read refusal", status: http.StatusServiceUnavailable, payload: []byte{0x00}, fault: replayHandoffReadFailure, cancelAtHandoff: true, wantProducerErr: io.ErrUnexpectedEOF, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+ 		{name: "handoff cancellation preserves both status and error-body native close refusal", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, cancelAtHandoff: true, wantProducerErr: io.ErrClosedPipe, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+-		{name: "handoff cancellation preserves status after complete diagnostic drain", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
++		{name: "handoff cancellation preserves status after complete diagnostic drain", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantProducerErr: statusIdentityOracle(http.StatusServiceUnavailable), wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+ 	}
+ 	for _, tc := range cases {
+-		if tc.wantProducerErr == core.ErrExchangeResponse {
+-			tc.wantProducerErr = statusIdentityOracle(tc.status)
+-		}
+-		if tc.wantErr == core.ErrExchangeResponse {
+-			tc.wantErr = statusIdentityOracle(tc.status)
+-		}
+ 		t.Run(tc.name, func(t *testing.T) {
+ 			t.Parallel()
+ 			target, err := core.ParseHTTPEndpoint("https://provider.example.test/stream")
+diff --git a/exchange/upload_ack_native_external_test.go b/exchange/upload_ack_native_external_test.go
+index 65374ca4..5b3a4bdd 100644
+--- a/exchange/upload_ack_native_external_test.go
++++ b/exchange/upload_ack_native_external_test.go
+@@ -79,13 +79,13 @@ func TestUploadNativeAcknowledgmentClosesWithoutReadingUnfinishedBody(t *testing
+ 		select {
+ 		case <-done:
+ 		case <-time.After(10 * time.Second):
+-			t.Error("owned upload did not exit after cancellation")
++			t.Error("owned upload exited after cancellation = false, want true")
+ 		}
+ 	}()
+ 	select {
+ 	case <-read:
+ 		cancel()
+-		t.Error("Upload read an unneeded acknowledgment body; want close without response draining")
++		t.Error("acknowledgment body read = true, want false and native close")
+ 	case <-closed:
+ 		select {
+ 		case got := <-finished:
+@@ -93,10 +93,10 @@ func TestUploadNativeAcknowledgmentClosesWithoutReadingUnfinishedBody(t *testing
+ 				t.Errorf("native acknowledgment = %+v/%v, want one completed empty observation", got.response, got.err)
+ 			}
+ 		case <-time.After(10 * time.Second):
+-			t.Error("Upload closed its body but did not return")
++			t.Error("Upload returned after body close = false, want true")
+ 		}
+ 	case <-time.After(10 * time.Second):
+ 		cancel()
+-		t.Error("native upload reached neither an acknowledgment read nor close")
++		t.Error("native acknowledgment read/close observed = false/false, want false/true")
+ 	}
+ }

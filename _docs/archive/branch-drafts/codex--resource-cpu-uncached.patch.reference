@@ -1,0 +1,534 @@
+diff --git a/hostfacts/resource_cpu_darwin.go b/hostfacts/resource_cpu_darwin.go
+index 0932b5aa..13296c76 100644
+--- a/hostfacts/resource_cpu_darwin.go
++++ b/hostfacts/resource_cpu_darwin.go
+@@ -5,6 +5,7 @@ package hostfacts
+ import (
+ 	"context"
+ 	"errors"
++	"math"
+ 	"runtime"
+ 	"strconv"
+ 	"syscall"
+@@ -14,13 +15,15 @@ import (
+ 	"github.com/deliri/primitive/v2026/core"
+ )
+ 
+-// Darwin's host_cpu_load_info is exactly four natural_t (uint32) counters:
+-// user, system, idle, nice. host_statistics returns their count separately.
+-// A regression, including a native counter wrap, is refused by resourceBusy.
+-const resourceMachCPULoadInfo = 3
++// host_processor_info supplies four uint32 ticks per processor without the
++// third-party host_statistics cache. Keep each processor until comparison so
++// a wrapped counter cannot hide behind another processor's advancing ticks.
++const resourceMachProcessorCPULoadInfo = 2
++const resourceMachCPUStates = 4
+ 
+ type resourceMachStatus int32
+-type resourceMachCPUCounters [4]uint32
++type resourceMachCPUState [resourceMachCPUStates]uint32
++type resourceMachCPUCounters []resourceMachCPUState
+ 
+ func (s resourceMachStatus) Error() string {
+ 	return "Mach kernel status " + strconv.FormatInt(int64(s), 10)
+@@ -37,66 +40,134 @@ func resourceMachResult(status uintptr, native syscall.Errno) error {
+ }
+ 
+ func resourceMachBusy(before, after resourceMachCPUCounters, cpus LogicalCPUCount) (uint64, error) {
++	if cpus.Validate() != nil || len(before) != cpus.Int() || len(after) != len(before) {
++		return 0, core.ErrHostFactsObservation
++	}
+ 	var first, last resourceCPUCounters
+-	for i := range before {
+-		if after[i] < before[i] {
+-			return 0, core.ErrHostFactsObservation
++	for cpu := range before {
++		for state, tick := range before[cpu] {
++			next := after[cpu][state]
++			if next < tick || math.MaxUint64-first.total < uint64(tick) || math.MaxUint64-last.total < uint64(next) {
++				return 0, core.ErrHostFactsObservation
++			}
++			first.total += uint64(tick)
++			last.total += uint64(next)
++			if state == 2 {
++				first.idle += uint64(tick)
++				last.idle += uint64(next)
++			}
+ 		}
+-		first.total += uint64(before[i])
+-		last.total += uint64(after[i])
+ 	}
+-	first.idle, last.idle = uint64(before[2]), uint64(after[2])
+ 	return resourceBusy(first, last, cpus)
+ }
+ 
+-func readResourceCPU(ctx context.Context) (resourceMachCPUCounters, error) {
+-	return readResourceMachCPU(ctx, resourceMachCPULoadInfo)
++// resourceMachCPUBuffer owns one returned OOL VM region and one host send
++// right. The cached task port is borrowed. Neither resource survives a read.
++type resourceMachCPUBuffer struct {
++	task, host        uintptr
++	data              unsafe.Pointer
++	processors, count uint32
+ }
+ 
+-func readResourceMachCPU(ctx context.Context, flavor uintptr) (out resourceMachCPUCounters, resultErr error) {
++func (b *resourceMachCPUBuffer) close() error {
++	var vmErr, hostErr error
++	if b.data != nil {
++		// count is the returned number of integer_t values, not processors.
++		// Widen before multiplying; uint32*4 fits both supported 64-bit ABIs.
++		extent := uint64(b.count) * uint64(unsafe.Sizeof(uint32(0)))
++		status, _, native := resourceMachCall(resourceMachVMDeallocateAddr, b.task, uintptr(b.data), uintptr(extent), 0, 0, 0)
++		vmErr = resourceMachResult(status, native)
++		if vmErr == nil {
++			b.data = nil
++		}
++	}
++	if b.host != 0 {
++		status, _, native := resourceMachCall(resourceMachDeallocateAddr, b.task, b.host, 0, 0, 0, 0)
++		hostErr = resourceMachResult(status, native)
++		if hostErr == nil {
++			b.host = 0
++		}
++	}
++	return errors.Join(vmErr, hostErr)
++}
++
++func (b resourceMachCPUBuffer) snapshot() (resourceMachCPUCounters, error) {
++	if b.data == nil || uintptr(b.data)%unsafe.Alignof(resourceMachCPUState{}) != 0 || b.processors == 0 || uint64(b.processors) != uint64(runtime.NumCPU()) || uint64(b.count) != uint64(b.processors)*resourceMachCPUStates {
++		return nil, core.ErrHostFactsObservation
++	}
++	// The validated native extent is exactly this many fixed processor rows.
++	rows := unsafe.Slice((*resourceMachCPUState)(b.data), int(b.processors))
++	out := make(resourceMachCPUCounters, len(rows))
++	copy(out, rows)
++	haveTicks := false
++	for _, row := range out {
++		for _, tick := range row {
++			haveTicks = haveTicks || tick != 0
++		}
++	}
++	if !haveTicks {
++		return nil, core.ErrHostFactsObservation
++	}
++	return out, nil
++}
++
++func openResourceMachCPU(ctx context.Context, flavor uintptr) (out resourceMachCPUBuffer, resultErr error) {
+ 	if err := contextstate.Validate(ctx); err != nil {
+ 		return out, err
+ 	}
+-	// The SDK macro borrows this cached task right. Calling the similarly
+-	// named trap instead would acquire another send right that needs release.
+-	task := uintptr(resourceMachTaskSelf())
+-	if task == 0 || task >= resourceMachDeadPort {
++	out.task = uintptr(resourceMachTaskSelf())
++	if out.task == 0 || out.task >= resourceMachDeadPort {
+ 		return out, core.ErrHostFactsObservation
+ 	}
+ 	host, _, native := resourceMachCall(resourceMachHostSelfAddr, 0, 0, 0, 0, 0, 0)
+-	if native != 0 || host == 0 || host >= resourceMachDeadPort {
+-		return out, errors.Join(core.ErrHostFactsObservation, nonzeroMachErrno(native))
++	if host != 0 && host < resourceMachDeadPort {
++		out.host = host
+ 	}
+-	// mach_host_self supplies a send right. Every read relinquishes its own
+-	// right before the caller can wait, fail, cancel, or publish a sample.
++	// Once native resources arrive, cleanup precedes every validation/cancel
++	// return. It always attempts VM and port release independently.
+ 	defer func() {
+-		status, _, native := resourceMachCall(resourceMachDeallocateAddr, task, host, 0, 0, 0, 0)
+-		resultErr = errors.Join(resultErr, resourceMachResult(status, native))
+ 		if resultErr != nil {
+-			out = resourceMachCPUCounters{}
++			resultErr = errors.Join(resultErr, out.close())
++			out = resourceMachCPUBuffer{}
+ 		}
+ 	}()
+-	count := uint32(len(out))
+-	status, _, native := resourceMachCall(resourceMachStatisticsAddr, host, flavor, uintptr(unsafe.Pointer(&out[0])), uintptr(unsafe.Pointer(&count)), 0, 0)
++	if native != 0 || out.host == 0 {
++		return out, errors.Join(core.ErrHostFactsObservation, nonzeroMachErrno(native))
++	}
++	status, _, native := resourceMachCall(resourceMachProcessorInfoAddr, out.host, flavor, uintptr(unsafe.Pointer(&out.processors)), uintptr(unsafe.Pointer(&out.data)), uintptr(unsafe.Pointer(&out.count)), 0)
+ 	runtime.KeepAlive(&out)
+-	runtime.KeepAlive(&count)
+ 	if err := resourceMachResult(status, native); err != nil {
+ 		return out, err
+ 	}
+-	if count != uint32(len(out)) {
++	if out.data == nil || out.processors == 0 || uint64(out.count) != uint64(out.processors)*resourceMachCPUStates {
+ 		return out, core.ErrHostFactsObservation
+ 	}
+-	var total uint64
+-	for _, tick := range out {
+-		total += uint64(tick)
++	return out, contextstate.Validate(ctx)
++}
++
++func readResourceCPU(ctx context.Context) (resourceMachCPUCounters, error) {
++	return readResourceMachCPU(ctx, resourceMachProcessorCPULoadInfo)
++}
++
++func readResourceMachCPU(ctx context.Context, flavor uintptr) (out resourceMachCPUCounters, resultErr error) {
++	buffer, err := openResourceMachCPU(ctx, flavor)
++	if err != nil {
++		return nil, err
+ 	}
+-	if total == 0 {
+-		return resourceMachCPUCounters{}, core.ErrHostFactsObservation
++	defer func() {
++		resultErr = errors.Join(resultErr, buffer.close())
++		if resultErr != nil {
++			out = nil
++		}
++	}()
++	out, resultErr = buffer.snapshot()
++	if resultErr == nil {
++		resultErr = contextstate.Validate(ctx)
+ 	}
+-	return out, contextstate.Validate(ctx)
++	return out, resultErr
+ }
+ 
+-const resourceMachDeadPort = uintptr(1<<32 - 1) // MACH_PORT_DEAD; zero is MACH_PORT_NULL.
++const resourceMachDeadPort = uintptr(1<<32 - 1)
+ 
+ func nonzeroMachErrno(native syscall.Errno) error {
+ 	if native != 0 {
+@@ -105,11 +176,9 @@ func nonzeroMachErrno(native syscall.Errno) error {
+ 	return nil
+ }
+ 
+-// The same Go runtime/libSystem bridge is used by golang.org/x/sys/unix.
+-// These imports do not enable cgo or require a C compiler. syscall.syscall6
+-// supplies Go's native-call stack and scheduler boundary.
++// Existing Go runtime/libSystem bridge; no cgo or C compiler is required.
+ var resourceMachHostSelfAddr uintptr
+-var resourceMachStatisticsAddr, resourceMachDeallocateAddr uintptr
++var resourceMachProcessorInfoAddr, resourceMachDeallocateAddr, resourceMachVMDeallocateAddr uintptr
+ 
+ func resourceMachTaskSelf() uint32
+ 
+@@ -119,5 +188,6 @@ func resourceMachCall(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err s
+ 
+ //go:cgo_import_dynamic resource_mach_host_self mach_host_self "/usr/lib/libSystem.B.dylib"
+ //go:cgo_import_dynamic resource_mach_task_self_ mach_task_self_ "/usr/lib/libSystem.B.dylib"
+-//go:cgo_import_dynamic resource_host_statistics host_statistics "/usr/lib/libSystem.B.dylib"
++//go:cgo_import_dynamic resource_host_processor_info host_processor_info "/usr/lib/libSystem.B.dylib"
+ //go:cgo_import_dynamic resource_mach_port_deallocate mach_port_deallocate "/usr/lib/libSystem.B.dylib"
++//go:cgo_import_dynamic resource_mach_vm_deallocate mach_vm_deallocate "/usr/lib/libSystem.B.dylib"
+diff --git a/hostfacts/resource_cpu_darwin_amd64.s b/hostfacts/resource_cpu_darwin_amd64.s
+index 35e6c831..dc2dc6d7 100644
+--- a/hostfacts/resource_cpu_darwin_amd64.s
++++ b/hostfacts/resource_cpu_darwin_amd64.s
+@@ -8,16 +8,21 @@ TEXT resource_host_self_trampoline<>(SB),NOSPLIT,$0-0
+ GLOBL ·resourceMachHostSelfAddr(SB),RODATA,$8
+ DATA ·resourceMachHostSelfAddr(SB)/8,$resource_host_self_trampoline<>(SB)
+ 
+-TEXT resource_statistics_trampoline<>(SB),NOSPLIT,$0-0
+-	JMP resource_host_statistics(SB)
+-GLOBL ·resourceMachStatisticsAddr(SB),RODATA,$8
+-DATA ·resourceMachStatisticsAddr(SB)/8,$resource_statistics_trampoline<>(SB)
++TEXT resource_processor_trampoline<>(SB),NOSPLIT,$0-0
++	JMP resource_host_processor_info(SB)
++GLOBL ·resourceMachProcessorInfoAddr(SB),RODATA,$8
++DATA ·resourceMachProcessorInfoAddr(SB)/8,$resource_processor_trampoline<>(SB)
+ 
+ TEXT resource_deallocate_trampoline<>(SB),NOSPLIT,$0-0
+ 	JMP resource_mach_port_deallocate(SB)
+ GLOBL ·resourceMachDeallocateAddr(SB),RODATA,$8
+ DATA ·resourceMachDeallocateAddr(SB)/8,$resource_deallocate_trampoline<>(SB)
+ 
++TEXT resource_vm_deallocate_trampoline<>(SB),NOSPLIT,$0-0
++	JMP resource_mach_vm_deallocate(SB)
++GLOBL ·resourceMachVMDeallocateAddr(SB),RODATA,$8
++DATA ·resourceMachVMDeallocateAddr(SB)/8,$resource_vm_deallocate_trampoline<>(SB)
++
+ // Borrow the cached task port exactly as Go's Darwin runtime does.
+ TEXT ·resourceMachTaskSelf(SB),NOSPLIT,$0-4
+ 	MOVQ $resource_mach_task_self_(SB), AX
+diff --git a/hostfacts/resource_cpu_darwin_arm64.s b/hostfacts/resource_cpu_darwin_arm64.s
+index cfdd133e..ae23a602 100644
+--- a/hostfacts/resource_cpu_darwin_arm64.s
++++ b/hostfacts/resource_cpu_darwin_arm64.s
+@@ -8,16 +8,21 @@ TEXT resource_host_self_trampoline<>(SB),NOSPLIT,$0-0
+ GLOBL ·resourceMachHostSelfAddr(SB),RODATA,$8
+ DATA ·resourceMachHostSelfAddr(SB)/8,$resource_host_self_trampoline<>(SB)
+ 
+-TEXT resource_statistics_trampoline<>(SB),NOSPLIT,$0-0
+-	JMP resource_host_statistics(SB)
+-GLOBL ·resourceMachStatisticsAddr(SB),RODATA,$8
+-DATA ·resourceMachStatisticsAddr(SB)/8,$resource_statistics_trampoline<>(SB)
++TEXT resource_processor_trampoline<>(SB),NOSPLIT,$0-0
++	JMP resource_host_processor_info(SB)
++GLOBL ·resourceMachProcessorInfoAddr(SB),RODATA,$8
++DATA ·resourceMachProcessorInfoAddr(SB)/8,$resource_processor_trampoline<>(SB)
+ 
+ TEXT resource_deallocate_trampoline<>(SB),NOSPLIT,$0-0
+ 	JMP resource_mach_port_deallocate(SB)
+ GLOBL ·resourceMachDeallocateAddr(SB),RODATA,$8
+ DATA ·resourceMachDeallocateAddr(SB)/8,$resource_deallocate_trampoline<>(SB)
+ 
++TEXT resource_vm_deallocate_trampoline<>(SB),NOSPLIT,$0-0
++	JMP resource_mach_vm_deallocate(SB)
++GLOBL ·resourceMachVMDeallocateAddr(SB),RODATA,$8
++DATA ·resourceMachVMDeallocateAddr(SB)/8,$resource_vm_deallocate_trampoline<>(SB)
++
+ // Borrow the cached task port exactly as Go's Darwin runtime does.
+ TEXT ·resourceMachTaskSelf(SB),NOSPLIT,$0-4
+ 	MOVD $resource_mach_task_self_(SB), R0
+diff --git a/hostfacts/resource_cpu_darwin_test.go b/hostfacts/resource_cpu_darwin_test.go
+index 04a9c96f..5d6babaf 100644
+--- a/hostfacts/resource_cpu_darwin_test.go
++++ b/hostfacts/resource_cpu_darwin_test.go
+@@ -3,8 +3,11 @@
+ package hostfacts
+ 
+ import (
++	"context"
+ 	"errors"
++	"github.com/deliri/primitive/v2026/temporal"
+ 	"math"
++	"slices"
+ 	"syscall"
+ 	"testing"
+ 
+@@ -16,20 +19,20 @@ func TestMacResourceCPUCounterBoundaries(t *testing.T) {
+ 	t.Parallel()
+ 	for _, tc := range []struct {
+ 		name          string
+-		before, after resourceMachCPUCounters
++		before, after resourceMachCPUState
+ 		want          uint64
+ 		bad           bool
+ 	}{
+-		{"half busy", resourceMachCPUCounters{1, 1, 2, 0}, resourceMachCPUCounters{3, 3, 6, 0}, 2000, false},
+-		{"all idle", resourceMachCPUCounters{0, 0, 1, 0}, resourceMachCPUCounters{0, 0, 11, 0}, 0, false},
+-		{"nice is busy", resourceMachCPUCounters{0, 0, 1, 0}, resourceMachCPUCounters{0, 0, 1, 10}, 4000, false},
+-		{"four maximum counters widen before sum", resourceMachCPUCounters{math.MaxUint32 - 1, math.MaxUint32 - 1, math.MaxUint32 - 1, math.MaxUint32 - 1}, resourceMachCPUCounters{math.MaxUint32, math.MaxUint32, math.MaxUint32, math.MaxUint32}, 3000, false},
+-		{"zero delta refuses", resourceMachCPUCounters{1, 1, 1, 1}, resourceMachCPUCounters{1, 1, 1, 1}, 0, true},
+-		{"individual regression despite growing total", resourceMachCPUCounters{100, 100, 100, 100}, resourceMachCPUCounters{99, 200, 200, 200}, 0, true},
+-		{"counter wrap despite growing total", resourceMachCPUCounters{math.MaxUint32, 0, 0, 0}, resourceMachCPUCounters{0, math.MaxUint32, math.MaxUint32, math.MaxUint32}, 0, true},
++		{"half busy", resourceMachCPUState{1, 1, 2, 0}, resourceMachCPUState{3, 3, 6, 0}, 2000, false},
++		{"all idle", resourceMachCPUState{0, 0, 1, 0}, resourceMachCPUState{0, 0, 11, 0}, 0, false},
++		{"nice is busy", resourceMachCPUState{0, 0, 1, 0}, resourceMachCPUState{0, 0, 1, 10}, 4000, false},
++		{"four maximum counters widen before sum", resourceMachCPUState{math.MaxUint32 - 1, math.MaxUint32 - 1, math.MaxUint32 - 1, math.MaxUint32 - 1}, resourceMachCPUState{math.MaxUint32, math.MaxUint32, math.MaxUint32, math.MaxUint32}, 3000, false},
++		{"zero delta refuses", resourceMachCPUState{1, 1, 1, 1}, resourceMachCPUState{1, 1, 1, 1}, 0, true},
++		{"individual regression despite growing total", resourceMachCPUState{100, 100, 100, 100}, resourceMachCPUState{99, 200, 200, 200}, 0, true},
++		{"counter wrap despite growing total", resourceMachCPUState{math.MaxUint32, 0, 0, 0}, resourceMachCPUState{0, math.MaxUint32, math.MaxUint32, math.MaxUint32}, 0, true},
+ 	} {
+ 		t.Run(tc.name, func(t *testing.T) {
+-			got, err := resourceMachBusy(tc.before, tc.after, LogicalCPUCount{count: 4})
++			got, err := resourceMachBusy(resourceMachCPUCounters{tc.before, {}, {}, {}}, resourceMachCPUCounters{tc.after, {}, {}, {}}, LogicalCPUCount{count: 4})
+ 			if tc.bad {
+ 				if !errors.Is(err, core.ErrHostFactsObservation) || got != 0 {
+ 					t.Fatalf("native counter refusal=%d/%v", got, err)
+@@ -66,7 +69,7 @@ func TestMacResourceNativeErrorReleasesHostRight(t *testing.T) {
+ 		t.Fatalf("native baseline refs=%d/%v", before, err)
+ 	}
+ 	got, err := readResourceMachCPU(t.Context(), uintptr(math.MaxUint32))
+-	if !errors.Is(err, core.ErrHostFactsObservation) || got != (resourceMachCPUCounters{}) {
++	if !errors.Is(err, core.ErrHostFactsObservation) || len(got) != 0 {
+ 		t.Fatalf("actual invalid kernel flavor=%v/%v", got, err)
+ 	}
+ 	if status, okay := errors.AsType[resourceMachStatus](err); !okay || status == 0 {
+@@ -84,3 +87,119 @@ func TestMacResourceNativeErrorReleasesHostRight(t *testing.T) {
+ 		t.Fatalf("native successful read leaked host right: refs%d→%d/%v", before, after, err)
+ 	}
+ }
++
++// Every native allocation is tested by address, not an RSS or successful-call
++// proxy. The returned Go snapshot remains valid after its OOL source is gone.
++func TestMacResourceCPUBufferOwnership(t *testing.T) {
++	ref, err := machrefs.Hold()
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer func() {
++		if err := ref.Close(); err != nil {
++			t.Error(err)
++		}
++	}()
++	baseline, err := ref.Count()
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, cancelled := range []bool{false, true} {
++		ctx, cancel, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: t.Context()})
++		if err != nil {
++			t.Fatal(err)
++		}
++		buffer, err := openResourceMachCPU(ctx, resourceMachProcessorCPULoadInfo)
++		if err != nil {
++			cancel(nil)
++			t.Fatal(err)
++		}
++		address := uintptr(buffer.data)
++		snapshot, copyErr := buffer.snapshot()
++		copied := slices.Clone(snapshot)
++		readable, readErr := machrefs.Readable(address)
++		if cancelled {
++			cancel(context.Canceled)
++		}
++		closeErr := buffer.close()
++		cancel(nil)
++		absent, absentErr := machrefs.Readable(address)
++		if copyErr != nil || readErr != nil || !readable || closeErr != nil || absentErr != nil || absent || len(snapshot) == 0 || !slices.Equal(snapshot, copied) {
++			t.Fatalf("native VM lifecycle cancelled=%t before=%t/%v copied=%d/%v close=%v afterReadable=%t/%v", cancelled, readable, readErr, len(snapshot), copyErr, closeErr, absent, absentErr)
++		}
++		if err := buffer.close(); err != nil {
++			t.Fatalf("closed owner repeated cleanup: %v", err)
++		}
++		count, err := ref.Count()
++		if err != nil || count != baseline {
++			t.Fatalf("native host refs %d -> %d/%v", baseline, count, err)
++		}
++		t.Logf("native OOL region readable before/released after; copiedCPUCount=%d cancelled=%t hostRefs=%d", len(snapshot), cancelled, count)
++	}
++}
++
++// Twelve ordinary quarter-second pairs exceed one cache window without a
++// saturation burst or extra old probes. Both routes use this exact comparison;
++// an old-route control earns causality only on identical nonzero native data.
++func TestMacResourceCPURepeatedQuarterWindows(t *testing.T) {
++	interval := resourceDuration(t, "250ms")
++	cpus, err := ObserveLogicalCPUCount()
++	if err != nil {
++		t.Fatal(err)
++	}
++	for sample := 0; sample < 12; sample++ {
++		start, err := temporal.Observe()
++		if err != nil {
++			t.Fatal(err)
++		}
++		before, err := readResourceCPU(t.Context())
++		if err != nil {
++			t.Fatalf("native before sample%d: %v", sample, err)
++		}
++		if err := temporal.Wait(temporal.WaitRequest{Context: t.Context(), Duration: interval}); err != nil {
++			t.Fatal(err)
++		}
++		after, err := readResourceCPU(t.Context())
++		if err != nil {
++			t.Fatalf("native after sample%d: %v", sample, err)
++		}
++		end, err := temporal.Observe()
++		if err != nil {
++			t.Fatal(err)
++		}
++		window, err := end.Since(start)
++		if err != nil {
++			t.Fatal(err)
++		}
++		busy, err := resourceMachBusy(before, after, cpus)
++		if err != nil {
++			if len(before) == cpus.Int() && slices.Equal(before, after) {
++				t.Fatalf("native cached zero-delta sample%d window_ns=%d before=%v after=%v: %v", sample, window.Nanoseconds(), before, after, err)
++			}
++			t.Fatalf("native different failure sample%d before=%v after=%v: %v", sample, before, after, err)
++		}
++		if window.Nanoseconds() < interval.Nanoseconds() || busy > uint64(cpus.Int())*resourceCPUMilli {
++			t.Fatalf("native bounds sample%d window=%v busy=%d", sample, window, busy)
++		}
++		t.Logf("native quarter sample=%d window_ns=%d cpu_count=%d busy_milli=%d", sample, window.Nanoseconds(), cpus.Int(), busy)
++	}
++}
++
++func TestMacResourcePerCPUClosure(t *testing.T) {
++	t.Parallel()
++	cpus := LogicalCPUCount{count: 2}
++	for _, row := range []struct {
++		name          string
++		before, after resourceMachCPUCounters
++	}{
++		{"hidden individual regression", resourceMachCPUCounters{{100, 100, 100, 100}, {1, 1, 1, 1}}, resourceMachCPUCounters{{99, 100, 100, 100}, {1000, 1000, 1000, 1000}}},
++		{"changed CPU count", resourceMachCPUCounters{{1, 1, 1, 1}, {1, 1, 1, 1}}, resourceMachCPUCounters{{2, 2, 2, 2}}},
++		{"missing CPU", nil, nil},
++	} {
++		t.Run(row.name, func(t *testing.T) {
++			if busy, err := resourceMachBusy(row.before, row.after, cpus); !errors.Is(err, core.ErrHostFactsObservation) || busy != 0 {
++				t.Fatalf("per-CPU refusal=%d/%v", busy, err)
++			}
++		})
++	}
++}
+diff --git a/hostfacts/testdata/machrefs/references_darwin.go b/hostfacts/testdata/machrefs/references_darwin.go
+index 989b565e..7e206236 100644
+--- a/hostfacts/testdata/machrefs/references_darwin.go
++++ b/hostfacts/testdata/machrefs/references_darwin.go
+@@ -36,6 +36,26 @@ func (r Reference) Close() error {
+ 	return checked(status, native)
+ }
+ 
++// Readable observes exactly one word in this process's owned VM region. A
++// released region must return KERN_INVALID_ADDRESS, not a fabricated RSS delta.
++func Readable(address uintptr) (bool, error) {
++	var word uint32
++	var copied uint64
++	status, _, native := call(readAddr, uintptr(taskSelf()), address, unsafe.Sizeof(word), uintptr(unsafe.Pointer(&word)), uintptr(unsafe.Pointer(&copied)), 0)
++	runtime.KeepAlive(&word)
++	runtime.KeepAlive(&copied)
++	if native == 0 && status == 1 {
++		return false, nil
++	}
++	if err := checked(status, native); err != nil {
++		return false, err
++	}
++	if copied != uint64(unsafe.Sizeof(word)) {
++		return false, fmt.Errorf("native VM read extent %d", copied)
++	}
++	return true, nil
++}
++
+ func checked(status uintptr, native syscall.Errno) error {
+ 	if native != 0 {
+ 		return fmt.Errorf("native reference observation: %w", native)
+@@ -46,7 +66,7 @@ func checked(status uintptr, native syscall.Errno) error {
+ 	return nil
+ }
+ 
+-var hostAddr, refsAddr, deallocateAddr uintptr
++var hostAddr, refsAddr, deallocateAddr, readAddr uintptr
+ 
+ func taskSelf() uint32
+ 
+@@ -58,3 +78,5 @@ func call(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err syscall.Errno
+ //go:cgo_import_dynamic refs_mach_task_self_ mach_task_self_ "/usr/lib/libSystem.B.dylib"
+ //go:cgo_import_dynamic refs_mach_port_get_refs mach_port_get_refs "/usr/lib/libSystem.B.dylib"
+ //go:cgo_import_dynamic refs_mach_port_deallocate mach_port_deallocate "/usr/lib/libSystem.B.dylib"
++
++//go:cgo_import_dynamic refs_mach_vm_read_overwrite mach_vm_read_overwrite "/usr/lib/libSystem.B.dylib"
+diff --git a/hostfacts/testdata/machrefs/references_darwin_amd64.s b/hostfacts/testdata/machrefs/references_darwin_amd64.s
+index 496c3da0..74bb3a85 100644
+--- a/hostfacts/testdata/machrefs/references_darwin_amd64.s
++++ b/hostfacts/testdata/machrefs/references_darwin_amd64.s
+@@ -17,6 +17,11 @@ TEXT refs_deallocate_trampoline<>(SB),NOSPLIT,$0-0
+ GLOBL ·deallocateAddr(SB),RODATA,$8
+ DATA ·deallocateAddr(SB)/8,$refs_deallocate_trampoline<>(SB)
+ 
++TEXT refs_read_trampoline<>(SB),NOSPLIT,$0-0
++	JMP refs_mach_vm_read_overwrite(SB)
++GLOBL ·readAddr(SB),RODATA,$8
++DATA ·readAddr(SB)/8,$refs_read_trampoline<>(SB)
++
+ TEXT ·taskSelf(SB),NOSPLIT,$0-4
+ 	MOVQ $refs_mach_task_self_(SB), AX
+ 	MOVL (AX), AX
+diff --git a/hostfacts/testdata/machrefs/references_darwin_arm64.s b/hostfacts/testdata/machrefs/references_darwin_arm64.s
+index 4d88d377..4876500a 100644
+--- a/hostfacts/testdata/machrefs/references_darwin_arm64.s
++++ b/hostfacts/testdata/machrefs/references_darwin_arm64.s
+@@ -17,6 +17,11 @@ TEXT refs_deallocate_trampoline<>(SB),NOSPLIT,$0-0
+ GLOBL ·deallocateAddr(SB),RODATA,$8
+ DATA ·deallocateAddr(SB)/8,$refs_deallocate_trampoline<>(SB)
+ 
++TEXT refs_read_trampoline<>(SB),NOSPLIT,$0-0
++	JMP refs_mach_vm_read_overwrite(SB)
++GLOBL ·readAddr(SB),RODATA,$8
++DATA ·readAddr(SB)/8,$refs_read_trampoline<>(SB)
++
+ TEXT ·taskSelf(SB),NOSPLIT,$0-4
+ 	MOVD $refs_mach_task_self_(SB), R0
+ 	MOVWU (R0), R0

@@ -1,0 +1,38 @@
+[
+  {
+    "former_branch": "codex/filestore-tar-stream-measurement",
+    "tip": "d59905169e55d5d7fdfeb541ff0b58864c1924d0",
+    "base": "aa5c19cd72dc0dfb081894df6fcc5077475b29b0",
+    "patch_file": "codex--filestore-tar-stream-measurement.patch.reference",
+    "bytes": 5548,
+    "sha256": "4f305218a7eb172379246ea8d580cff92976a0988f7bc57fb2f96b3e4cdf3f87",
+    "status": "retained draft; not applied to production main"
+  },
+  {
+    "former_branch": "codex/http-native-cleanup-next",
+    "tip": "a3d55f460e070a7245cdb812d8a9ba520d7c7128",
+    "base": "fe35c6104965cba201f99ddc9871fea76bca499f",
+    "patch_file": "codex--http-native-cleanup-next.patch.reference",
+    "bytes": 95375,
+    "sha256": "f3b18da6089898ac69ce4395f94ac168074b7718bad2a04c5706258e6852f82d",
+    "status": "retained draft; not applied to production main"
+  },
+  {
+    "former_branch": "codex/process-local-memory-exhaustion",
+    "tip": "62d682a810956592429a367bf788aacbf9b7b8ab",
+    "base": "d54ea323390616025eb063d14e306f56fb09e659",
+    "patch_file": "codex--process-local-memory-exhaustion.patch.reference",
+    "bytes": 42879,
+    "sha256": "cc6e82e74a08bbc69f9d249bf35bbf8bb5bbb416c174b5c444ca74e392256408",
+    "status": "retained draft; not applied to production main"
+  },
+  {
+    "former_branch": "codex/resource-cpu-uncached",
+    "tip": "eee661f154a2b61b36247b16b7f3ce9bca79b125",
+    "base": "8b054e5f06c97713b1cc2b30f4b9b37f770e9288",
+    "patch_file": "codex--resource-cpu-uncached.patch.reference",
+    "bytes": 23592,
+    "sha256": "0f894d3ebdfb6a8a19ddb2f56ac47fffb375c202166e8f15c929f161472a2722",
+    "status": "retained draft; not applied to production main"
+  }
+]
