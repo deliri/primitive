@@ -30,7 +30,7 @@ const IDEMPOTENCY_HEADER = '__IDEMPOTENCY_HEADER__';
 const BROWSER_OWNED_HEADERS = Object.freeze(['accept', 'accept-charset', 'accept-encoding', 'access-control-request-headers', 'access-control-request-method', 'authorization', 'connection', 'content-length', 'content-type', 'cookie', 'cookie2', 'date', 'dnt', 'expect', 'host', 'origin', 'referer', 'set-cookie', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'user-agent', 'via', IDEMPOTENCY_HEADER.toLowerCase()]);
 
 function configuredOrigin(value) {
-  if (typeof value !== 'string' || value !== value.trim()) throw exchangeError(BrowserExchangeErrorIdentity.contract);
+  if (typeof value !== 'string' || /[\u0000-\u0020\\?#]/.test(value)) throw exchangeError(BrowserExchangeErrorIdentity.contract);
   let origin;
   try { origin = new URL(value); } catch { throw exchangeError(BrowserExchangeErrorIdentity.contract); }
   if (!['https:', 'http:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw exchangeError(BrowserExchangeErrorIdentity.contract);
@@ -48,7 +48,7 @@ function configuredCSRFHeader(value) {
 }
 
 function headerValue(value) {
-  if (typeof value !== 'string' || value.trim() === '' || /[\u0000-\u001f\u007f]/.test(value)) throw exchangeError(BrowserExchangeErrorIdentity.contract);
+  if (typeof value !== 'string' || value === '' || value.trim() !== value || /[^\u0020-\u007e]/.test(value)) throw exchangeError(BrowserExchangeErrorIdentity.contract);
   return value;
 }
 
@@ -83,14 +83,15 @@ async function executeJSON(origin, csrfHeader, {path, method, body, expectedStat
       (csrfToken !== undefined && csrfHeader === undefined)) {
     throw exchangeError(BrowserExchangeErrorIdentity.contract);
   }
-  const init = {method, signal, redirect: 'manual', credentials: 'same-origin', cache: 'no-store', referrerPolicy: 'same-origin', headers: {Accept: 'application/json'}};
+  const headers = new Headers({Accept: 'application/json'});
+  const init = {method, signal, redirect: 'manual', credentials: 'same-origin', cache: 'no-store', referrerPolicy: 'same-origin', headers};
   if (origin !== globalThis.location.origin) init.credentials = 'include';
-  if (csrfToken !== undefined) init.headers[csrfHeader] = headerValue(csrfToken);
-  if (idempotencyKey !== undefined) init.headers[IDEMPOTENCY_HEADER] = headerValue(idempotencyKey);
+  if (csrfToken !== undefined) headers.set(csrfHeader, headerValue(csrfToken));
+  if (idempotencyKey !== undefined) headers.set(IDEMPOTENCY_HEADER, headerValue(idempotencyKey));
   if (body !== undefined) {
     try { init.body = JSON.stringify(body); } catch { throw exchangeError(BrowserExchangeErrorIdentity.contract); }
     if (init.body === undefined) throw exchangeError(BrowserExchangeErrorIdentity.contract);
-    init.headers['Content-Type'] = 'application/json';
+    headers.set('Content-Type', 'application/json');
   }
   let response;
   try {
