@@ -6,12 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 470
+      "patch": 471
     },
     "release_notes": [
-      "Owned TimeMatch appointments and calendar invitations carry the organizer-supplied physical destination or HTTPS video-call link.",
-      "The shared provider-independent venue fact validates address and call-link input. Exact owned-event readback refuses a changed destination, while updates preserve unrelated user notes and reminders.",
-      "Availability discovery remains busy/free only; location and join-link fields are written or read only for the specifically owned appointment."
+      "Browser Exchange can bind a trusted application API origin and its configured CSRF header while retaining the original same-origin executor.",
+      "CSRF tokens and standard idempotency keys are supplied per request, never retained by the client. Native CORS, cookies, TLS and fetch remain authoritative; redirects are refused.",
+      "Browser policy admission rejects credential-bearing origins, unsafe header roles and changed header spellings. Real WebKit and Chrome proof covers cross-origin mutation, unchanged same-origin behavior and exact JSON bodies."
     ]
   }
 }
