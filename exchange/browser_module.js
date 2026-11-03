@@ -57,7 +57,9 @@ function headerValue(value) {
  * this capability retains no tokens, cookies, request bodies or retry keys.
  * Native CORS, cookie policy, TLS and fetch remain the transport authority.
  */
-export function createBrowserExchange({origin = globalThis.location.origin, csrfHeader} = {}) {
+export function createBrowserExchange(options = {}) {
+  if (options === null || typeof options !== 'object' || Array.isArray(options)) throw exchangeError(BrowserExchangeErrorIdentity.contract);
+  const {origin = globalThis.location.origin, csrfHeader} = options;
   const target = configuredOrigin(origin);
   const header = configuredCSRFHeader(csrfHeader);
   return Object.freeze({sendJSON: (request) => executeJSON(target, header, request)});
@@ -77,7 +79,9 @@ export async function sendJSON(request = {}) {
   return executeJSON(globalThis.location.origin, undefined, request);
 }
 
-async function executeJSON(origin, csrfHeader, {path, method, body, expectedStatus, signal, csrfToken, idempotencyKey} = {}) {
+async function executeJSON(origin, csrfHeader, request = {}) {
+  if (request === null || typeof request !== 'object' || Array.isArray(request)) throw exchangeError(BrowserExchangeErrorIdentity.contract);
+  const {path, method, body, expectedStatus, signal, csrfToken, idempotencyKey} = request;
   if (!admittedPath(path, origin) || !METHODS.includes(method) || !Number.isInteger(expectedStatus) || expectedStatus < 200 || expectedStatus > 299 ||
       (signal !== undefined && !(signal instanceof AbortSignal)) || (method === 'GET' && (body !== undefined || csrfToken !== undefined || idempotencyKey !== undefined)) ||
       (csrfToken !== undefined && csrfHeader === undefined)) {

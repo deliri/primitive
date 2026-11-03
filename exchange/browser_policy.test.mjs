@@ -10,10 +10,10 @@ beforeAll(async () => {
   if (!['webkit', 'chrome'].includes(engine) || !modules?.startsWith('/')) throw new Error('browser engine and emitted module directory are required');
   const source = await readFile(`${modules}/exchange.js`);
   api = Bun.serve({hostname: '127.0.0.1', port: 0, async fetch(request) {
-    const headers = {'Access-Control-Allow-Origin': page.url.origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type, X-CSRF-Token, Idempotency-Key', 'Access-Control-Allow-Methods': 'POST, GET'};
+    const headers = {'Access-Control-Allow-Origin': page.url.origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type, X-CSRF-Token, Idempotency-Key, constructor, __proto__', 'Access-Control-Allow-Methods': 'POST, GET, PUT, PATCH, DELETE'};
     requests.push({method: request.method, path: new URL(request.url).pathname});
     if (request.method === 'OPTIONS') return new Response(null, {status: 204, headers});
-    return Response.json({method: request.method, cookie: request.headers.get('cookie'), csrf: request.headers.get('x-csrf-token'), key: request.headers.get('idempotency-key'), body: request.method === 'GET' ? null : await request.json()}, {headers});
+    return Response.json({method: request.method, cookie: request.headers.get('cookie'), csrf: request.headers.get('x-csrf-token'), constructorHeader: request.headers.get('constructor'), prototypeHeader: request.headers.get('__proto__'), key: request.headers.get('idempotency-key'), body: request.method === 'GET' ? null : await request.json()}, {headers});
   }});
   page = Bun.serve({hostname: '127.0.0.1', port: 0, async fetch(request) {
     if (new URL(request.url).pathname === '/exchange.js') return new Response(source, {headers: {'Content-Type': 'text/javascript'}});
@@ -53,6 +53,12 @@ test(`${engine}: configured headers are per request and never stick to a later r
 });
 
 const refusals = [
+  ['null configuration is a typed refusal', (v) => { v.config = null; }],
+  ['array configuration is not a policy', (v) => { v.config = []; }],
+  ['scalar configuration is not a policy', (v) => { v.config = 1; }],
+  ['null request is a typed refusal', (v) => { v.request = null; }],
+  ['array request is not a document', (v) => { v.request = []; }],
+  ['scalar request is not a document', (v) => { v.request = 1; }],
   ['origin userinfo cannot carry a credential', (v) => { v.config.origin = 'https://secret@example.test'; }],
   ['origin path cannot retarget a request', (v) => { v.config.origin = `${api.url.origin}/another`; }],
   ['origin query cannot carry a bearer', (v) => { v.config.origin = `${api.url.origin}?token=secret`; }],
@@ -101,5 +107,36 @@ for (const [name, edit] of refusals) {
     const before = requests.length;
     const got = await call(input);
     if (got.identity !== got.contract || got.value !== undefined || requests.length !== before) throw new Error(`refusal = ${JSON.stringify(got)}, native requests ${requests.length - before}, want typed contract and zero HTTP`);
+  });
+}
+
+for (const [name, body] of [
+  ['null', null], ['false', false], ['zero', 0], ['negative fractional number', -1.25],
+  ['empty string', ''], ['escaped controls inside JSON body', '\u0000\n\r\t"\\'],
+  ['Unicode body', 'Élodie 東京'], ['empty array', []], ['heterogeneous array', [null, false, 0, 'x']],
+  ['nested object', {outer: {inner: ['x', 1]}, nanos: '9223372036854775807'}],
+  ['body spanning many native windows', {text: 'é'.repeat(65_537)}],
+]) {
+  test(`${engine}: JSON body conserves ${name}`, async () => {
+    const input = ordinary(); input.request.body = body;
+    const got = await call(input);
+    if (JSON.stringify(got.value?.body) !== JSON.stringify(body)) throw new Error(`body type ${name} was not conserved: ${JSON.stringify(got)}`);
+  });
+}
+
+for (const method of ['PUT', 'PATCH', 'DELETE']) {
+  test(`${engine}: ${method} uses the same origin and mutation authority`, async () => {
+    const input = ordinary(); input.request.method = method;
+    const got = await call(input);
+    if (got.value?.method !== method || got.value.csrf !== input.request.csrfToken || got.value.key !== input.request.idempotencyKey) throw new Error(`mutation ${method} = ${JSON.stringify(got)}, want exact native method and headers`);
+  });
+}
+
+for (const name of ['constructor', '__proto__']) {
+  test(`${engine}: native header assignment conserves ${name}`, async () => {
+    const input = ordinary(); input.config.csrfHeader = name;
+    const got = await call(input);
+    const value = name === 'constructor' ? got.value?.constructorHeader : got.value?.prototypeHeader;
+    if (value !== input.request.csrfToken) throw new Error(`special native header ${name} = ${value}, want exact CSRF value`);
   });
 }
