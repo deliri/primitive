@@ -47,12 +47,10 @@ func observeWorkloadMemoryHeadroomAt(ctx context.Context, procPath, mountsPath c
 }
 
 func foldWorkloadMemoryHeadroom(ctx context.Context, membership cgroupMembership, mount cgroupMount) (WorkloadMemoryHeadroom, error) {
-	if err := errors.Join(membership.Validate(), mount.Validate()); err != nil {
+	if err := validateWorkloadMemoryHeadroomMount(membership, mount); err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
-	if membership.source != mount.source {
-		return WorkloadMemoryHeadroom{}, core.ErrHostFactsObservation
-	}
+
 	directory, err := resolveCgroupDirectory(membership.path, mount)
 	if err != nil {
 		return WorkloadMemoryHeadroom{}, err
@@ -104,32 +102,48 @@ func readWorkloadMemoryHeadroomLevel(ctx context.Context, directory core.Absolut
 			resultErr = errors.Join(resultErr, err)
 		}
 	}()
-	level, err := readCgroupLevelAt(ctx, location, source)
+	return readPinnedWorkloadMemoryHeadroom(ctx, location, WorkloadMemoryLimit{path: path, source: source})
+}
+
+func readPinnedWorkloadMemoryHeadroom(ctx context.Context, location filestore.Location, binding WorkloadMemoryLimit) (WorkloadMemoryHeadroom, error) {
+	level, err := readCgroupLevelAt(ctx, location, binding.source)
 	if err != nil {
-		return result, err
+		return WorkloadMemoryHeadroom{}, err
 	}
 	switch level.state {
 	case cgroupLevelLimitAbsent:
-		binding, e := unavailableWorkloadMemoryLimit()
-		return WorkloadMemoryHeadroom{binding: binding}, e
+		unavailable, unavailableErr := unavailableWorkloadMemoryLimit()
+		return WorkloadMemoryHeadroom{binding: unavailable}, unavailableErr
 	case cgroupLevelLimitUnlimited:
-		return validateWorkloadMemoryHeadroom(WorkloadMemoryHeadroom{binding: WorkloadMemoryLimit{path: path, state: WorkloadMemoryLimitUnlimited, source: source}})
+		binding.state = WorkloadMemoryLimitUnlimited
+		return validateWorkloadMemoryHeadroom(WorkloadMemoryHeadroom{binding: binding})
 	case cgroupLevelLimitFinite:
-		current, chargeErr := readWorkloadMemoryChargeAt(ctx, location, source)
+		current, chargeErr := readWorkloadMemoryChargeAt(ctx, location, binding.source)
 		if chargeErr != nil {
-			return result, chargeErr
+			return WorkloadMemoryHeadroom{}, chargeErr
 		}
-		after, afterErr := readCgroupLevelAt(ctx, location, source)
+		after, afterErr := readCgroupLevelAt(ctx, location, binding.source)
 		if afterErr != nil {
-			return result, afterErr
+			return WorkloadMemoryHeadroom{}, afterErr
 		}
 		if after != level {
-			return result, core.ErrHostFactsObservation
+			return WorkloadMemoryHeadroom{}, core.ErrHostFactsObservation
 		}
-		return finiteWorkloadMemoryHeadroom(WorkloadMemoryLimit{path: path, state: WorkloadMemoryLimitLimited, source: source}, level.value, current)
+		binding.state = WorkloadMemoryLimitLimited
+		return finiteWorkloadMemoryHeadroom(binding, level.value, current)
 	default:
-		return result, core.ErrHostFactsObservation
+		return WorkloadMemoryHeadroom{}, core.ErrHostFactsObservation
 	}
+}
+
+func validateWorkloadMemoryHeadroomMount(membership cgroupMembership, mount cgroupMount) error {
+	if err := errors.Join(membership.Validate(), mount.Validate()); err != nil {
+		return err
+	}
+	if membership.source != mount.source {
+		return core.ErrHostFactsObservation
+	}
+	return nil
 }
 
 func tighterWorkloadMemoryHeadroom(current, candidate WorkloadMemoryHeadroom) WorkloadMemoryHeadroom {
