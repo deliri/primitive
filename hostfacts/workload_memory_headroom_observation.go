@@ -67,19 +67,18 @@ func foldWorkloadMemoryHeadroom(ctx context.Context, membership cgroupMembership
 	}
 	result := WorkloadMemoryHeadroom{binding: binding}
 	for {
-		candidate, err := readWorkloadMemoryHeadroomLevel(ctx, directory, limit, membership.source)
+		var candidate WorkloadMemoryHeadroom
+		candidate, err = readWorkloadMemoryHeadroomLevel(ctx, directory, limit, membership.source)
 		if err != nil {
 			return WorkloadMemoryHeadroom{}, err
 		}
-		if candidate.binding.state == WorkloadMemoryLimitLimited && (result.binding.state != WorkloadMemoryLimitLimited || candidate.remaining.Uint64() < result.remaining.Uint64()) || result.binding.state == WorkloadMemoryLimitUnavailable && candidate.binding.state == WorkloadMemoryLimitUnlimited {
-			result = candidate
-		}
+		result = tighterWorkloadMemoryHeadroom(result, candidate)
 		if directory == mount.mountPoint {
 			return validateWorkloadMemoryHeadroom(result)
 		}
-		parent, err := directory.Parent()
-		if err != nil {
-			return WorkloadMemoryHeadroom{}, err
+		parent, parentErr := directory.Parent()
+		if parentErr != nil {
+			return WorkloadMemoryHeadroom{}, parentErr
 		}
 		if parent == directory {
 			return WorkloadMemoryHeadroom{}, core.ErrCgroupContainment
@@ -100,7 +99,7 @@ func readWorkloadMemoryHeadroomLevel(ctx context.Context, directory core.Absolut
 		return result, err
 	}
 	defer func() {
-		if err := location.Root.Close(); err != nil {
+		if err := filestore.CloseRoot(filestore.RootHandleRequest{Root: location.Root}); err != nil {
 			result = WorkloadMemoryHeadroom{}
 			resultErr = errors.Join(resultErr, err)
 		}
@@ -116,49 +115,70 @@ func readWorkloadMemoryHeadroomLevel(ctx context.Context, directory core.Absolut
 	case cgroupLevelLimitUnlimited:
 		return validateWorkloadMemoryHeadroom(WorkloadMemoryHeadroom{binding: WorkloadMemoryLimit{path: path, state: WorkloadMemoryLimitUnlimited, source: source}})
 	case cgroupLevelLimitFinite:
-		name := cgroupV2CurrentName
-		if source == WorkloadMemoryLimitSourceCgroupV1 {
-			name = cgroupV1CurrentName
+		current, chargeErr := readWorkloadMemoryChargeAt(ctx, location, source)
+		if chargeErr != nil {
+			return result, chargeErr
 		}
-		relative, err := core.ParseRelativePath(name)
-		if err != nil {
-			return result, err
-		}
-		file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: filestore.Location{Root: location.Root, Path: relative}})
-		if err != nil {
-			return result, err
-		}
-		raw, err := readVirtualFile(ctx, file, limitValueMaximumBytes)
-		if err != nil {
-			return result, err
-		}
-		current, err := parseWorkloadMemoryCharge(raw)
-		if err != nil {
-			return result, err
-		}
-		after, err := readCgroupLevelAt(ctx, location, source)
-		if err != nil {
-			return result, err
+		after, afterErr := readCgroupLevelAt(ctx, location, source)
+		if afterErr != nil {
+			return result, afterErr
 		}
 		if after != level {
 			return result, core.ErrHostFactsObservation
 		}
-		limit, err := core.NewByteLength(level.value)
-		if err != nil {
-			return result, err
-		}
-		remaining := uint64(0)
-		if current.Uint64() < level.value {
-			remaining = level.value - current.Uint64()
-		}
-		available, err := core.NewByteLength(remaining)
-		if err != nil {
-			return result, err
-		}
-		return validateWorkloadMemoryHeadroom(WorkloadMemoryHeadroom{binding: WorkloadMemoryLimit{path: path, limit: limit, state: WorkloadMemoryLimitLimited, source: source}, current: current, remaining: available})
+		return finiteWorkloadMemoryHeadroom(WorkloadMemoryLimit{path: path, state: WorkloadMemoryLimitLimited, source: source}, level.value, current)
 	default:
 		return result, core.ErrHostFactsObservation
 	}
+}
+
+func tighterWorkloadMemoryHeadroom(current, candidate WorkloadMemoryHeadroom) WorkloadMemoryHeadroom {
+	if candidate.binding.state == WorkloadMemoryLimitLimited {
+		if current.binding.state != WorkloadMemoryLimitLimited || candidate.remaining.Uint64() < current.remaining.Uint64() {
+			return candidate
+		}
+	}
+	if current.binding.state == WorkloadMemoryLimitUnavailable && candidate.binding.state == WorkloadMemoryLimitUnlimited {
+		return candidate
+	}
+	return current
+}
+
+func readWorkloadMemoryChargeAt(ctx context.Context, location filestore.Location, source WorkloadMemoryLimitSource) (core.ByteLength, error) {
+	name := cgroupV2CurrentName
+	if source == WorkloadMemoryLimitSourceCgroupV1 {
+		name = cgroupV1CurrentName
+	}
+	relative, err := core.ParseRelativePath(name)
+	if err != nil {
+		return core.ByteLength{}, err
+	}
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: filestore.Location{Root: location.Root, Path: relative}})
+	if err != nil {
+		return core.ByteLength{}, err
+	}
+	raw, err := readVirtualFile(ctx, file, limitValueMaximumBytes)
+	if err != nil {
+		return core.ByteLength{}, err
+	}
+	return parseWorkloadMemoryCharge(raw)
+}
+
+func finiteWorkloadMemoryHeadroom(binding WorkloadMemoryLimit, value uint64, current core.ByteLength) (WorkloadMemoryHeadroom, error) {
+	limit, err := core.NewByteLength(value)
+	if err != nil {
+		return WorkloadMemoryHeadroom{}, err
+	}
+	remaining := uint64(0)
+	if current.Uint64() < value {
+		remaining = value - current.Uint64()
+	}
+	available, err := core.NewByteLength(remaining)
+	if err != nil {
+		return WorkloadMemoryHeadroom{}, err
+	}
+	binding.limit = limit
+	return validateWorkloadMemoryHeadroom(WorkloadMemoryHeadroom{binding: binding, current: current, remaining: available})
 }
 
 func parseWorkloadMemoryCharge(data []byte) (core.ByteLength, error) {

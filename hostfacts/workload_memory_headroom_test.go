@@ -156,7 +156,8 @@ func TestObserveWorkloadMemoryHeadroomNativeAndTerminalContext(t *testing.T) {
 	if !errors.Is(err, context.Canceled) || refused != (WorkloadMemoryHeadroom{}) {
 		t.Fatalf("cancelled observation=%+v/%v, want zero and cancellation", refused, err)
 	}
-	refused, err = ObserveWorkloadMemoryHeadroom(nil)
+	var absent context.Context
+	refused, err = ObserveWorkloadMemoryHeadroom(absent)
 	if !errors.Is(err, core.ErrNilContext) || refused != (WorkloadMemoryHeadroom{}) {
 		t.Fatalf("nil observation=%+v/%v, want zero and nil-context identity", refused, err)
 	}
