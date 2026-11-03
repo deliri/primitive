@@ -78,7 +78,7 @@ func TestRecoveryCompletesUnappliedDeterministicCreate(t *testing.T) {
 			if !errors.Is(firstErr, core.ErrTimeMatchIndeterminate) || first != (EventReceipt{}) || entities.Load() != 0 {
 				t.Fatalf("unapplied first create=(%v,%v),entities%d,wantzero,Indeterminate,0", first, firstErr, entities.Load())
 			}
-			request.Attempt = EventCreateRecoverOnly
+			request.Attempt = EventCreateGuardedRecovery
 			recovered, recoverErr := client.PutEvent(t.Context(), request)
 			if recoverErr != nil || recovered.Ref.ID != owned.ID || entities.Load() != 1 {
 				t.Fatalf("recovery=(%v,%v),entities%d,wantownedreceipt,nil,1", recovered, recoverErr, entities.Load())

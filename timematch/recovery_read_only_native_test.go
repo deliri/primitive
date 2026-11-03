@@ -63,3 +63,24 @@ func TestRecoverOnlyNeverMutatesMissingOrUnavailableProvider(t *testing.T) {
 		}
 	}
 }
+
+func TestGuardedMicrosoftRecoveryCannotRetryCreate(t *testing.T) {
+	t.Parallel()
+	var reads, writes atomic.Int32
+	client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+		if r.Method != http.MethodGet {
+			writes.Add(1)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		reads.Add(1)
+		writeJSON(w, http.StatusOK, `{"value":[]}`)
+	})
+	owned := intent(t, "primary", "Review", "2026-11-02T15:00:00Z", "2026-11-02T15:30:00Z")
+	request := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+	request.Attempt = EventCreateGuardedRecovery
+	got, err := client.PutEvent(t.Context(), request)
+	if writes.Load() != 0 || reads.Load() != 1 || !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) {
+		t.Fatalf("guarded recovery = (%v, %v), reads/writes = %d/%d, want zero, Indeterminate, 1/0", got, err, reads.Load(), writes.Load())
+	}
+}

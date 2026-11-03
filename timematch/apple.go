@@ -441,6 +441,9 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 		return EventReceipt{}, err
 	}
 	ref := EventRef{ID: w.Intent.ID, Provider: ProviderApple, Calendar: w.Intent.Calendar, Resource: target.String()}
+	if w.Attempt == EventCreateRecoverOnly {
+		return c.appleReadBack(ctx, appleReadBackRequest{auth: auth, target: target, intent: w.Intent, ref: ref, policy: w.Policy})
+	}
 	// Recovery repeats only the exact child URI with the same create-only
 	// precondition. It can fill an unapplied intent, never replace a resource.
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: []exchange.SecretHeader{auth}, policy: w.Policy, expected: http.StatusCreated})
