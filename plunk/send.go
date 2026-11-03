@@ -25,7 +25,7 @@ type SendRequest[Data any] struct {
 	Subject  string `json:"subject,omitempty"`
 	Body     string `json:"body,omitempty"`
 	// Attachments are the documented base64 objects; absent means none.
-	Attachments []Attachment `json:"attachments,omitempty"`
+	Attachments []Attachment `json:"-"`
 }
 
 func (r SendRequest[Data]) Validate() error {
