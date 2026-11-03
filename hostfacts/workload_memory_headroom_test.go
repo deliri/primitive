@@ -168,6 +168,12 @@ func FuzzWorkloadMemoryChargeCanonical(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := parseWorkloadMemoryCharge(data)
+		if len(data) > limitValueMaximumBytes {
+			if !errors.Is(err, core.ErrHostFactsObservation) || got != (core.ByteLength{}) {
+				t.Fatalf("oversized charge=%v/%v, want zero typed refusal before oracle allocation", got, err)
+			}
+			return
+		}
 		token := strings.TrimSuffix(string(data), "\n")
 		value, parseErr := strconv.ParseUint(token, 10, 64)
 		_, nominalErr := core.NewByteLength(value)
