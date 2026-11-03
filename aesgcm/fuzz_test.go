@@ -42,7 +42,11 @@ func FuzzAESGCMNativeAuthentication(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer c.Destroy()
+		defer func() {
+			if err := c.Destroy(); err != nil {
+				t.Errorf("Destroy() = %v, want nil", err)
+			}
+		}()
 		got, gotErr := c.Open(OpenRequest{Ciphertext: envelope, AdditionalData: aad})
 		block, err := aes.NewCipher(key)
 		if err != nil {

@@ -18,7 +18,7 @@ type internalCapability[T any] struct{}
 
 type aesgcmDataFlowInventory struct {
 	Cipher          capabilityWrapper[Cipher]
-	cipherState     internalCapability[cipherState]
+	CipherState     internalCapability[cipherState] `production:"cipherState"`
 	SealRequest     operationRequest[SealRequest]
 	SealResult      ownedResult[SealResult]
 	OpenRequest     operationRequest[OpenRequest]
@@ -69,7 +69,12 @@ func TestAESGCMDataFlowInventory(t *testing.T) {
 	var want []string
 	inventory := reflect.TypeFor[aesgcmDataFlowInventory]()
 	for index := range inventory.NumField() {
-		want = append(want, inventory.Field(index).Name)
+		field := inventory.Field(index)
+		name := field.Tag.Get("production")
+		if name == "" {
+			name = field.Name
+		}
+		want = append(want, name)
 	}
 	slices.Sort(want)
 	slices.Sort(got)

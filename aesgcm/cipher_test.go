@@ -58,7 +58,11 @@ func TestAESGCMKeyAndNativeLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer got.Destroy()
+			defer func() {
+				if err := got.Destroy(); err != nil {
+					t.Errorf("Destroy() = %v, want nil", err)
+				}
+			}()
 			if err := got.Validate(); err != nil {
 				t.Fatal(err)
 			}
@@ -328,7 +332,7 @@ func TestAESGCMConcurrentDestroyAliases(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(10 * time.Second):
-		t.Fatal("concurrent operations did not complete")
+		t.Fatalf("concurrent operations exceeded %v join backstop, want completed owned operations", 10*time.Second)
 	}
 	if err := c.Validate(); !errors.Is(err, core.ErrAESGCMContract) {
 		t.Fatalf("after joined Destroy Validate=%v, want refusal", err)
