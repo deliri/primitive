@@ -74,8 +74,13 @@ func TestVenueRefusalEmitsNoInvitation(t *testing.T) {
 	if err := venue.Validate(); !errors.Is(err, core.ErrTimeMatchContract) {
 		t.Fatalf("venue injection error = %v, want typed refusal", err)
 	}
+	invitation := invitationFixture(t)
+	if err := invitation.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	invitation.Venue = venue
 	var destination bytes.Buffer
-	err := WriteInvitation(&destination, Invitation{Venue: venue})
+	err := WriteInvitation(&destination, invitation)
 	if !errors.Is(err, core.ErrTimeMatchContract) || destination.Len() != 0 {
 		t.Fatalf("rejected invitation = (%d bytes,%v), want no output and typed refusal", destination.Len(), err)
 	}
