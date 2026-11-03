@@ -43,11 +43,11 @@ func observeWorkloadMemoryScopeParent(ctx context.Context) (WorkloadMemoryHeadro
 	if err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
-	if err := sameWorkloadMemoryScopeParent(before, after); err != nil {
-		return WorkloadMemoryHeadroom{}, err
+	if identityErr := sameWorkloadMemoryScopeParent(before, after); identityErr != nil {
+		return WorkloadMemoryHeadroom{}, identityErr
 	}
-	if err := contextstate.Validate(bounded); err != nil {
-		return WorkloadMemoryHeadroom{}, err
+	if contextErr := contextstate.Validate(bounded); contextErr != nil {
+		return WorkloadMemoryHeadroom{}, contextErr
 	}
 	return result, result.Validate()
 }

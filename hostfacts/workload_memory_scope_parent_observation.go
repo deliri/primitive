@@ -30,18 +30,18 @@ func observeWorkloadMemoryScopeParentAt(ctx context.Context, files workloadMemor
 	if !present {
 		return unavailableWorkloadMemoryHeadroom()
 	}
-	if err := admitWorkloadMemoryScopeParentDirectory(ctx, selection.prospective, selection.mount); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+	if admitErr := admitWorkloadMemoryScopeParentDirectory(ctx, selection.prospective, selection.mount); admitErr != nil {
+		if errors.Is(admitErr, fs.ErrNotExist) {
 			return unavailableWorkloadMemoryHeadroom()
 		}
-		return WorkloadMemoryHeadroom{}, err
+		return WorkloadMemoryHeadroom{}, admitErr
 	}
 	result, err := foldWorkloadMemoryHeadroom(ctx, selection.prospective, selection.mount)
 	if err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
-	if err := recheckCgroupMembership(ctx, files.membership, selection.current); err != nil {
-		return WorkloadMemoryHeadroom{}, err
+	if recheckErr := recheckCgroupMembership(ctx, files.membership, selection.current); recheckErr != nil {
+		return WorkloadMemoryHeadroom{}, recheckErr
 	}
 	return validateWorkloadMemoryHeadroom(result)
 }
@@ -79,8 +79,8 @@ func selectWorkloadMemoryScopeParent(ctx context.Context, files workloadMemorySc
 		return workloadMemoryScopeParentSelection{}, false, err
 	}
 	selection := workloadMemoryScopeParentSelection{current: current, prospective: prospective, mount: mount}
-	if err := selection.Validate(); err != nil {
-		return workloadMemoryScopeParentSelection{}, false, err
+	if validationErr := selection.Validate(); validationErr != nil {
+		return workloadMemoryScopeParentSelection{}, false, validationErr
 	}
 	return selection, true, nil
 }
