@@ -28,7 +28,7 @@ func TestAESGCMBorrowOwnsIndependentAdmittedLifetime(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !errors.Is(parent.Validate(), core.ErrAESGCMContract) || !errors.Is(alias.Validate(), core.ErrAESGCMContract) {
-		t.Fatal("source aliases remain live after destruction, want shared source destruction")
+		t.Fatalf("source/alias Validate() = (%v,%v), want both destroyed", parent.Validate(), alias.Validate())
 	}
 	plaintext, additional := []byte("provider grant issued before shutdown"), []byte("owner:calendar")
 	sealed, err := borrow.Seal(SealRequest{Plaintext: plaintext, AdditionalData: additional})
@@ -44,10 +44,10 @@ func TestAESGCMBorrowOwnsIndependentAdmittedLifetime(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !errors.Is(borrow.Validate(), core.ErrAESGCMContract) || !errors.Is(borrowAlias.Validate(), core.ErrAESGCMContract) {
-		t.Fatal("borrow aliases remain live, want independent borrow destruction")
+		t.Fatalf("borrow/alias Validate() = (%v,%v), want both destroyed", borrow.Validate(), borrowAlias.Validate())
 	}
 	if !errors.Is(parent.Validate(), core.ErrAESGCMContract) {
-		t.Fatal("borrow destruction resurrected parent, want destroyed parent")
+		t.Fatalf("parent.Validate() = %v, want still destroyed after borrow destruction", parent.Validate())
 	}
 }
 
@@ -149,7 +149,7 @@ func TestAESGCMBorrowConcurrentSourceDestroyKeepsEveryAdmittedBorrowUsable(t *te
 	select {
 	case <-done:
 	case <-time.After(10 * time.Second):
-		t.Fatal("borrow workers did not join, want bounded completed operations")
+		t.Fatalf("borrow workers exceeded %v join backstop, want completed owned operations", 10*time.Second)
 	}
 	for range borrowers + 1 {
 		if err := <-results; err != nil {
