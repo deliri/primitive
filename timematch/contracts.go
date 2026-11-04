@@ -254,12 +254,11 @@ func SecretFromSecretStore(value secretstore.Value) (Secret, error) {
 	return ParseSecret(material)
 }
 
-// Credential and text extents. Every documented token and app-specific
-// password is far below the secret ceiling; a mailbox name is at most 254
-// octets; a summary is one calendar title, not a document. The bounds refuse
-// a visitor-supplied body from costing more than its route budget intends.
+// Credentials share the existing Secret Manager custody extent. Mailboxes
+// use the 254-octet address extent; summaries use this SDK's explicit text
+// policy. The summary policy is not a claim about every provider's ceiling.
 const (
-	secretMaximumBytes       = 64 * 1024
+	secretMaximumBytes       = secretstore.PayloadMaximumBytes
 	appleAccountMaximumBytes = 254
 	eventSummaryMaximumBytes = 4096
 )

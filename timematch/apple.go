@@ -552,13 +552,30 @@ func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) 
 // the observed resource, or the same one when nothing significant changed.
 // A malformed or exhausted value is a provider fault.
 func appleNextSequence(lines, controlled []string) (uint32, error) {
-	current := uint64(0)
 	changed := false
 	for _, next := range controlled {
 		if name, _, _ := cutICSValue(next); name != "DTSTAMP" && !slices.Contains(lines, next) {
 			changed = true
 		}
 	}
+	current, err := appleObservedSequence(lines)
+	if err != nil {
+		return 0, err
+	}
+	if !changed {
+		return current, nil
+	}
+	if current >= math.MaxInt32 {
+		return 0, core.ErrTimeMatchResponse
+	}
+	return current + 1, nil
+}
+
+// SEQUENCE has one value on the owned event; conflicting copies are not a
+// revision to reconcile. Native integer parsing owns its representable range.
+func appleObservedSequence(lines []string) (uint32, error) {
+	current := uint32(0)
+	seen := false
 	for _, line := range lines {
 		name, value, ok := cutICSValue(line)
 		if !ok {
@@ -568,19 +585,17 @@ func appleNextSequence(lines, controlled []string) (uint32, error) {
 		if name != "SEQUENCE" {
 			continue
 		}
+		if seen {
+			return 0, core.ErrTimeMatchResponse
+		}
+		seen = true
 		parsed, err := strconv.ParseUint(strings.TrimSpace(value), 10, 31)
 		if err != nil {
 			return 0, errors.Join(core.ErrTimeMatchResponse, err)
 		}
-		current = max(current, parsed)
+		current = uint32(parsed)
 	}
-	if !changed {
-		return uint32(current), nil
-	}
-	if current >= math.MaxInt32 {
-		return 0, core.ErrTimeMatchResponse
-	}
-	return uint32(current + 1), nil
+	return current, nil
 }
 
 func appleUpdatedResource(original, replacement []byte) ([]byte, error) {

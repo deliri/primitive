@@ -65,7 +65,7 @@ func TestReviewInvitationDisclosurePrecedesEveryOutputByte(t *testing.T) {
 				}
 				return
 			}
-			if err != nil || strings.Count(output.String(), "ATTENDEE") != tc.count || !strings.Contains(output.String(), "UID:"+invitation.UID.String()+"@"+mailDomain(invitation.Organizer.String())) {
+			if err != nil || strings.Count(output.String(), "ATTENDEE") != tc.count || !strings.Contains(output.String(), "UID:"+invitation.UID.String()+invitation.Organizer.String()[strings.LastIndex(invitation.Organizer.String(), "@"):]) {
 				t.Fatalf("WriteInvitation() = (%dbytes,%v), want exact attendee count%d and qualified identity", output.Len(), err, tc.count)
 			}
 		})
