@@ -234,7 +234,7 @@ func (v OAuthRedirectURI) Validate() error {
 		return errors.Join(ErrOAuthContract, err)
 	}
 	u := v.value.HTTPURL()
-	if u.Scheme != SchemeHTTPS && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")) {
+	if u.Scheme != SchemeHTTPS && !(u.Scheme == "http" && (u.Hostname() == "localhost" || strings.HasSuffix(u.Hostname(), ".localhost") || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1")) {
 		return ErrOAuthContract
 	}
 	return nil
