@@ -45,7 +45,10 @@ These are bounded mutation samples, not exhaustive provider acceptance.
 Original receipt hashes, execution-detail equality, positive reader joins and
 author exits are retained in
 `/private/tmp/timematch-sdk-review-verification-20261104.json`, SHA256
-`41ec1639be44094af75fea3efca3d7fc91527efbe8a10e4138788a9486a0d06f`.
+`a9d0c8cdbff49714f68188ae41007c5ab827960e4b20458f65c80131e77a8ecf`.
+The final index binds 21 original pairs, 42 positive reader joins and six
+joined authors, including the failed-only complexity retry and final changed
+invitation-package analysis at `c1ba939e`.
 Root's RED and GREEN originals remain under the
 `timematch-root-google-review-*`, `timematch-root-review-sequence-red03` and
 `timematch-root-review-affected04` prefixes in `/private/tmp`.
