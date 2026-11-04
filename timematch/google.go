@@ -291,6 +291,7 @@ func (googlePrivateProperties) timematchInternalFlow()  {}
 func (googleExtendedProperties) timematchInternalFlow() {}
 
 type googleEventBody struct {
+	ConferenceData     *googleConferenceData     `json:"conferenceData,omitzero"`
 	Location           string                    `json:"location,omitzero"`
 	ID                 string                    `json:"id,omitzero"`
 	Summary            string                    `json:"summary"`
@@ -313,7 +314,7 @@ func googleEventProjection(intent EventIntent) (googleEventBody, error) {
 	if err := errors.Join(startErr, endErr); err != nil {
 		return googleEventBody{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	return googleEventBody{Location: intent.Venue.Text(), Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
+	return googleEventBody{ConferenceData: googleMeetCreateData(intent), Location: intent.Venue.Text(), Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
 }
 
 func googleEvent(intent EventIntent) ([]byte, error) {
@@ -330,13 +331,20 @@ func googleEvent(intent EventIntent) ([]byte, error) {
 	return encoded, nil
 }
 
-func googleEventURL(calendar CalendarID, id string, sendUpdates bool) (core.HTTPEndpoint, error) {
+func googleEventURL(calendar CalendarID, id string, sendUpdates, conference bool) (core.HTTPEndpoint, error) {
 	raw := googleCalendarBase + "/calendars/" + url.PathEscape(calendar.value) + "/events"
 	if id != "" {
 		raw += "/" + url.PathEscape(id)
 	}
+	query := url.Values{}
 	if sendUpdates {
-		raw += "?sendUpdates=none"
+		query.Set("sendUpdates", "none")
+	}
+	if conference {
+		query.Set("conferenceDataVersion", "1")
+	}
+	if len(query) > 0 {
+		raw += "?" + query.Encode()
 	}
 	return endpoint(raw)
 }
@@ -354,7 +362,7 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := googleEventURL(w.Intent.Calendar, "", true)
+	target, err := googleEventURL(w.Intent.Calendar, "", true, w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -389,7 +397,7 @@ func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, 
 	if err != nil {
 		return exchange.Header{}, err
 	}
-	base, err := googleEventURL(ref.Calendar, "", false)
+	base, err := googleEventURL(ref.Calendar, "", false, false)
 	if err != nil {
 		return exchange.Header{}, err
 	}
@@ -491,11 +499,15 @@ func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	base, err := googleEventURL(ref.Calendar, ref.Resource, false)
+	base, err := googleEventURL(ref.Calendar, ref.Resource, false, false)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	query := url.Values{"fields": {googleOwnedDetailsFields}}
+	fields := googleOwnedDetailsFields
+	if w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo {
+		fields += googleOwnedConferenceFields
+	}
+	query := url.Values{"fields": {fields}}
 	target, err := endpoint(base.String() + "?" + query.Encode())
 	if err != nil {
 		return EventReceipt{}, err
@@ -532,7 +544,7 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true)
+	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true, u.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -559,7 +571,7 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	target, err := googleEventURL(d.Ref.Calendar, d.Ref.Resource, true)
+	target, err := googleEventURL(d.Ref.Calendar, d.Ref.Resource, true, false)
 	if err != nil {
 		return DeleteInvalid, err
 	}
@@ -582,18 +594,20 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 }
 
 type googleEventObservation struct {
-	location string
-	etag     string
-	marker   string
-	id       string
-	status   string
-	summary  string
-	start    string
-	end      string
+	conference *googleConferenceData
+	location   string
+	etag       string
+	marker     string
+	id         string
+	status     string
+	summary    string
+	start      string
+	end        string
 }
 
 func (o *googleEventObservation) UnmarshalJSON(raw []byte) error {
 	var document struct {
+		ConferenceData     *googleConferenceData    `json:"conferenceData"`
 		ID                 string                   `json:"id"`
 		ETag               string                   `json:"etag"`
 		ExtendedProperties googleExtendedProperties `json:"extendedProperties"`
@@ -606,7 +620,7 @@ func (o *googleEventObservation) UnmarshalJSON(raw []byte) error {
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	*o = googleEventObservation{location: document.Location, etag: document.ETag, marker: document.ExtendedProperties.Private.EventID, id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
+	*o = googleEventObservation{conference: document.ConferenceData, location: document.Location, etag: document.ETag, marker: document.ExtendedProperties.Private.EventID, id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
 	return nil
 }
 
@@ -644,7 +658,7 @@ func verifyGoogleObservation(observed googleEventObservation, intent EventIntent
 	if observed.id != intent.ID.value || observed.status == "cancelled" || observed.summary != intent.Summary.value || intent.Venue.Text() != "" && observed.location != intent.Venue.Text() || !sameSpan(span, intent.Interval) {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
-	return EventReceipt{Ref: ref}, nil
+	return googleEventReceipt(observed, intent, ref)
 }
 
 func sameSpan(span [2]int64, interval temporal.IntervalBounds) bool {

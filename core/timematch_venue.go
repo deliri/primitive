@@ -10,7 +10,9 @@ import (
 // TimeMatchAppointmentVenue is a provider-independent destination supplied by
 // the appointment organizer, never discovered from
 // other calendar events. Address is a physical destination; JoinURL is an
-// existing HTTPS video-call link. They are mutually exclusive. The zero value
+// existing HTTPS video-call link. AutomaticVideo requests generation and has
+// neither until the provider returns a Ready receipt. Supplied destinations
+// are mutually exclusive. The zero value
 // leaves an existing event's location untouched; product policy can require it.
 type TimeMatchAppointmentVenue struct {
 	Kind    TimeMatchAppointmentVenueKind `json:",omitzero"`
@@ -30,6 +32,10 @@ func (v TimeMatchAppointmentVenue) Validate() error {
 		}
 		return nil
 	}
+	return v.validateSupplied()
+}
+
+func (v TimeMatchAppointmentVenue) validateSupplied() error {
 	if v.Address != "" && v.JoinURL != "" {
 		return ErrTimeMatchContract
 	}

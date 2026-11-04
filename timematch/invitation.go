@@ -63,7 +63,7 @@ func (i Invitation) Validate() error {
 	if err := errors.Join(i.UID.Validate(), i.Summary.Validate(), i.Venue.Validate(), positiveInterval(i.Interval), i.Stamp.Validate(), i.Organizer.Validate(), i.Method.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if len(i.Attendees) == 0 || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
+	if i.Venue.Kind != core.TimeMatchVenueSupplied || len(i.Attendees) == 0 || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
 		return core.ErrTimeMatchContract
 	}
 	if _, err := icsTime(i.Interval.Start); err != nil {

@@ -753,7 +753,12 @@ type EventReceipt struct {
 	Venue       core.TimeMatchAppointmentVenue
 }
 
-func (r EventReceipt) Validate() error { return r.Ref.Validate() }
+func (r EventReceipt) Validate() error {
+	if err := r.Ref.Validate(); err != nil {
+		return err
+	}
+	return r.validateVenue()
+}
 
 // EventWrite creates the intent or verifies that the same intent already
 // exists. ObservedAt is the iCalendar DTSTAMP for Apple.
@@ -769,7 +774,7 @@ func (w EventWrite) Validate() error {
 	if err := errors.Join(w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	return nil
+	return validateAutomaticVideoProvider(w.Intent.Venue, w.Connection.Provider)
 }
 
 // EventUpdate replaces an owned event's interval and summary.
@@ -788,7 +793,7 @@ func (u EventUpdate) Validate() error {
 	if u.Ref.Provider != u.Connection.Provider || u.Ref.Calendar != u.Intent.Calendar || u.Ref.ID != u.Intent.ID {
 		return core.ErrTimeMatchContract
 	}
-	return nil
+	return validateAutomaticVideoProvider(u.Intent.Venue, u.Connection.Provider)
 }
 
 // EventDelete removes one owned event.
