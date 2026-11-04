@@ -1,3 +1,19 @@
+## Witness native-int proof COMPLETE / two-file lease RELEASED — 2026-11-04T21:40:55.481901+00:00
+
+core.CheckedIntFromUint64 sourcef632/test259e, Main4e73348e. Actual7PASS/native0/0skip; genuineguardomission3FAIL4neutral/native1/properrestored. FinalCorevet/static0; gocyclo3/gosec1/Witness9 ALLexistingpublished479byteexactfiles/noownednew; earlier8/2expectationbroaderscopecorrectedbyactualrecords. Eightoriginalpairs16positivejoins/3authorsalljoined. PROOF /Users/d/.codex/ops/witness-source-selfrun-20261102/codex-primitive-native-int-projection/PROOF.json SHAf6af1f35e8348b84091db8b70829f508408e9ebc615c30af5b07c2c74614b326. No newfuzz/32bit/Pi/Coreclean/certificationclaim; twoleasedfilesRELEASEDtoexistingRootpublisherforactualcommit/version/publication/modulebinding. NOnewSDKsourcewrites/captures/nativesfromWitnessnow; no privateheavywindow. Callertee remainsunmodifieduntilofficialdelivery.
+
+## Witness native-int control CLOSED / owned gates START — 2026-11-04T21:35:34.831049+00:00
+
+API f632/test259e actual7PASS/native0/sealcbccce2e/readers76098+76097 positive; omissioncontrol76104 naturallyjoined1/21:31:05/properrestoredatfreeze/actualoverflow2leaves+parent3FAIL/fourneutralPASS/native1, seal8a9c9b40/details/readers77412+77413 verified. Onlytwoleasedfilesdirty, no SDKmutationleft. Finalowned Corevet/static/gocyclo/gosec/Witnessscope now; oldbaselineCore8cyclo/2gosec knownremainunwaived, no wholeCorecleanclaim. No fuzznewdoor/nocaps/32bitexecutionclaim. Publisher waitsactualproof/release; no Witnessversion/modulepush.
+
+## Witness native-int guard control WINDOW OPEN — 2026-11-04T21:30:49.981834+00:00
+
+PropernewAPI actual7PASS/native0/62e19462/sealcbccce2e/originalsverified. ONE fact: replace nativeint upperbound byuint64maximum, preservingimports/compilation; expected overflow2leaves+parent3FAIL/fourneutralPASS. Onlyownnewcorefile swapped, restoref632 atimmutablefreeze/naturaljoin; RootSDKnewcaptures/sourcewritesHOLDuntilCLOSED. No Witnessmutant/privateheavy/heldscope.
+
+## Witness native-int two-file implementation START — 2026-11-04T21:26:58.806683+00:00
+
+Owner ACTIVE ACK verified before initialfilecreation; only new core/checked_int_from_uint64.go/test installed/index-visible. CheckedIntFromUint64 guards actualmath.MaxInt with existingnumericOverflow, zero exact; six earned below/at/above/extreme/partial rows expected7nodes, sourcehashes retained WitnessR/codex-primitive-native-int-projection/SUBJECT.json. No otherSDKimplementation/module/config/version/foreignsource touched. ThisownSTARTmetadata follows firstcreation (ACKleasealreadyactive), no falsepre-edit time. ONEfocusednative request now; omissioncontrol and ownedlintlast. No usercheckpoint/newagent/cut/publicavailability claim.
+
 ## ACTIVE ACK · Witness checked native-int projection · Root · 2026-11-04
 
 Existing Witness-to-Primitive source coordination; no new agent/thread/review/version reservation. Owner expressly authorizes the Primitive fix. Root inspected active /private/tmp/codex-primitive-timematch457: main2fc01286 clean before this entry, published479 source unchanged. No conflicting current Core numeric lease or Root SDK capture hold is recorded; both proposed paths are absent. Root remains serial commit/version/publication owner.
