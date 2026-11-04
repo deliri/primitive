@@ -77,8 +77,8 @@ func TestGoogleRemoteOwnershipForeignAppointmentCannotBeMutated(t *testing.T) {
 			connection := oauthConnection(t, ProviderGoogle)
 			if remove {
 				got, err := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
-				if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != DeleteInvalid || mutations.Load() != 0 || details.Load() != 0 {
-					t.Fatalf("foreign delete=(%v,%v),mutations/details%d/%d,want Invalid/Indeterminate/0/0", got, err, mutations.Load(), details.Load())
+				if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != DeleteInvalid || mutations.Load() != 0 || details.Load() != 1 {
+					t.Fatalf("foreign delete=(%v,%v),mutations/details%d/%d,want Invalid/Indeterminate/0/1 minimal identity read", got, err, mutations.Load(), details.Load())
 				}
 			} else {
 				got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: ref, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
@@ -86,8 +86,12 @@ func TestGoogleRemoteOwnershipForeignAppointmentCannotBeMutated(t *testing.T) {
 					t.Fatalf("foreign update=(%+v,%v),mutations/details%d/%d,want zero/Indeterminate/0/0", got, err, mutations.Load(), details.Load())
 				}
 			}
-			if len(fixture.record()) != 1 {
-				t.Fatalf("foreign metadata requests=%d,want one filtered ownership query", len(fixture.record()))
+			wantCalls := 1
+			if remove {
+				wantCalls = 2
+			}
+			if len(fixture.record()) != wantCalls {
+				t.Fatalf("foreign metadata requests=%d,want%d filtered/minimal identity reads", len(fixture.record()), wantCalls)
 			}
 		})
 	}
@@ -114,8 +118,8 @@ func TestGoogleRemoteOwnershipForeignCollisionCannotIssueReceipt(t *testing.T) {
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
 	request.Attempt = EventCreateGuardedRecovery
 	got, err := client.PutEvent(t.Context(), request)
-	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) || mutations.Load() != 1 || details.Load() != 0 {
-		t.Fatalf("foreign identical recovery=(%+v,%v),mutations/details%d/%d,want zero/Indeterminate/1 rejected create/0 private reads", got, err, mutations.Load(), details.Load())
+	if !errors.Is(err, core.ErrTimeMatchConflict) || got != (EventReceipt{}) || mutations.Load() != 1 || details.Load() != 0 {
+		t.Fatalf("foreign identical recovery=(%+v,%v),mutations/details%d/%d,want zero/Conflict/1 rejected create/0 private reads", got, err, mutations.Load(), details.Load())
 	}
 }
 

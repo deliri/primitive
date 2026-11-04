@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -192,7 +193,7 @@ func TestGooglePutEventNative(t *testing.T) {
 		{name: "fresh deterministic id is created", wantInserts: 1, wantStored: true},
 		{name: "existing identical intent is verified replay", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "confirmed") }, wantInserts: 1, wantStored: true},
 		{name: "existing event with another summary is a conflict", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Someone else", "confirmed") }, wantErr: core.ErrTimeMatchConflict, wantInserts: 1, wantStored: true},
-		{name: "cancelled event cannot establish live private ownership", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "cancelled") }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
+		{name: "cancelled event cannot establish live private ownership", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "cancelled") }, wantErr: core.ErrTimeMatchConflict, wantInserts: 1, wantStored: true},
 		{name: "server error after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 503, `{}`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "connection cut after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { cutConnection(w); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "malformed success body is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 200, `{"id":`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
@@ -209,7 +210,8 @@ func TestGooglePutEventNative(t *testing.T) {
 			client, fixture := newNative(t, calendar.serve)
 			got, err := client.PutEvent(t.Context(), eventWrite(t, oauthConnection(t, ProviderGoogle), owned(t)))
 			requests := fixture.record()
-			if requests[0].query != "sendUpdates=none" || strings.Contains(string(requests[0].body), "attendees") || !strings.Contains(string(requests[0].body), `"transparency":"opaque"`) {
+			query, queryErr := url.ParseQuery(requests[0].query)
+			if queryErr != nil || query.Get("sendUpdates") != "none" || query.Get("fields") != googleOwnedDetailsFields || len(query) != 2 || strings.Contains(string(requests[0].body), "attendees") || !strings.Contains(string(requests[0].body), `"transparency":"opaque"`) {
 				t.Fatalf("insert = ?%s %s, want sendUpdates=none, opaque and no attendees", requests[0].query, requests[0].body)
 			}
 			_, stored := calendar.events[eventIDFixture]

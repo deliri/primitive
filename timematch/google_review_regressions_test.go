@@ -72,7 +72,7 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 		want      error
 	}{
 		{name: "unavailable collision read remains unknown", status: 404, want: core.ErrTimeMatchIndeterminate},
-		{name: "unmarked deleted identity cannot establish ownership", status: 200, cancelled: true, want: core.ErrTimeMatchIndeterminate},
+		{name: "unmarked deleted identity cannot establish ownership", status: 200, cancelled: true, want: core.ErrTimeMatchConflict},
 		{name: "existing identical event is recovered", status: 200},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -152,8 +152,8 @@ func TestGoogleUnmarkedDeletedTombstoneCannotEstablishOwnership(t *testing.T) {
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
 	request.Attempt = EventCreateGuardedRecovery
 	receipt, err := client.PutEvent(t.Context(), request)
-	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
-		t.Fatalf("deleted tombstone recovery=(%+v,%v),want unknown ownership without downloading the deleted event", receipt, err)
+	if !errors.Is(err, core.ErrTimeMatchConflict) || receipt != (EventReceipt{}) {
+		t.Fatalf("deleted tombstone recovery=(%+v,%v),want conflict without downloading the deleted event", receipt, err)
 	}
 	if calls := fixture.record(); len(calls) != 2 || calls[0].method != http.MethodPost || calls[1].method != http.MethodGet {
 		t.Fatalf("deleted identity calls=%d,want one guarded collision and one ownership query without resurrection", len(calls))

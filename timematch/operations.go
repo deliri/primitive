@@ -93,10 +93,11 @@ func (c Client) UpdateEvent(ctx context.Context, u EventUpdate) (EventReceipt, e
 // ErrTimeMatchIndeterminate, not successful absence. The caller must retain that
 // unresolved outcome for reconciliation; it must not release protected time or
 // retry a mutation indefinitely as if deletion had been proved.
-// Google empty, missing or unreadable filtered metadata and Apple missing
-// preflight resources are also Indeterminate without a DELETE. Only after
-// ownership and revision are proved can a conditional DELETE404/410 establish
-// absence at that target.
+// An empty Google ownership filter permits only an id/status observation:
+// the exact cancelled identity proves absence without a DELETE. Live, missing
+// or inaccessible identity observations remain Indeterminate. Apple missing
+// preflight resources also remain Indeterminate. After ownership and revision
+// are proved, a conditional DELETE404/410 can establish absence at that target.
 func (c Client) DeleteEvent(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
 	if err := c.begin(ctx, d); err != nil {
 		return DeleteInvalid, err
