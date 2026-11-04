@@ -6,12 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 474
+      "patch": 478
     },
     "release_notes": [
-      "Firestore integer JSON queries now decode the same strict unsigned and exact signed-integer document projection as point reads. Native Go SDK object encoding and integer decoding execute through jsonio without a second JSON formatter.",
-      "JSONIO can lend explicit typed native codecs to owned whole-value documents, preserving owner causes, pointer-null policy and exact integer projections. Kernel Temporal numeric persistence can use this capability without importing a JSON engine.",
-      "Plunk attachment admission refuses Unicode format characters and media-type filename parameters. Hostfacts can observe paired native ancestor memory limit, charge and saturating minimum headroom; an observation is not a reservation or a guarantee of future workload capacity."
+      "OAuth redirect validation admits reserved localhost subdomains for loopback development while retaining HTTPS for public hosts."
     ]
   }
 }
