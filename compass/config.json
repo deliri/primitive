@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 479
+      "patch": 480
     },
     "release_notes": [
-      "Process parses Go's native GOMEMLIMIT grammar into the existing typed byte length, preserving explicit soft limits for callers without changing runtime or process-tree budgets."
+      "Core converts uint64 to native int with an explicit platform-width overflow refusal, allowing adapters to preserve exact accepted byte counts."
     ]
   }
 }
