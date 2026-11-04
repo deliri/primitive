@@ -219,6 +219,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseArguments",
 		"ParseEffectiveEnvironment",
 		"ParseExactEnvironment",
+		"ParseGoMemoryLimit",
 		"QuotePOSIXArgument",
 		"Resolve",
 		"ResolveExecutable",
