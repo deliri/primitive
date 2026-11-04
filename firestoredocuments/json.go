@@ -12,7 +12,8 @@ import (
 
 // JSONDocument retains the exact SDK-projected source extent alongside the
 // decoded caller record. Re-encoding Record can omit source fields, so it
-// cannot establish the size of the original native JSON projection.
+// cannot establish the size of the original native JSON projection. It holds
+// no reference: its point read returns the caller's requested reference.
 type JSONDocument[T core.Validatable] struct {
 	Record T
 	Bytes  core.ByteCount

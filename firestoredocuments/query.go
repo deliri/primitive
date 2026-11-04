@@ -133,7 +133,8 @@ func query[T core.Validatable](ctx context.Context, request QueryRequest[T], dec
 	if err := documentContext(ctx); err != nil {
 		return errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
-	if err := request.Validate(); err != nil {
+	parent, err := request.validatedQueryParent(nil)
+	if err != nil {
 		return err
 	}
 	documents := request.Query.Documents(ctx)
@@ -152,10 +153,16 @@ func query[T core.Validatable](ctx context.Context, request QueryRequest[T], dec
 		if err != nil {
 			return errors.Join(core.ErrFirestoreDocumentsOperation, err, documentContext(ctx))
 		}
+		// The SDK derives Ref from the returned row name without binding it.
+		// Admit only a native document reference inside this query's parent.
+		if (GetRequest{Reference: snapshot.Ref}).Validate() != nil || !strings.HasPrefix(snapshot.Ref.Path, parent+"/") {
+			return errors.Join(core.ErrFirestoreDocumentsOperation, documentContext(ctx))
+		}
 		document, err := decode(ctx, snapshot)
 		if err != nil {
 			return errors.Join(err, documentContext(ctx))
 		}
+		document.Reference = snapshot.Ref
 		if err := document.Validate(); err != nil {
 			return errors.Join(err, documentContext(ctx))
 		}

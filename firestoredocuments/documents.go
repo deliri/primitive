@@ -25,9 +25,13 @@ func (r GetRequest) Validate() error {
 	return nil
 }
 
-// Document contains one decoded and owner-validated record.
+// Document contains one decoded and owner-validated record. Reference is the
+// actual native reference of the snapshot that produced Record; Get and the
+// query doors copy it from the SDK snapshot and never derive it from Record.
+// Validation-only constructions observe no snapshot and leave it nil.
 type Document[T core.Validatable] struct {
-	Record T
+	Record    T
+	Reference *firestore.DocumentRef `json:"-"`
 }
 
 func (d Document[T]) Validate() error {
@@ -62,7 +66,7 @@ func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[
 	if err != nil {
 		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
-	var result Document[T]
+	result := Document[T]{Reference: snapshot.Ref}
 	if err := snapshot.DataTo(&result.Record); err != nil {
 		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
