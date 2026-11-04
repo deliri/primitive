@@ -3,7 +3,6 @@ package timematch
 import (
 	"bytes"
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"slices"
@@ -11,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/jsonio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -221,12 +221,15 @@ func decodeJSON[T core.Validatable](body []byte) (T, error) {
 	return value, nil
 }
 
-// unmarshalExtensible decodes one provider object with Go's default member
-// policy: unknown members are ignored, duplicate names are refused.
+// unmarshalExtensible decodes one provider object through jsonio with the
+// provider member policy: unknown members are ignored, duplicate names,
+// invalid UTF-8, excess nesting and a null root are refused.
 func unmarshalExtensible[T any](raw []byte, target *T) error {
-	if err := json.Unmarshal(raw, target); err != nil {
+	value, err := jsonio.DecodeValue[T](raw, jsonio.ProjectionReadPolicy{Members: jsonio.MembersIgnoreExtra, Root: jsonio.RootDeclaredFields, RootNulls: jsonio.RootNullRefused})
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchResponse, err)
 	}
+	*target = value
 	return nil
 }
 

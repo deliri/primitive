@@ -259,9 +259,9 @@ func SecretFromSecretStore(value secretstore.Value) (Secret, error) {
 // octets; a summary is one calendar title, not a document. The bounds refuse
 // a visitor-supplied body from costing more than its route budget intends.
 const (
-	secretMaximumBytes       = 16 * 1024
+	secretMaximumBytes       = 64 * 1024
 	appleAccountMaximumBytes = 254
-	eventSummaryMaximumBytes = 1024
+	eventSummaryMaximumBytes = 4096
 )
 
 // Validate admits visible ASCII only: every documented token and app-specific

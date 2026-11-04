@@ -2,7 +2,6 @@ package timematch
 
 import (
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/jsonio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -363,7 +363,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		body.TransactionID = intent.ID.value
 		body.Ownership = []graphOwnedProperty{{ID: graphOwnershipProperty, Value: intent.ID.value}}
 	}
-	encoded, err := json.Marshal(body)
+	encoded, err := jsonio.MarshalProjection(body, jsonio.OwnedCodecPolicy{PointerNulls: jsonio.PointerNullPermitted})
 	if err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}

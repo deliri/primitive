@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -547,9 +548,17 @@ func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) 
 // single owned GET representation (RFC4791 sections5.3.2/5.3.3). Unsupported
 // recurrence is refused rather than turning a series into a single event.
 // appleNextSequence reads the observed SEQUENCE (absent means 0) and returns
-// the next one; a malformed or exhausted value is a provider fault.
-func appleNextSequence(lines []string) (uint32, error) {
+// the next one when a controlled line other than DTSTAMP is not already in
+// the observed resource, or the same one when nothing significant changed.
+// A malformed or exhausted value is a provider fault.
+func appleNextSequence(lines, controlled []string) (uint32, error) {
 	current := uint64(0)
+	changed := false
+	for _, next := range controlled {
+		if name, _, _ := cutICSValue(next); name != "DTSTAMP" && !slices.Contains(lines, next) {
+			changed = true
+		}
+	}
 	for _, line := range lines {
 		name, value, ok := cutICSValue(line)
 		if !ok {
@@ -564,6 +573,9 @@ func appleNextSequence(lines []string) (uint32, error) {
 			return 0, errors.Join(core.ErrTimeMatchResponse, err)
 		}
 		current = max(current, parsed)
+	}
+	if !changed {
+		return uint32(current), nil
 	}
 	if current >= math.MaxInt32 {
 		return 0, core.ErrTimeMatchResponse
@@ -587,9 +599,10 @@ func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 			}
 		}
 	}
-	// Every significant revision increments the sequence (RFC 5545 section
-	// 3.8.7.4), so synchronizing clients adopt the rewritten interval.
-	sequence, err := appleNextSequence(lines)
+	// A significant revision (interval, title or venue) increments the
+	// sequence (RFC 5545 section 3.8.7.4) so synchronizing clients adopt it;
+	// a same-intent rewrite keeps the observed number.
+	sequence, err := appleNextSequence(lines, controlled)
 	if err != nil {
 		return nil, err
 	}

@@ -381,7 +381,7 @@ func TestGroupPhaseCancellationZeroResult(t *testing.T) {
 	cause := errors.New("phase test cause")
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(cause)
-	for _, c := range []context.Context{nil, ctx, &groupTerminalContext{Context: t.Context(), threshold: 4, terminal: context.Canceled}, &groupTerminalContext{Context: t.Context(), threshold: 12, terminal: context.DeadlineExceeded}} {
+	for _, c := range []context.Context{nil, ctx, &groupTerminalContext{Context: t.Context(), threshold: 3, terminal: context.Canceled}, &groupTerminalContext{Context: t.Context(), threshold: 6, terminal: context.DeadlineExceeded}} {
 		r := phaseFixture(t)
 		r.PhaseConstraints[0].Availability = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{2, 3}, [2]int64{5, 6}).Availability
 		got, err := MatchGroup(c, r)

@@ -149,6 +149,7 @@ func TestInvitationWritesEachPhysicalLineOnce(t *testing.T) {
 	for range 4 {
 		value.Attendees = append(value.Attendees, value.Organizer)
 	}
+	value.DiscloseAttendees = true
 	var full bytes.Buffer
 	if err := WriteInvitation(&full, value); err != nil {
 		t.Fatalf("WriteInvitation(buffer) error = %v, want nil", err)
@@ -218,6 +219,7 @@ func BenchmarkWriteInvitation(b *testing.B) {
 	for range 4 {
 		value.Attendees = append(value.Attendees, value.Organizer)
 	}
+	value.DiscloseAttendees = true
 	for b.Loop() {
 		if err := WriteInvitation(io.Discard, value); err != nil {
 			b.Fatalf("WriteInvitation() error = %v, want nil", err)

@@ -59,7 +59,7 @@ func TestAppleUpdatePreservesOwnedCalendarUserProperties(t *testing.T) {
 		{name: "separate alarms retain both triggers", additions: "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT15M\r\nDESCRIPTION:First alarm\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT5M\r\nDESCRIPTION:Second alarm\r\nEND:VALARM\r\n", want: []string{"TRIGGER:-PT15M", "TRIGGER:-PT5M", "DESCRIPTION:First alarm", "DESCRIPTION:Second alarm"}},
 		{name: "timezone sibling component survives", timezone: "BEGIN:VTIMEZONE\r\nTZID:Example/Fixed\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\nTZOFFSETFROM:+0000\r\nTZOFFSETTO:+0000\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n", want: []string{"BEGIN:VTIMEZONE\r\nTZID:Example/Fixed", "DTSTART:19700101T000000", "TZOFFSETTO:+0000", "END:VTIMEZONE"}},
 		{name: "opaque vendor component survives", additions: "BEGIN:X-PRIVATE\r\nX-SECRET-NOTE:Vendor note\r\nEND:X-PRIVATE\r\n", want: []string{"BEGIN:X-PRIVATE\r\nX-SECRET-NOTE:Vendor note\r\nEND:X-PRIVATE"}},
-		{name: "user scheduling metadata survives", additions: "LOCATION:Room 7\r\nSEQUENCE:23\r\nCREATED:20261001T120000Z\r\nX-APPLE-STRUCTURED-LOCATION;VALUE=URI:geo:1,2\r\n", want: []string{"LOCATION:Room 7", "SEQUENCE:23", "CREATED:20261001T120000Z", "X-APPLE-STRUCTURED-LOCATION;VALUE=URI:geo:1,2"}},
+		{name: "user scheduling metadata survives", additions: "LOCATION:Room 7\r\nSEQUENCE:23\r\nCREATED:20261001T120000Z\r\nX-APPLE-STRUCTURED-LOCATION;VALUE=URI:geo:1,2\r\n", want: []string{"LOCATION:Room 7", "SEQUENCE:24", "CREATED:20261001T120000Z", "X-APPLE-STRUCTURED-LOCATION;VALUE=URI:geo:1,2"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
