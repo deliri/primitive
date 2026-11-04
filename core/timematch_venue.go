@@ -49,10 +49,15 @@ func (v TimeMatchAppointmentVenue) validateSupplied() error {
 		}
 	}
 	if v.JoinURL != "" {
-		parsed, err := url.Parse(v.JoinURL)
-		if err != nil || parsed.Scheme != SchemeHTTPS || parsed.Hostname() == "" || parsed.User != nil || parsed.Opaque != "" {
-			return ErrTimeMatchContract
-		}
+		return v.validateJoinURL()
+	}
+	return nil
+}
+
+func (v TimeMatchAppointmentVenue) validateJoinURL() error {
+	parsed, err := url.Parse(v.JoinURL)
+	if err != nil || parsed.Scheme != SchemeHTTPS || parsed.Hostname() == "" || parsed.User != nil || parsed.Opaque != "" {
+		return ErrTimeMatchContract
 	}
 	return nil
 }
