@@ -153,17 +153,12 @@ func query[T core.Validatable](ctx context.Context, request QueryRequest[T], dec
 		if err != nil {
 			return errors.Join(core.ErrFirestoreDocumentsOperation, err, documentContext(ctx))
 		}
-		// The SDK derives Ref from the returned row name without binding it.
-		// Admit only a native document reference inside this query's parent.
-		if (GetRequest{Reference: snapshot.Ref}).Validate() != nil || !strings.HasPrefix(snapshot.Ref.Path, parent+"/") {
-			return errors.Join(core.ErrFirestoreDocumentsOperation, documentContext(ctx))
-		}
 		document, err := decode(ctx, snapshot)
 		if err != nil {
 			return errors.Join(err, documentContext(ctx))
 		}
 		document.Reference = snapshot.Ref
-		if err := document.Validate(); err != nil {
+		if err := errors.Join(document.Validate(), observedReference(snapshot.Ref, parent)); err != nil {
 			return errors.Join(err, documentContext(ctx))
 		}
 		if err := documentContext(ctx); err != nil {
@@ -180,6 +175,15 @@ func query[T core.Validatable](ctx context.Context, request QueryRequest[T], dec
 			return nil
 		}
 	}
+}
+
+// observedReference admits only a native document reference inside the
+// executed query's bound parent. The SDK derives Ref from the row name unbound.
+func observedReference(ref *firestore.DocumentRef, parent string) error {
+	if (GetRequest{Reference: ref}).Validate() != nil || !strings.HasPrefix(ref.Path, parent+"/") {
+		return core.ErrFirestoreDocumentsOperation
+	}
+	return nil
 }
 
 func (d QueryVisitDecision) IsValid() bool { return d.Validate() == nil }
