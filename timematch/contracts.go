@@ -747,7 +747,11 @@ func (r EventRef) Validate() error {
 // EventReceipt proves the provider holds an event matching the owned intent.
 // A provider calendar is independently editable: this is an observation at
 // receipt time, not an atomic reservation.
-type EventReceipt struct{ Ref EventRef }
+type EventReceipt struct {
+	Ref         EventRef
+	VenueStatus EventVenueStatus
+	Venue       core.TimeMatchAppointmentVenue
+}
 
 func (r EventReceipt) Validate() error { return r.Ref.Validate() }
 

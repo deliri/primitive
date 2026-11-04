@@ -13,6 +13,7 @@ import (
 // existing HTTPS video-call link. They are mutually exclusive. The zero value
 // leaves an existing event's location untouched; product policy can require it.
 type TimeMatchAppointmentVenue struct {
+	Kind    TimeMatchAppointmentVenueKind `json:",omitzero"`
 	Address string
 	JoinURL string
 }
@@ -20,6 +21,15 @@ type TimeMatchAppointmentVenue struct {
 // Validate admits a single physical destination or credential-free HTTPS call
 // link. An unspecified SDK destination is neutral; applications may require it.
 func (v TimeMatchAppointmentVenue) Validate() error {
+	if err := v.Kind.Validate(); err != nil {
+		return err
+	}
+	if v.Kind == TimeMatchVenueAutomaticVideo {
+		if v.Address != "" || v.JoinURL != "" {
+			return ErrTimeMatchContract
+		}
+		return nil
+	}
 	if v.Address != "" && v.JoinURL != "" {
 		return ErrTimeMatchContract
 	}
