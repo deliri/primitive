@@ -67,7 +67,7 @@ func (i Invitation) Validate() error {
 	if err := errors.Join(i.UID.Validate(), i.Summary.Validate(), i.Venue.Validate(), positiveInterval(i.Interval), i.Stamp.Validate(), i.Organizer.Validate(), i.Method.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if i.Venue.Kind != core.TimeMatchVenueSupplied || len(i.Attendees) == 0 || len(i.Attendees) > 1 && !i.DiscloseAttendees || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
+	if i.Venue.Kind != core.TimeMatchVenueSupplied || !i.permitsAttendeeDisclosure() || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
 		return core.ErrTimeMatchContract
 	}
 	if !asciiMailDomain(i.Organizer.String()) {
@@ -80,6 +80,10 @@ func (i Invitation) Validate() error {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
 	return i.validateAttendees()
+}
+
+func (i Invitation) permitsAttendeeDisclosure() bool {
+	return len(i.Attendees) > 0 && (len(i.Attendees) == 1 || i.DiscloseAttendees)
 }
 
 // WriteInvitation streams a REQUEST or whole-appointment CANCEL into a
