@@ -495,37 +495,47 @@ func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	secrets, err := bearer(w.Connection.AccessToken)
+	observed, err := c.googleOwnedObservation(ctx, w.Connection, ref, w.Policy, condition, w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
 	if err != nil {
 		return EventReceipt{}, err
+	}
+	return verifyGoogleObservation(observed, w.Intent, ref)
+}
+
+// The metadata filter admits ownership before any event details are read.
+// The conditional GET binds those details to the same observed revision.
+func (c Client) googleOwnedObservation(ctx context.Context, connection Connection, ref EventRef, policy exchange.OperationPolicy, condition exchange.Header, conference bool) (googleEventObservation, error) {
+	secrets, err := bearer(connection.AccessToken)
+	if err != nil {
+		return googleEventObservation{}, err
 	}
 	base, err := googleEventURL(ref.Calendar, ref.Resource, false)
 	if err != nil {
-		return EventReceipt{}, err
+		return googleEventObservation{}, err
 	}
 	fields := googleOwnedDetailsFields
-	if w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo {
+	if conference {
 		fields += googleOwnedConferenceFields
 	}
 	query := url.Values{"fields": {fields}}
 	target, err := endpoint(base.String() + "?" + query.Encode())
 	if err != nil {
-		return EventReceipt{}, err
+		return googleEventObservation{}, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, headers: []exchange.Header{condition}, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, headers: []exchange.Header{condition}, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: policy, expected: http.StatusOK})
 	if err != nil {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+		return googleEventObservation{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
 	defer clear(result.body)
 	observed, err := decodeJSON[googleEventObservation](result.body)
 	if err != nil {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+		return googleEventObservation{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
 	}
 	revision, err := condition.Values[0].Value()
 	if err != nil || observed.etag != revision {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
+		return googleEventObservation{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
 	}
-	return verifyGoogleObservation(observed, w.Intent, ref)
+	return observed, nil
 }
 
 func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
@@ -540,10 +550,6 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	body, err := json.Marshal(projection)
-	if err != nil {
-		return EventReceipt{}, err
-	}
 	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true)
 	if err == nil {
 		target, err = googleMeetEventTarget(target, u.Intent)
@@ -552,6 +558,10 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 		return EventReceipt{}, err
 	}
 	condition, err := c.googleOwnedRevision(ctx, u.Connection, u.Ref, u.Policy)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	body, previous, err := c.googleUpdateBody(ctx, u, condition, projection)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -566,7 +576,46 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 		}
 		return EventReceipt{}, writeFailure(result, err)
 	}
-	return verifyGoogle(result.body, u.Intent, u.Ref)
+	return verifyGoogleUpdatedConference(result.body, u, previous)
+}
+
+// An automatic video update first reads the exact owned event at the guarded
+// revision; its old interval is not compared with the requested one.
+func (c Client) googleUpdateBody(ctx context.Context, u EventUpdate, condition exchange.Header, projection googleEventBody) ([]byte, EventReceipt, error) {
+	previous := EventReceipt{}
+	if u.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo {
+		observed, err := c.googleOwnedObservation(ctx, u.Connection, u.Ref, u.Policy, condition, true)
+		if err != nil {
+			return nil, EventReceipt{}, err
+		}
+		if err := verifyGoogleOwnedIdentity(observed, u.Intent); err != nil {
+			return nil, EventReceipt{}, err
+		}
+		if observed.conference != nil {
+			if previous, err = googleEventReceipt(observed, u.Intent, u.Ref); err != nil {
+				return nil, EventReceipt{}, err
+			}
+			// PATCH preserves omitted fields. Keep the conference already admitted
+			// for this owned event; pending or failed generation is never restarted.
+			projection.ConferenceData = nil
+		}
+	}
+	body, err := json.Marshal(projection)
+	if err != nil {
+		return nil, EventReceipt{}, err
+	}
+	return body, previous, nil
+}
+
+func verifyGoogleUpdatedConference(body []byte, u EventUpdate, previous EventReceipt) (EventReceipt, error) {
+	receipt, err := verifyGoogle(body, u.Intent, u.Ref)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	if previous.VenueStatus == EventVenueReady && (receipt.VenueStatus != EventVenueReady || receipt.Venue != previous.Venue) {
+		return EventReceipt{}, core.ErrTimeMatchConflict
+	}
+	return receipt, nil
 }
 
 func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
@@ -646,13 +695,8 @@ func verifyGoogle(body []byte, intent EventIntent, ref EventRef) (EventReceipt, 
 }
 
 func verifyGoogleObservation(observed googleEventObservation, intent EventIntent, ref EventRef) (EventReceipt, error) {
-	if observed.id != intent.ID.value || observed.marker != intent.ID.value {
-		return EventReceipt{}, core.ErrTimeMatchConflict
-	}
-	// A Google cancelled placeholder can contain only id and status. Its
-	// identity is definitively retired even though no interval survives.
-	if observed.status == "cancelled" {
-		return EventReceipt{}, core.ErrTimeMatchConflict
+	if err := verifyGoogleOwnedIdentity(observed, intent); err != nil {
+		return EventReceipt{}, err
 	}
 	span, err := rfc3339Span(observed.start, observed.end)
 	if err != nil {
@@ -667,4 +711,12 @@ func verifyGoogleObservation(observed googleEventObservation, intent EventIntent
 func sameSpan(span [2]int64, interval temporal.IntervalBounds) bool {
 	start, end, err := nanosecondBounds(interval)
 	return err == nil && span[0] == start && span[1] == end
+}
+
+func verifyGoogleOwnedIdentity(observed googleEventObservation, intent EventIntent) error {
+	// A cancelled placeholder may omit its old interval entirely.
+	if observed.id != intent.ID.value || observed.marker != intent.ID.value || observed.status == "cancelled" {
+		return core.ErrTimeMatchConflict
+	}
+	return nil
 }

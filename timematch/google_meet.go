@@ -81,7 +81,8 @@ func googleMeetCreateData(intent EventIntent) *googleConferenceData {
 	}
 	// EventID's validated base32hex domain is a subset of requestId's documented
 	// string domain. Distinct event identities have distinct request identities;
-	// retries and reschedules keep the same request, never a second conference.
+	// create retries keep the same request. Updates preserve an observed
+	// conference without sending another creation intent.
 	return &googleConferenceData{CreateRequest: &googleConferenceRequest{RequestID: intent.ID.value, Solution: googleConferenceKey{Type: googleMeetSolution}}}
 }
 

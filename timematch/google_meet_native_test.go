@@ -237,22 +237,26 @@ func TestGoogleMeetOwnedConferenceHostileReadback(t *testing.T) {
 func TestGoogleMeetConditionalUpdateUsesSameConference(t *testing.T) {
 	t.Parallel()
 	for _, conflict := range []bool{false, true} {
-		t.Run(map[bool]string{false: "same request and video link survive reschedule", true: "concurrent owner edit refuses mutation"}[conflict], func(t *testing.T) {
+		t.Run(map[bool]string{false: "same video link survives without a creation request", true: "concurrent owner edit refuses mutation"}[conflict], func(t *testing.T) {
 			t.Parallel()
 			owned := meetIntent(t)
 			next := owned
 			next.Interval = window(t, "2026-11-02T17:00:00Z", "2026-11-02T18:00:00Z")
 			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
 				if r.Method == http.MethodGet {
-					writeJSON(w, 200, meetMetadata(t, owned))
+					if strings.HasSuffix(r.URL.Path, "/events") {
+						writeJSON(w, 200, meetMetadata(t, owned))
+					} else {
+						writeJSON(w, 200, string(seedJSON(t, meetEvent(t, owned, googleConferenceSuccess))))
+					}
 					return
 				}
 				var patch googleEventBody
 				if err := json.Unmarshal(body, &patch); err != nil {
 					t.Error(err)
 				}
-				if r.Method != http.MethodPatch || r.Header.Get("If-Match") != `"meet-revision"` || r.URL.Query().Get("conferenceDataVersion") != "1" || patch.ConferenceData == nil || patch.ConferenceData.CreateRequest.RequestID != owned.ID.String() || patch.ID != "" || patch.ExtendedProperties != nil {
-					t.Errorf("reschedule=(%s,%q,%+v),want guarded existing-request patch", r.Method, r.URL.RawQuery, patch)
+				if r.Method != http.MethodPatch || r.Header.Get("If-Match") != `"meet-revision"` || r.URL.Query().Get("conferenceDataVersion") != "1" || patch.ConferenceData != nil || patch.ID != "" || patch.ExtendedProperties != nil {
+					t.Errorf("reschedule=(%s,%q,%+v),want guarded patch with conference omitted", r.Method, r.URL.RawQuery, patch)
 				}
 				if conflict {
 					writeJSON(w, 412, `{}`)
@@ -269,8 +273,8 @@ func TestGoogleMeetConditionalUpdateUsesSameConference(t *testing.T) {
 			} else if err != nil || got.VenueStatus != EventVenueReady || got.Venue.JoinURL != "https://meet.google.com/abc-defg-hij" {
 				t.Fatalf("updated Meet=(%+v,%v),want exact Ready/unchangedURI", got, err)
 			}
-			if len(fixture.record()) != 2 {
-				t.Fatalf("update calls%d,want one metadata read and one guarded patch", len(fixture.record()))
+			if len(fixture.record()) != 3 {
+				t.Fatalf("update calls%d,want metadata, conditional owned read and guarded patch", len(fixture.record()))
 			}
 		})
 	}
