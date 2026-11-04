@@ -45,17 +45,21 @@ func (m *InvitationMethod) UnmarshalJSON(data []byte) error {
 // customer event. UID and organizer remain stable across updates/cancellation;
 // the application owns the increasing sequence and the consenting recipients.
 // UTC second precision avoids ambiguous local clocks and VTIMEZONE invention.
-// Sources: RFC 5546 sections 3.2.2/3.2.5; RFC 5545 sections 3.1/3.8.7.4.
+// The message is one recipient's by default: listing several attendees in one
+// message discloses every address to every recipient (RFC 5546 section 6.3),
+// so more than one attendee needs DiscloseAttendees set on purpose.
+// Sources: RFC 5546 sections 3.2.2/3.2.5/6.3; RFC 5545 sections 3.1/3.8.7.4.
 type Invitation struct {
-	Venue     core.TimeMatchAppointmentVenue
-	UID       EventID
-	Summary   EventSummary
-	Interval  temporal.IntervalBounds
-	Stamp     temporal.Instant
-	Organizer core.OAuthEmail
-	Attendees []core.OAuthEmail
-	Sequence  uint32
-	Method    InvitationMethod
+	Venue             core.TimeMatchAppointmentVenue
+	UID               EventID
+	Summary           EventSummary
+	Interval          temporal.IntervalBounds
+	Stamp             temporal.Instant
+	Organizer         core.OAuthEmail
+	Attendees         []core.OAuthEmail
+	Sequence          uint32
+	Method            InvitationMethod
+	DiscloseAttendees bool
 }
 
 // Validate checks the entire invitation before any message bytes are emitted.
@@ -63,7 +67,10 @@ func (i Invitation) Validate() error {
 	if err := errors.Join(i.UID.Validate(), i.Summary.Validate(), i.Venue.Validate(), positiveInterval(i.Interval), i.Stamp.Validate(), i.Organizer.Validate(), i.Method.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if i.Venue.Kind != core.TimeMatchVenueSupplied || len(i.Attendees) == 0 || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
+	if i.Venue.Kind != core.TimeMatchVenueSupplied || len(i.Attendees) == 0 || len(i.Attendees) > 1 && !i.DiscloseAttendees || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
+		return core.ErrTimeMatchContract
+	}
+	if !asciiMailDomain(i.Organizer.String()) {
 		return core.ErrTimeMatchContract
 	}
 	if _, err := icsTime(i.Interval.Start); err != nil {
@@ -79,6 +86,10 @@ func (i Invitation) Validate() error {
 // caller-owned writer. It validates every input before the first byte, folds
 // physical lines without splitting UTF-8, preserves writer failures, and keeps
 // fixed working storage regardless of recipient count or summary length.
+// The UID is the owned event identity qualified by the organizer's domain, so
+// two organizers can never collide on one guest's calendar (RFC 5545 section
+// 3.8.4.7). Send the bytes as "text/calendar; method=REQUEST|CANCEL;
+// charset=UTF-8" (RFC 6047 section 2.4): the writer emits raw UTF-8 text.
 // Producing the message proves neither email acceptance nor calendar import.
 func WriteInvitation(destination io.Writer, invitation Invitation) error {
 	if destination == nil {
@@ -112,7 +123,7 @@ func WriteInvitation(destination io.Writer, invitation Invitation) error {
 		return core.ErrTimeMatchContract
 	}
 	w.line(icsBeginEvent)
-	w.line("UID:", invitation.UID.value)
+	w.line("UID:", invitation.UID.value, "@", mailDomain(invitation.Organizer.String()))
 	w.line("DTSTAMP:", stamp)
 	w.line("DTSTART:", start)
 	w.line("DTEND:", end)
@@ -246,6 +257,32 @@ func (i Invitation) validateAttendees() error {
 		if err := attendee.Validate(); err != nil {
 			return errors.Join(core.ErrTimeMatchContract, err)
 		}
+		if !asciiMailDomain(attendee.String()) {
+			return core.ErrTimeMatchContract
+		}
 	}
 	return nil
+}
+
+// mailDomain is the text after the last '@' of an admitted address.
+func mailDomain(address string) string {
+	for i := len(address) - 1; i >= 0; i-- {
+		if address[i] == '@' {
+			return address[i+1:]
+		}
+	}
+	return address
+}
+
+// asciiMailDomain refuses an internationalized domain: a mailto URI must carry
+// the IDNA form, never a percent-encoded one (RFC 6068 section 2), and this
+// package does not transliterate addresses.
+func asciiMailDomain(address string) bool {
+	domain := mailDomain(address)
+	for i := range len(domain) {
+		if domain[i] >= 0x80 {
+			return false
+		}
+	}
+	return domain != ""
 }

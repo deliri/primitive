@@ -218,6 +218,7 @@ func groupPrepare(ctx context.Context, r GroupMatchRequest, input groupInput) (g
 	if input.span <= input.horizon {
 		prepared.limit = input.horizon - input.span + 1
 	}
+	prepared.dead, prepared.boundaries = groupDeadAndCapacity(input)
 	for i := range input.people {
 		if err := groupContext(ctx); err != nil {
 			return groupPreparation{}, errors.Join(core.ErrTimeMatchContract, err)
@@ -231,6 +232,9 @@ func groupPrepare(ctx context.Context, r GroupMatchRequest, input groupInput) (g
 			return groupPreparation{}, err
 		}
 	}
+	if prepared.dead {
+		groupHardBlock(&prepared, 0, prepared.limit)
+	}
 	slices.SortFunc(prepared.boundaries, func(a, b groupBoundary) int {
 		if a.at < b.at {
 			return -1
@@ -241,6 +245,40 @@ func groupPrepare(ctx context.Context, r GroupMatchRequest, input groupInput) (g
 		return groupCompareOrdinal(uint64(a.person), uint64(b.person))
 	})
 	return prepared, nil
+}
+
+// groupDeadAndCapacity decides in one O(calendars) pass whether any start can
+// be feasible and sizes the boundary slice once: two boundaries per blocked
+// span, at most one span per busy interval, two per Unknown required person
+// and per phase bound, and six per phase busy interval.
+func groupDeadAndCapacity(input groupInput) (bool, []groupBoundary) {
+	unknownRequired := 0
+	capacity := 0
+	for _, person := range input.people {
+		unknown := false
+		for _, calendar := range person.Availability.Calendars {
+			unknown = unknown || calendar.State == AvailabilityUnknown
+			capacity += 2 * len(calendar.Busy)
+		}
+		if unknown {
+			capacity += 2
+			if person.Required {
+				unknownRequired++
+			}
+		}
+	}
+	dead := unknownRequired >= 2
+	for _, phase := range input.phases {
+		capacity += 4
+		for _, calendar := range phase.Availability.Calendars {
+			dead = dead || calendar.State == AvailabilityUnknown
+			capacity += 6 * len(calendar.Busy)
+		}
+	}
+	if dead {
+		return true, make([]groupBoundary, 0, 2)
+	}
+	return false, make([]groupBoundary, 0, capacity)
 }
 
 func groupPreparePerson(ctx context.Context, p *groupPreparation, index int) error {
@@ -256,7 +294,7 @@ func groupPreparePerson(ctx context.Context, p *groupPreparation, index int) err
 	if unknown {
 		if person.Required {
 			p.result.UnknownRequired = append(p.result.UnknownRequired, person.Ordinal)
-			if p.limit > 0 {
+			if p.limit > 0 && !p.dead {
 				p.boundaries = append(p.boundaries, groupBoundary{at: 0, person: index, begin: true}, groupBoundary{at: p.limit, person: index})
 			}
 		} else {
@@ -267,7 +305,7 @@ func groupPreparePerson(ctx context.Context, p *groupPreparation, index int) err
 	if !person.Required {
 		p.result.KnownOptionalCount++
 	}
-	if p.limit == 0 {
+	if p.limit == 0 || p.dead {
 		return nil
 	}
 	blocked, blockErr := groupForbidden(ctx, groupForbiddenRequest{availability: person.Availability, origin: p.request.Window.Start, span: p.input.span, limit: p.limit})
@@ -297,9 +335,13 @@ func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uin
 	requiredBlocked, optionalBlocked, hardBlocked := 0, 0, 0
 	var requiredXOR uint64
 	cursor, event := int64(0), 0
-	for cursor < limit {
-		if err := groupContext(ctx); err != nil {
-			return nil, 0, errors.Join(core.ErrTimeMatchContract, err)
+	for step := 0; cursor < limit; step++ {
+		// One cancellation observation per groupPollStride positions keeps the
+		// hot loop free of a mutex and a deferred recover per boundary.
+		if step&groupPollStride == 0 {
+			if err := groupContext(ctx); err != nil {
+				return nil, 0, errors.Join(core.ErrTimeMatchContract, err)
+			}
 		}
 		for event < len(boundaries) && boundaries[event].at == cursor {
 			b := boundaries[event]
@@ -394,12 +436,20 @@ func groupMaterialize(ctx context.Context, p *groupPreparation, selected []group
 // prevents both overlapping calendars and nearby busy spans counting twice.
 func groupForbidden(ctx context.Context, request groupForbiddenRequest) ([]groupCandidate, error) {
 	a, origin, span, limit := request.availability, request.origin, request.span, request.limit
-	var blocked []groupCandidate
+	total := 0
+	for _, calendar := range a.Calendars {
+		total += len(calendar.Busy)
+	}
+	blocked := make([]groupCandidate, 0, total)
+	step := 0
 	for _, calendar := range a.Calendars {
 		for _, busy := range calendar.Busy {
-			if err := groupContext(ctx); err != nil {
-				return nil, errors.Join(core.ErrTimeMatchContract, err)
+			if step&groupPollStride == 0 {
+				if err := groupContext(ctx); err != nil {
+					return nil, errors.Join(core.ErrTimeMatchContract, err)
+				}
 			}
+			step++
 			left, leftErr := busy.Start.Since(origin)
 			right, rightErr := busy.End.Since(origin)
 			if err := errors.Join(leftErr, rightErr); err != nil {
@@ -411,21 +461,25 @@ func groupForbidden(ctx context.Context, request groupForbiddenRequest) ([]group
 			}
 		}
 	}
-	slices.SortFunc(blocked, func(a, b groupCandidate) int {
-		if a.start < b.start {
-			return -1
-		}
-		if a.start > b.start {
-			return 1
-		}
-		if a.end < b.end {
-			return -1
-		}
-		if a.end > b.end {
-			return 1
-		}
-		return 0
-	})
+	// One calendar's busy intervals are validated sorted and disjoint, and the
+	// expansion is monotone, so its blocked spans are already in order.
+	if len(a.Calendars) > 1 {
+		slices.SortFunc(blocked, func(a, b groupCandidate) int {
+			if a.start < b.start {
+				return -1
+			}
+			if a.start > b.start {
+				return 1
+			}
+			if a.end < b.end {
+				return -1
+			}
+			if a.end > b.end {
+				return 1
+			}
+			return 0
+		})
+	}
 	merged := blocked[:0]
 	for _, candidate := range blocked {
 		if len(merged) > 0 && candidate.start <= merged[len(merged)-1].end {
@@ -525,6 +579,10 @@ type groupPreparation struct {
 	result     GroupMatchResult
 	boundaries []groupBoundary
 	limit      int64
+	// dead means no start can ever be feasible (an Unknown phase constraint or
+	// two Unknown required participants), so busy expansion is skipped and one
+	// hard block covers the horizon; counts and Unknown lists are still filled.
+	dead bool
 }
 type groupForbiddenRequest struct {
 	availability Availability
@@ -560,6 +618,10 @@ var _ core.Validatable = GroupMatchRequest{}
 var _ core.Validatable = GroupStartRange{}
 
 // Preserve the caller's standard cancellation identity and explicit cause.
+// groupPollStride masks the loop step at which the hot loops observe the
+// caller's context: the first step and then every 1024th.
+const groupPollStride = 1023
+
 func groupContext(ctx context.Context) error {
 	err := contextstate.Validate(ctx)
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

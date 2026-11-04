@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -449,9 +451,13 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: []exchange.SecretHeader{auth}, policy: w.Policy, expected: http.StatusCreated})
 	clear(result.body)
 	switch {
-	case err == nil || result.status == http.StatusNoContent:
+	case err == nil:
 		return EventReceipt{Ref: ref}, nil
-	case result.status == http.StatusPreconditionFailed:
+	case result.status == http.StatusNoContent || result.status == http.StatusOK || result.status == http.StatusPreconditionFailed:
+		// 201 is the only answer that proves an unmapped URI was created
+		// (RFC 4791 section 5.3.2). A 2xx without Created means the server
+		// treated the URI as mapped, so the owned resource is read back
+		// exactly like a precondition failure instead of being assumed.
 		return c.appleReadBack(ctx, appleReadBackRequest{auth: auth, target: target, intent: w.Intent, ref: ref, policy: w.Policy})
 	default:
 		return EventReceipt{}, writeFailure(result, err)
@@ -540,6 +546,31 @@ func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) 
 // remaining logical properties and nested components are retained from the
 // single owned GET representation (RFC4791 sections5.3.2/5.3.3). Unsupported
 // recurrence is refused rather than turning a series into a single event.
+// appleNextSequence reads the observed SEQUENCE (absent means 0) and returns
+// the next one; a malformed or exhausted value is a provider fault.
+func appleNextSequence(lines []string) (uint32, error) {
+	current := uint64(0)
+	for _, line := range lines {
+		name, value, ok := cutICSValue(line)
+		if !ok {
+			continue
+		}
+		name, _, _ = strings.Cut(strings.ToUpper(name), ";")
+		if name != "SEQUENCE" {
+			continue
+		}
+		parsed, err := strconv.ParseUint(strings.TrimSpace(value), 10, 31)
+		if err != nil {
+			return 0, errors.Join(core.ErrTimeMatchResponse, err)
+		}
+		current = max(current, parsed)
+	}
+	if current >= math.MaxInt32 {
+		return 0, core.ErrTimeMatchResponse
+	}
+	return uint32(current + 1), nil
+}
+
 func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 	lines := unfoldICS(string(original))
 	if len(lines) < 2 || !strings.EqualFold(lines[0], "BEGIN:VCALENDAR") || !strings.EqualFold(lines[len(lines)-1], "END:VCALENDAR") {
@@ -556,6 +587,13 @@ func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 			}
 		}
 	}
+	// Every significant revision increments the sequence (RFC 5545 section
+	// 3.8.7.4), so synchronizing clients adopt the rewritten interval.
+	sequence, err := appleNextSequence(lines)
+	if err != nil {
+		return nil, err
+	}
+	controlled = append(controlled, "SEQUENCE:"+strconv.FormatUint(uint64(sequence), 10))
 	var out strings.Builder
 	var components []string
 	eventDepth := 0
@@ -591,7 +629,7 @@ func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 			switch name {
 			case "RRULE", "RDATE", "EXDATE", "RECURRENCE-ID":
 				return nil, core.ErrTimeMatchResponse
-			case "DTSTAMP", "DTSTART", "DTEND", "DURATION", "SUMMARY":
+			case "DTSTAMP", "DTSTART", "DTEND", "DURATION", "SUMMARY", "SEQUENCE":
 				continue
 			case "LOCATION", "URL":
 				if hasVenue {

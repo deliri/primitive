@@ -254,10 +254,20 @@ func SecretFromSecretStore(value secretstore.Value) (Secret, error) {
 	return ParseSecret(material)
 }
 
+// Credential and text extents. Every documented token and app-specific
+// password is far below the secret ceiling; a mailbox name is at most 254
+// octets; a summary is one calendar title, not a document. The bounds refuse
+// a visitor-supplied body from costing more than its route budget intends.
+const (
+	secretMaximumBytes       = 16 * 1024
+	appleAccountMaximumBytes = 254
+	eventSummaryMaximumBytes = 1024
+)
+
 // Validate admits visible ASCII only: every documented token and app-specific
 // password form is visible ASCII, and nothing else is header-safe.
 func (s Secret) Validate() error {
-	if !visibleASCII(s.value) {
+	if len(s.value) > secretMaximumBytes || !visibleASCII(s.value) {
 		return core.ErrTimeMatchContract
 	}
 	return nil
@@ -301,6 +311,9 @@ func ParseAppleAccount(value string) (AppleAccount, error) {
 }
 
 func (a AppleAccount) Validate() error {
+	if len(a.value) > appleAccountMaximumBytes {
+		return core.ErrTimeMatchContract
+	}
 	for i := range len(a.value) {
 		if a.value[i] == ':' {
 			return core.ErrTimeMatchContract
@@ -536,15 +549,15 @@ func (l CalendarList) Validate() error {
 	if err := l.Provider.Validate(); err != nil {
 		return err
 	}
+	identities := make([]string, len(l.Calendars))
 	for i, calendar := range l.Calendars {
 		if err := calendar.ID.Validate(); err != nil {
 			return err
 		}
-		for _, prior := range l.Calendars[:i] {
-			if prior.ID == calendar.ID {
-				return core.ErrTimeMatchResponse
-			}
-		}
+		identities[i] = calendar.ID.value
+	}
+	if !calendarIdentitiesDistinct(identities) {
+		return core.ErrTimeMatchResponse
 	}
 	return nil
 }
@@ -564,17 +577,30 @@ func (r AvailabilityRequest) Validate() error {
 	if len(r.Calendars) == 0 {
 		return core.ErrTimeMatchContract
 	}
+	identities := make([]string, len(r.Calendars))
 	for i, id := range r.Calendars {
 		if err := id.Validate(); err != nil {
 			return err
 		}
-		for _, prior := range r.Calendars[:i] {
-			if prior == id {
-				return core.ErrTimeMatchContract
-			}
-		}
+		identities[i] = id.value
+	}
+	if !calendarIdentitiesDistinct(identities) {
+		return core.ErrTimeMatchContract
 	}
 	return nil
+}
+
+// calendarIdentitiesDistinct sorts a scratch copy of the identities and
+// compares neighbours, so a request with many calendars costs n log n instead
+// of n² and cannot be used to burn CPU with a cheap input.
+func calendarIdentitiesDistinct(identities []string) bool {
+	slices.Sort(identities)
+	for i := 1; i < len(identities); i++ {
+		if identities[i] == identities[i-1] {
+			return false
+		}
+	}
+	return true
 }
 
 // CalendarAvailability holds sorted, merged, positive busy intervals inside
@@ -599,15 +625,17 @@ func (a Availability) Validate() error {
 		return core.ErrTimeMatchContract
 	}
 	windowStart, windowEnd, _ := nanosecondBounds(a.Window)
+	identities := make([]string, len(a.Calendars))
 	for i, calendar := range a.Calendars {
 		if err := errors.Join(calendar.ID.Validate(), calendar.State.Validate()); err != nil {
 			return err
 		}
-		for _, prior := range a.Calendars[:i] {
-			if prior.ID == calendar.ID {
-				return core.ErrTimeMatchContract
-			}
-		}
+		identities[i] = calendar.ID.value
+	}
+	if !calendarIdentitiesDistinct(identities) {
+		return core.ErrTimeMatchContract
+	}
+	for _, calendar := range a.Calendars {
 		if calendar.State == AvailabilityUnknown && len(calendar.Busy) != 0 {
 			return core.ErrTimeMatchContract
 		}
@@ -691,7 +719,7 @@ func ParseEventSummary(value string) (EventSummary, error) {
 }
 
 func (s EventSummary) Validate() error {
-	if s.value == "" || !utf8.ValidString(s.value) {
+	if s.value == "" || len(s.value) > eventSummaryMaximumBytes || !utf8.ValidString(s.value) {
 		return core.ErrTimeMatchContract
 	}
 	for _, r := range s.value {
