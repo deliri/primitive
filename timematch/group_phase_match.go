@@ -102,10 +102,10 @@ func groupPreparePhase(ctx context.Context, p *groupPreparation, phase GroupPhas
 	}
 	if unknown {
 		p.result.UnknownPhaseConstraints = append(p.result.UnknownPhaseConstraints, phase.Ordinal)
-		groupHardBlock(p, 0, p.limit)
-		return nil
 	}
-	if p.limit == 0 {
+	// An Unknown phase makes the preparation dead: one hard block over the
+	// whole horizon is added once by groupPrepare instead of per phase.
+	if unknown || p.limit == 0 || p.dead {
 		return nil
 	}
 	w := groupPhaseBounds(p, phase)
@@ -115,11 +115,15 @@ func groupPreparePhase(ctx context.Context, p *groupPreparation, phase GroupPhas
 	}
 	groupHardBlock(p, 0, w.first)
 	groupHardBlock(p, w.limit, p.limit)
+	step := 0
 	for _, c := range phase.Availability.Calendars {
 		for _, busy := range c.Busy {
-			if err := groupContext(ctx); err != nil {
-				return errors.Join(core.ErrTimeMatchContract, err)
+			if step&groupPollStride == 0 {
+				if err := groupContext(ctx); err != nil {
+					return errors.Join(core.ErrTimeMatchContract, err)
+				}
 			}
+			step++
 			left, leftErr := busy.Start.Since(p.request.Window.Start)
 			right, rightErr := busy.End.Since(p.request.Window.Start)
 			if err := errors.Join(leftErr, rightErr); err != nil {

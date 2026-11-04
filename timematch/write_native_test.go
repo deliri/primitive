@@ -416,7 +416,10 @@ func TestAppleEventsNative(t *testing.T) {
 		wantErr  error
 	}{
 		{name: "absent resource is created", status: 201},
-		{name: "no content create is accepted", status: 204},
+		{name: "no content create is read back, never assumed", status: 204, existing: func(t *testing.T) string {
+			body, _ := writeICS(owned(t), at(t, "2026-11-01T00:00:00Z"))
+			return string(body)
+		}},
 		{name: "existing identical resource is verified replay", status: 412, existing: func(t *testing.T) string {
 			body, _ := writeICS(owned(t), at(t, "2026-11-01T00:00:00Z"))
 			return string(body)

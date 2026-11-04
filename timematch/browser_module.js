@@ -24,7 +24,8 @@ function instant(text) {
 }
 
 function samePath(path) {
-  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//');
+  // Backslash is a slash to the URL parser and '#' would truncate the route.
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && !path.includes('\\') && !path.includes('#');
 }
 
 // Admit the server's aggregate projection only when it answers this exact

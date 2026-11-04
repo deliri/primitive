@@ -459,8 +459,12 @@ func unescapeICSText(value string) string {
 	return builder.String()
 }
 
+// icsTextEscaper is built once: the replacer prepares its lookup tables on
+// construction, which was repeated for every escaped property.
+var icsTextEscaper = strings.NewReplacer(`\`, `\\`, ";", `\;`, ",", `\,`, "\n", `\n`)
+
 func escapeICSText(value string) string {
-	return strings.NewReplacer(`\`, `\\`, ";", `\;`, ",", `\,`, "\n", `\n`).Replace(value)
+	return icsTextEscaper.Replace(value)
 }
 
 // writeICS emits one owned VEVENT. Times are whole-second UTC: the iCalendar
@@ -476,7 +480,9 @@ func writeICS(intent EventIntent, stamp temporal.Instant) ([]byte, error) {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	var builder strings.Builder
-	for _, line := range []string{"BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:" + icsProductID, icsBeginEvent, "UID:" + intent.ID.value, "DTSTAMP:" + observed, "DTSTART:" + start, "DTEND:" + end, "SUMMARY:" + escapeICSText(intent.Summary.value)} {
+	// A new resource starts at SEQUENCE 0 (RFC 5545 section 3.8.7.4); an
+	// update rewrites it from the observed resource in appleUpdatedResource.
+	for _, line := range []string{"BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:" + icsProductID, icsBeginEvent, "UID:" + intent.ID.value, "DTSTAMP:" + observed, "DTSTART:" + start, "DTEND:" + end, "SEQUENCE:0", "SUMMARY:" + escapeICSText(intent.Summary.value)} {
 		foldICS(&builder, line)
 	}
 	if intent.Venue.Text() != "" {

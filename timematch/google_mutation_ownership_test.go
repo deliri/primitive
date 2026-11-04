@@ -536,12 +536,10 @@ func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 		if effects != wantEffects || operation == 0 && outcome != Deleted || operation != 0 && receipt.Ref != ref {
 			t.Fatalf("accepted effect/receipt=%d/%v/%+v,want%d and exact owned identity", effects, outcome, receipt, wantEffects)
 		}
+		// Every operation is the filtered ownership page followed by exactly
+		// one conditional request: DELETE, PATCH, or the read-only recovery GET.
 		calls := requests.record()
-		wantCalls := 2
-		if operation == 2 {
-			wantCalls = 3
-		}
-		if len(calls) != wantCalls || calls[len(calls)-1].header.Get("If-Match") != `"revision1"` {
+		if len(calls) != 2 || calls[len(calls)-1].header.Get("If-Match") != `"revision1"` {
 			t.Fatalf("accepted requests=%d,want filtered proof then exact conditional operation", len(calls))
 		}
 	})

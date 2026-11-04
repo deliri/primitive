@@ -2,12 +2,12 @@ package timematch
 
 import (
 	_ "embed"
-	json "encoding/json/v2"
 	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/jsonio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -69,15 +69,23 @@ func (r BrowserAvailabilityRequest) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(wire)
+	return jsonio.MarshalProjection(wire, browserWirePolicy)
+}
+
+// Browser wire records are hook-free declared structs read and written
+// through jsonio: declared members only, no null roots.
+var browserWirePolicy = jsonio.OwnedCodecPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootDeclaredFields, PointerNulls: jsonio.PointerNullPermitted}
+
+func decodeBrowserWire[T any](raw []byte) (T, error) {
+	return jsonio.DecodeValue[T](raw, jsonio.ProjectionReadPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootDeclaredFields, RootNulls: jsonio.RootNullRefused})
 }
 
 func (r *BrowserAvailabilityRequest) UnmarshalJSON(raw []byte) error {
 	if r == nil {
 		return core.ErrTimeMatchContract
 	}
-	var wire browserSpanWire
-	if err := json.Unmarshal(raw, &wire, json.RejectUnknownMembers(true)); err != nil {
+	wire, err := decodeBrowserWire[browserSpanWire](raw)
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	window, err := wire.bounds()
@@ -156,15 +164,15 @@ func (b BrowserAvailability) MarshalJSON() ([]byte, error) {
 		}
 		wire.Busy = append(wire.Busy, span)
 	}
-	return json.Marshal(wire)
+	return jsonio.MarshalProjection(wire, browserWirePolicy)
 }
 
 func (b *BrowserAvailability) UnmarshalJSON(raw []byte) error {
 	if b == nil {
 		return core.ErrTimeMatchContract
 	}
-	var wire browserAvailabilityWire
-	if err := json.Unmarshal(raw, &wire, json.RejectUnknownMembers(true)); err != nil {
+	wire, err := decodeBrowserWire[browserAvailabilityWire](raw)
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	window, err := browserSpanWire{Start: wire.Start, End: wire.End}.bounds()
@@ -212,15 +220,15 @@ func (r BrowserConnectionRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	return json.Marshal(browserConnectionWire{Provider: r.Provider.String()})
+	return jsonio.MarshalProjection(browserConnectionWire{Provider: r.Provider.String()}, browserWirePolicy)
 }
 
 func (r *BrowserConnectionRequest) UnmarshalJSON(raw []byte) error {
 	if r == nil {
 		return core.ErrTimeMatchContract
 	}
-	var wire browserConnectionWire
-	if err := json.Unmarshal(raw, &wire, json.RejectUnknownMembers(true)); err != nil {
+	wire, err := decodeBrowserWire[browserConnectionWire](raw)
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	for _, provider := range []Provider{ProviderGoogle, ProviderMicrosoft} {
@@ -257,15 +265,15 @@ func (s BrowserConnectionStart) MarshalJSON() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	return json.Marshal(browserLocationWire{Location: s.Location.String()})
+	return jsonio.MarshalProjection(browserLocationWire{Location: s.Location.String()}, browserWirePolicy)
 }
 
 func (s *BrowserConnectionStart) UnmarshalJSON(raw []byte) error {
 	if s == nil {
 		return core.ErrTimeMatchContract
 	}
-	var wire browserLocationWire
-	if err := json.Unmarshal(raw, &wire, json.RejectUnknownMembers(true)); err != nil {
+	wire, err := decodeBrowserWire[browserLocationWire](raw)
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	location, err := core.ParseHTTPEndpoint(wire.Location)
@@ -297,16 +305,19 @@ func (c BrowserAppleConnection) Validate() error {
 
 func (BrowserAppleConnection) MarshalJSON() ([]byte, error) { return nil, core.ErrTimeMatchContract }
 
+type browserAppleWire struct {
+	Account  string     `json:"account"`
+	Password wireSecret `json:"password"`
+}
+
+func (browserAppleWire) timematchInternalFlow() {}
+
 func (c *BrowserAppleConnection) UnmarshalJSON(raw []byte) error {
 	if c == nil {
 		return core.ErrTimeMatchContract
 	}
-	var wire struct {
-		Account  string     `json:"account"`
-		Password wireSecret `json:"password"`
-	}
-	if err := json.Unmarshal(raw, &wire, json.RejectUnknownMembers(true)); err != nil {
-		clear(wire.Password.value)
+	wire, err := decodeBrowserWire[browserAppleWire](raw)
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	defer clear(wire.Password.value)

@@ -91,7 +91,8 @@ func TestInvitationAdmissionAndNoPartialRefusal(t *testing.T) {
 		{name: "stamp before epoch", change: func(i *Invitation) { i.Stamp = temporal.InstantFromNanoseconds(-1) }, valid: true},
 		{name: "stamp minimum instant", change: func(i *Invitation) { i.Stamp = temporal.InstantFromNanoseconds(math.MinInt64) }, valid: true},
 		{name: "stamp maximum instant", change: func(i *Invitation) { i.Stamp = temporal.InstantFromNanoseconds(math.MaxInt64) }, valid: true},
-		{name: "multiple recipients", change: func(i *Invitation) { i.Attendees = append(i.Attendees, i.Organizer) }, valid: true},
+		{name: "multiple recipients need explicit disclosure", change: func(i *Invitation) { i.Attendees = append(i.Attendees, i.Organizer) }},
+		{name: "multiple recipients disclosed on purpose", change: func(i *Invitation) { i.Attendees = append(i.Attendees, i.Organizer); i.DiscloseAttendees = true }, valid: true},
 		{name: "nil attendees", change: func(i *Invitation) { i.Attendees = nil }},
 		{name: "empty attendees", change: func(i *Invitation) { i.Attendees = []core.OAuthEmail{} }},
 		{name: "invalid attendee first", change: func(i *Invitation) { i.Attendees = []core.OAuthEmail{{}, i.Organizer} }},
@@ -175,8 +176,9 @@ func TestInvitationNativeWireConservation(t *testing.T) {
 				t.Fatalf("cancel WriteInvitation() error=%v,want nil", err)
 			}
 			text := strings.ReplaceAll(cancel.String(), "\r\n ", "")
-			if !strings.Contains(text, "METHOD:CANCEL\r\n") || !strings.Contains(text, "STATUS:CANCELLED\r\n") || !strings.Contains(text, "UID:"+value.UID.value+"\r\n") || !strings.Contains(text, "SEQUENCE:1\r\n") {
-				t.Fatalf("cancellation message identity/sequence preserved=%t/%t,want true/true with cancel method and status", strings.Contains(text, "UID:"+value.UID.value+"\r\n"), strings.Contains(text, "SEQUENCE:1\r\n"))
+			uid := "UID:" + value.UID.value + "@" + mailDomain(value.Organizer.String()) + "\r\n"
+			if !strings.Contains(text, "METHOD:CANCEL\r\n") || !strings.Contains(text, "STATUS:CANCELLED\r\n") || !strings.Contains(text, uid) || !strings.Contains(text, "SEQUENCE:1\r\n") {
+				t.Fatalf("cancellation message identity/sequence preserved=%t/%t,want true/true with cancel method and status", strings.Contains(text, uid), strings.Contains(text, "SEQUENCE:1\r\n"))
 			}
 		})
 	}

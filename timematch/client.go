@@ -3,7 +3,6 @@ package timematch
 import (
 	"bytes"
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"slices"
@@ -11,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/jsonio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -60,9 +60,10 @@ type call struct {
 // outcome is the transport fact behind one call: the HTTP status when one
 // arrived and the admitted body and captured headers.
 type outcome struct {
-	body     []byte
-	captured exchange.CapturedHeaders
-	status   int
+	body       []byte
+	captured   exchange.CapturedHeaders
+	status     int
+	retryAfter temporal.Duration
 }
 
 func (c Client) send(ctx context.Context, request call) (outcome, error) {
@@ -93,7 +94,7 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 			},
 		})
 	}
-	result := outcome{body: response.Body, captured: response.Metadata.Headers}
+	result := outcome{body: response.Body, captured: response.Metadata.Headers, retryAfter: response.Metadata.RetryAfter}
 	if err == nil {
 		result.status = request.expected
 		return result, nil
@@ -117,9 +118,30 @@ func readFailure(result outcome, err error) error {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	case result.status == http.StatusUnauthorized:
 		return errors.Join(core.ErrTimeMatchConsent, err)
+	case result.status == http.StatusTooManyRequests:
+		return throttled(result, err)
 	default:
 		return errors.Join(core.ErrTimeMatchResponse, err)
 	}
+}
+
+// ThrottledError is a provider rate limit (429) with the Retry-After it named,
+// zero when the provider named none. It is a refused request, never an applied
+// one, so it unwraps to ErrTimeMatchResponse; the caller's retry owner waits
+// RetryAfter before the next attempt (Google: "use exponential backoff";
+// Microsoft Graph: "Wait the number of seconds specified in the Retry-After
+// header"). This package never retries by itself.
+type ThrottledError struct {
+	RetryAfter temporal.Duration
+	cause      error
+}
+
+func (e ThrottledError) Error() string        { return "timematch: provider throttled the request" }
+func (e ThrottledError) Unwrap() error        { return e.cause }
+func (ThrottledError) timematchProtocolFact() {}
+
+func throttled(result outcome, err error) error {
+	return ThrottledError{RetryAfter: result.retryAfter, cause: errors.Join(core.ErrTimeMatchResponse, err)}
 }
 
 // providerUnknown reports a failure that only makes one calendar Unknown: a
@@ -142,6 +164,8 @@ func writeFailure(result outcome, err error) error {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	case result.status == http.StatusUnauthorized:
 		return errors.Join(core.ErrTimeMatchConsent, err)
+	case result.status == http.StatusTooManyRequests:
+		return throttled(result, err)
 	case result.status == 0 || result.status >= http.StatusInternalServerError:
 		return errors.Join(core.ErrTimeMatchIndeterminate, err)
 	default:
@@ -197,12 +221,15 @@ func decodeJSON[T core.Validatable](body []byte) (T, error) {
 	return value, nil
 }
 
-// unmarshalExtensible decodes one provider object with Go's default member
-// policy: unknown members are ignored, duplicate names are refused.
+// unmarshalExtensible decodes one provider object through jsonio with the
+// provider member policy: unknown members are ignored, duplicate names,
+// invalid UTF-8, excess nesting and a null root are refused.
 func unmarshalExtensible[T any](raw []byte, target *T) error {
-	if err := json.Unmarshal(raw, target); err != nil {
+	value, err := jsonio.DecodeValue[T](raw, jsonio.ProjectionReadPolicy{Members: jsonio.MembersIgnoreExtra, Root: jsonio.RootDeclaredFields, RootNulls: jsonio.RootNullRefused})
+	if err != nil {
 		return errors.Join(core.ErrTimeMatchResponse, err)
 	}
+	*target = value
 	return nil
 }
 
