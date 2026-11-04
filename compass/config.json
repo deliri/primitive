@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 478
+      "patch": 479
     },
     "release_notes": [
-      "OAuth redirect validation admits reserved localhost subdomains for loopback development while retaining HTTPS for public hosts."
+      "Process parses Go's native GOMEMLIMIT grammar into the existing typed byte length, preserving explicit soft limits for callers without changing runtime or process-tree budgets."
     ]
   }
 }
