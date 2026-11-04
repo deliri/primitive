@@ -331,7 +331,7 @@ func googleEvent(intent EventIntent) ([]byte, error) {
 	return encoded, nil
 }
 
-func googleEventURL(calendar CalendarID, id string, sendUpdates, conference bool) (core.HTTPEndpoint, error) {
+func googleEventURL(calendar CalendarID, id string, sendUpdates bool) (core.HTTPEndpoint, error) {
 	raw := googleCalendarBase + "/calendars/" + url.PathEscape(calendar.value) + "/events"
 	if id != "" {
 		raw += "/" + url.PathEscape(id)
@@ -339,9 +339,6 @@ func googleEventURL(calendar CalendarID, id string, sendUpdates, conference bool
 	query := url.Values{}
 	if sendUpdates {
 		query.Set("sendUpdates", "none")
-	}
-	if conference {
-		query.Set("conferenceDataVersion", "1")
 	}
 	if len(query) > 0 {
 		raw += "?" + query.Encode()
@@ -362,7 +359,10 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := googleEventURL(w.Intent.Calendar, "", true, w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
+	target, err := googleEventURL(w.Intent.Calendar, "", true)
+	if err == nil {
+		target, err = googleMeetEventTarget(target, w.Intent)
+	}
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -397,7 +397,7 @@ func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, 
 	if err != nil {
 		return exchange.Header{}, err
 	}
-	base, err := googleEventURL(ref.Calendar, "", false, false)
+	base, err := googleEventURL(ref.Calendar, "", false)
 	if err != nil {
 		return exchange.Header{}, err
 	}
@@ -499,7 +499,7 @@ func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	base, err := googleEventURL(ref.Calendar, ref.Resource, false, false)
+	base, err := googleEventURL(ref.Calendar, ref.Resource, false)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -544,7 +544,10 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true, u.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
+	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true)
+	if err == nil {
+		target, err = googleMeetEventTarget(target, u.Intent)
+	}
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -571,7 +574,7 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	target, err := googleEventURL(d.Ref.Calendar, d.Ref.Resource, true, false)
+	target, err := googleEventURL(d.Ref.Calendar, d.Ref.Resource, true)
 	if err != nil {
 		return DeleteInvalid, err
 	}

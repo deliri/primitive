@@ -24,3 +24,16 @@ var (
 	_ Validatable = TimeMatchVenueSupplied
 	_ OffWireEnum = TimeMatchVenueSupplied
 )
+
+func (k TimeMatchAppointmentVenueKind) IsValid() bool { return k.Validate() == nil }
+
+func (k TimeMatchAppointmentVenueKind) String() string {
+	switch k {
+	case TimeMatchVenueSupplied:
+		return "supplied"
+	case TimeMatchVenueAutomaticVideo:
+		return "automatic-video"
+	default:
+		return UnknownEnumDiagnostic
+	}
+}

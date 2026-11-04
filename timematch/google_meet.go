@@ -221,3 +221,35 @@ func googleMeetObservation(observed googleEventObservation, intent EventIntent) 
 	}
 	return conference, nil
 }
+
+func (s EventVenueStatus) IsValid() bool { return s.Validate() == nil }
+func (s EventVenueStatus) String() string {
+	switch s {
+	case EventVenueNone:
+		return "none"
+	case EventVenuePending:
+		return "pending"
+	case EventVenueReady:
+		return "ready"
+	case EventVenueFailed:
+		return "failed"
+	default:
+		return core.UnknownEnumDiagnostic
+	}
+}
+
+// Google conference generation is an explicit addition to the same existing
+// mutation target; ordinary owned writes retain their exact query unchanged.
+func googleMeetEventTarget(target core.HTTPEndpoint, intent EventIntent) (core.HTTPEndpoint, error) {
+	if intent.Venue.Kind != core.TimeMatchVenueAutomaticVideo {
+		return target, nil
+	}
+	parsed, err := url.Parse(target.String())
+	if err != nil {
+		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	query := parsed.Query()
+	query.Set("conferenceDataVersion", "1")
+	parsed.RawQuery = query.Encode()
+	return endpoint(parsed.String())
+}

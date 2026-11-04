@@ -30,7 +30,7 @@ func meetEvent(t testing.TB, owned EventIntent, status string) googleMeetTestEve
 		t.Fatal(err)
 	}
 	if body.ConferenceData == nil || body.ConferenceData.CreateRequest == nil {
-		t.Fatal("typed automatic venue emitted no conference request")
+		t.Fatalf("automatic conference got%+v, want nonnil owned creation request", body.ConferenceData)
 	}
 	body.ConferenceData.CreateRequest.Status = &googleConferenceStatus{Code: status}
 	if status == googleConferenceSuccess {
@@ -77,12 +77,12 @@ func TestGoogleMeetNativeAsyncLifecycle(t *testing.T) {
 						return
 					}
 					if saved.ID != owned.ID.String() || saved.ConferenceData == nil || saved.ConferenceData.CreateRequest == nil {
-						t.Error("create omitted owned conference identity")
+						t.Errorf("owned create got%+v, want event%q and conference request", saved, owned.ID.String())
 						writeJSON(w, 400, `{}`)
 						return
 					}
 					if r.URL.Query().Get("conferenceDataVersion") != "1" {
-						t.Error("create omitted conference version1")
+						t.Errorf("create query got%q, want conferenceDataVersion1", r.URL.RawQuery)
 					}
 					if tc.lost {
 						writeJSON(w, 503, `{}`)
@@ -100,7 +100,7 @@ func TestGoogleMeetNativeAsyncLifecycle(t *testing.T) {
 					return
 				}
 				if r.Method != http.MethodGet {
-					t.Error("recovery sent mutation")
+					t.Errorf("recovery method got%q, want GET", r.Method)
 					writeJSON(w, 400, `{}`)
 					return
 				}
@@ -112,7 +112,7 @@ func TestGoogleMeetNativeAsyncLifecycle(t *testing.T) {
 					return
 				}
 				if r.Header.Get("If-Match") != `"meet-revision"` || !strings.Contains(r.URL.Query().Get("fields"), "conferenceData(") {
-					t.Error("detail read omitted revision or narrow conference fields")
+					t.Errorf("read got(revision%q,fields%q), want bound revision and conference projection", r.Header.Get("If-Match"), r.URL.Query().Get("fields"))
 				}
 				n := details.Add(1)
 				status := googleConferenceSuccess
@@ -168,7 +168,7 @@ func TestGoogleMeetNativeAsyncLifecycle(t *testing.T) {
 			}
 			for _, call := range fixture.record() {
 				if call.method == http.MethodGet && len(call.body) != 0 {
-					t.Error("recovery GET carried a create body")
+					t.Errorf("recovery GET body got%dbytes, want0", len(call.body))
 				}
 			}
 		})
@@ -214,7 +214,7 @@ func TestGoogleMeetOwnedConferenceHostileReadback(t *testing.T) {
 			tc.mutate(&wire)
 			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
 				if r.Method != http.MethodGet {
-					t.Error("read-only recovery mutated")
+					t.Errorf("read-only method got%q, want GET", r.Method)
 					writeJSON(w, 400, `{}`)
 					return
 				}
@@ -281,7 +281,7 @@ func TestGoogleMeetMissingOwnershipNeverReadsConference(t *testing.T) {
 	owned := meetIntent(t)
 	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
 		if !strings.HasSuffix(r.URL.Path, "/events") {
-			t.Error("read foreign private event details")
+			t.Errorf("unowned read got%q, want metadata collection only", r.URL.Path)
 		}
 		writeJSON(w, 200, string(seedJSON(t, googleOwnedEventPage{Items: []googleOwnedEventMetadata{}})))
 	})

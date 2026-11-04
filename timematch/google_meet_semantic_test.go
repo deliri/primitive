@@ -62,7 +62,7 @@ func TestGoogleMeetReceiptClosedOutcomes(t *testing.T) {
 		}
 		got := r.Validate()
 		want := raw <= int(EventVenueFailed)
-		if (got == nil) != want || !want && !errors.Is(got, core.ErrTimeMatchContract) {
+		if (got == nil) != want || status.IsValid() != want || (status.String() != core.UnknownEnumDiagnostic) != want || !want && !errors.Is(got, core.ErrTimeMatchContract) {
 			t.Fatalf("receipt status%d admission%v,want accepted%t", raw, got, want)
 		}
 	}
@@ -109,7 +109,7 @@ func TestGoogleMeetRequestIdentityUsesExistingClosedEventDomain(t *testing.T) {
 	}
 	two.ID = id
 	if googleMeetCreateData(one).CreateRequest.RequestID == googleMeetCreateData(two).CreateRequest.RequestID {
-		t.Fatal("distinct events share one conference request identity")
+		t.Fatalf("conference identities got(%q,%q), want distinct event identities", one.ID.String(), two.ID.String())
 	}
 }
 
@@ -141,11 +141,11 @@ func FuzzGoogleMeetOwnedConferenceSemanticClosure(f *testing.F) {
 			t.Fatal(err)
 		}
 		if source.ID != owned.ID.String() || source.ExtendedProperties == nil || source.ExtendedProperties.Private.EventID != owned.ID.String() || source.ConferenceData == nil || source.ConferenceData.CreateRequest == nil || source.ConferenceData.CreateRequest.RequestID != owned.ID.String() {
-			t.Fatal("accepted conference has foreign event/request binding")
+			t.Fatalf("accepted provider facts got%+v, want exact owned event and request%q", source, owned.ID.String())
 		}
 		status := source.ConferenceData.CreateRequest.Status.Code
 		if got.VenueStatus == EventVenuePending && status != "pending" || got.VenueStatus == EventVenueFailed && status != "failure" {
-			t.Fatal("unready outcome changed provider generation status")
+			t.Fatalf("generation status got(%d,%q), want matching typed/provider states", got.VenueStatus, status)
 		}
 		if got.VenueStatus == EventVenueReady {
 			u, err := url.Parse(got.Venue.JoinURL)
@@ -159,10 +159,10 @@ func FuzzGoogleMeetOwnedConferenceSemanticClosure(f *testing.F) {
 				}
 			}
 			if matches != 1 || source.ConferenceData.CreateRequest.Status.Code != "success" {
-				t.Fatal("ready result lacks one exact successful provider video entry")
+				t.Fatalf("ready provider entry got(count%d,status%q), want(1,success)", matches, source.ConferenceData.CreateRequest.Status.Code)
 			}
 		} else if got.Venue != (core.TimeMatchAppointmentVenue{}) {
-			t.Fatal("unready result exposed a call URI")
+			t.Fatalf("unready venue got%+v, want zero venue", got.Venue)
 		}
 		canonical, err := json.Marshal(source)
 		if err != nil {
@@ -178,7 +178,7 @@ func FuzzGoogleMeetOwnedConferenceSemanticClosure(f *testing.F) {
 		}
 		second, err := json.Marshal(round)
 		if err != nil || !bytes.Equal(canonical, second) {
-			t.Fatal("provider canonical projection changed on second encoding")
+			t.Fatalf("canonical provider bytes got%s, want%s; error%v", second, canonical, err)
 		}
 	})
 }

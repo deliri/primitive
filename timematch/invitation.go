@@ -72,12 +72,7 @@ func (i Invitation) Validate() error {
 	if _, err := icsTime(i.Interval.End); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	for _, attendee := range i.Attendees {
-		if err := attendee.Validate(); err != nil {
-			return errors.Join(core.ErrTimeMatchContract, err)
-		}
-	}
-	return nil
+	return i.validateAttendees()
 }
 
 // WriteInvitation streams a REQUEST or whole-appointment CANCEL into a
@@ -245,3 +240,12 @@ func (w *invitationWriter) line(parts ...string) {
 
 func (Invitation) timematchProtocolFact()       {}
 func (invitationWriter) timematchInternalFlow() {}
+
+func (i Invitation) validateAttendees() error {
+	for _, attendee := range i.Attendees {
+		if err := attendee.Validate(); err != nil {
+			return errors.Join(core.ErrTimeMatchContract, err)
+		}
+	}
+	return nil
+}

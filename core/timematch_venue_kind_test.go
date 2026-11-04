@@ -12,7 +12,7 @@ func TestTimeMatchAutomaticVenueClosedDomain(t *testing.T) {
 		v := TimeMatchAppointmentVenue{Kind: kind}
 		got := v.Validate()
 		want := raw <= int(TimeMatchVenueAutomaticVideo)
-		if (got == nil) != want || !want && !errors.Is(got, ErrTimeMatchContract) {
+		if (got == nil) != want || kind.IsValid() != want || (kind.String() != UnknownEnumDiagnostic) != want || !want && !errors.Is(got, ErrTimeMatchContract) {
 			t.Fatalf("venue kind%d admission%v,want admitted%t", raw, got, want)
 		}
 	}
