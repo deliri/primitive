@@ -2,13 +2,13 @@ package timematch
 
 import (
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/url"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/jsonio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -150,11 +150,11 @@ func (c Client) googleAvailability(ctx context.Context, r AvailabilityRequest) (
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for first := 0; first < len(r.Calendars); first += googleFreeBusyBatch {
 		batch := r.Calendars[first:min(first+googleFreeBusyBatch, len(r.Calendars))]
-		body := googleFreeBusyBody{TimeMin: start, TimeMax: end, Items: make([]googleFreeBusyItem, 0, len(batch))}
+		body := googleFreeBusyBody{CalendarExpansionMax: googleFreeBusyBatch, TimeMin: start, TimeMax: end, Items: make([]googleFreeBusyItem, 0, len(batch))}
 		for _, id := range batch {
 			body.Items = append(body.Items, googleFreeBusyItem{ID: id.value})
 		}
-		encoded, err := json.Marshal(body)
+		encoded, err := jsonio.MarshalProjection(body, jsonio.OwnedCodecPolicy{PointerNulls: jsonio.PointerNullPermitted})
 		if err != nil {
 			return Availability{}, errors.Join(core.ErrTimeMatchContract, err)
 		}
@@ -192,9 +192,10 @@ type googleFreeBusyItem struct {
 }
 
 type googleFreeBusyBody struct {
-	TimeMin string               `json:"timeMin"`
-	TimeMax string               `json:"timeMax"`
-	Items   []googleFreeBusyItem `json:"items"`
+	CalendarExpansionMax int                  `json:"calendarExpansionMax"`
+	TimeMin              string               `json:"timeMin"`
+	TimeMax              string               `json:"timeMax"`
+	Items                []googleFreeBusyItem `json:"items"`
 }
 
 type googleBusyCalendar struct {
@@ -324,7 +325,7 @@ func googleEvent(intent EventIntent) ([]byte, error) {
 	}
 	body.ID = intent.ID.value
 	body.ExtendedProperties = &googleExtendedProperties{Private: googlePrivateProperties{EventID: intent.ID.value}}
-	encoded, err := json.Marshal(body)
+	encoded, err := jsonio.MarshalProjection(body, jsonio.OwnedCodecPolicy{PointerNulls: jsonio.PointerNullPermitted})
 	if err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
@@ -361,14 +362,14 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	}
 	target, err := googleEventURL(w.Intent.Calendar, "", true)
 	if err == nil {
-		target, err = googleMeetEventTarget(target, w.Intent)
+		target, err = googleOwnedWriteTarget(target, w.Intent)
 	}
 	if err != nil {
 		return EventReceipt{}, err
 	}
 	ref := EventRef{ID: w.Intent.ID, Provider: ProviderGoogle, Calendar: w.Intent.Calendar, Resource: w.Intent.ID.value}
 	if w.Attempt == EventCreateRecoverOnly {
-		return c.googleReadBack(ctx, w, ref)
+		return c.googleReadBack(ctx, w, ref, false)
 	}
 	// The caller retains authority for this exact deterministic intent.
 	// Google documents client-supplied IDs as its duplicate-create safeguard;
@@ -380,7 +381,7 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 		return verifyGoogle(result.body, w.Intent, ref)
 	case result.status == http.StatusConflict:
 		clear(result.body)
-		return c.googleReadBack(ctx, w, ref)
+		return c.googleReadBack(ctx, w, ref, true)
 	default:
 		return EventReceipt{}, writeFailure(result, err)
 	}
@@ -447,7 +448,9 @@ func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, 
 		query.Set("pageToken", page.NextPageToken)
 	}
 	if !found {
-		return exchange.Header{}, core.ErrTimeMatchIndeterminate
+		// A zero condition records an empty filtered ownership observation.
+		// The operation owns whether that fact is conflict or still unknown.
+		return exchange.Header{}, nil
 	}
 	return condition, nil
 }
@@ -490,10 +493,13 @@ func (p googleOwnedEventPage) Validate() error {
 	return nil
 }
 
-func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) (EventReceipt, error) {
+func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef, duplicate bool) (EventReceipt, error) {
 	condition, err := c.googleOwnedRevision(ctx, w.Connection, ref, w.Policy)
 	if err != nil {
 		return EventReceipt{}, err
+	}
+	if len(condition.Values) == 0 {
+		return EventReceipt{}, googleMissingOwnedIdentity(duplicate)
 	}
 	observed, err := c.googleOwnedObservation(ctx, w.Connection, ref, w.Policy, condition, w.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo)
 	if err != nil {
@@ -552,7 +558,7 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	}
 	target, err := googleEventURL(u.Intent.Calendar, u.Ref.Resource, true)
 	if err == nil {
-		target, err = googleMeetEventTarget(target, u.Intent)
+		target, err = googleOwnedWriteTarget(target, u.Intent)
 	}
 	if err != nil {
 		return EventReceipt{}, err
@@ -582,6 +588,9 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 // An automatic video update first reads the exact owned event at the guarded
 // revision; its old interval is not compared with the requested one.
 func (c Client) googleUpdateBody(ctx context.Context, u EventUpdate, condition exchange.Header, projection googleEventBody) ([]byte, EventReceipt, error) {
+	if len(condition.Values) == 0 {
+		return nil, EventReceipt{}, core.ErrTimeMatchIndeterminate
+	}
 	previous := EventReceipt{}
 	if u.Intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo {
 		observed, err := c.googleOwnedObservation(ctx, u.Connection, u.Ref, u.Policy, condition, true)
@@ -600,7 +609,7 @@ func (c Client) googleUpdateBody(ctx context.Context, u EventUpdate, condition e
 			projection.ConferenceData = nil
 		}
 	}
-	body, err := json.Marshal(projection)
+	body, err := jsonio.MarshalProjection(projection, jsonio.OwnedCodecPolicy{PointerNulls: jsonio.PointerNullPermitted})
 	if err != nil {
 		return nil, EventReceipt{}, err
 	}
@@ -630,6 +639,9 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 	condition, err := c.googleOwnedRevision(ctx, d.Connection, d.Ref, d.Policy)
 	if err != nil {
 		return DeleteInvalid, err
+	}
+	if len(condition.Values) == 0 {
+		return c.googleDeleteAbsent(ctx, d, secrets)
 	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{condition}, secrets: secrets, policy: d.Policy, expected: http.StatusNoContent})
 	clear(result.body)
@@ -719,4 +731,42 @@ func verifyGoogleOwnedIdentity(observed googleEventObservation, intent EventInte
 		return core.ErrTimeMatchConflict
 	}
 	return nil
+}
+
+func googleMissingOwnedIdentity(duplicate bool) error {
+	if duplicate {
+		return core.ErrTimeMatchConflict
+	}
+	return core.ErrTimeMatchIndeterminate
+}
+
+// Only a matching, explicitly cancelled identity proves the old event absent.
+// Active, incomplete and inaccessible observations retain cleanup uncertainty;
+// this path never downloads private fields or sends a DELETE.
+func (c Client) googleDeleteAbsent(ctx context.Context, d EventDelete, secrets []exchange.SecretHeader) (DeleteOutcome, error) {
+	base, err := googleEventURL(d.Ref.Calendar, d.Ref.Resource, false)
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	query := url.Values{"fields": {"id,status"}}
+	target, err := endpoint(base.String() + "?" + query.Encode())
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, responseType: core.HTTPMediaTypeJSON(), policy: d.Policy, expected: http.StatusOK})
+	if err != nil {
+		return DeleteInvalid, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+	}
+	defer clear(result.body)
+	observed, err := decodeJSON[googleEventObservation](result.body)
+	if err != nil {
+		return DeleteInvalid, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	if observed.id != d.Ref.ID.value {
+		return DeleteInvalid, core.ErrTimeMatchConflict
+	}
+	if observed.status != "cancelled" {
+		return DeleteInvalid, core.ErrTimeMatchIndeterminate
+	}
+	return DeleteAlreadyAbsent, nil
 }

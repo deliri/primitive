@@ -239,18 +239,20 @@ func (s EventVenueStatus) String() string {
 	}
 }
 
-// Google conference generation is an explicit addition to the same existing
-// mutation target; ordinary owned writes retain their exact query unchanged.
-func googleMeetEventTarget(target core.HTTPEndpoint, intent EventIntent) (core.HTTPEndpoint, error) {
-	if intent.Venue.Kind != core.TimeMatchVenueAutomaticVideo {
-		return target, nil
-	}
+// Owned mutation replies request only the fields needed for their receipt.
+// Conference details and generation version are added only for automatic video.
+func googleOwnedWriteTarget(target core.HTTPEndpoint, intent EventIntent) (core.HTTPEndpoint, error) {
 	parsed, err := url.Parse(target.String())
 	if err != nil {
 		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	query := parsed.Query()
-	query.Set("conferenceDataVersion", "1")
+	fields := googleOwnedDetailsFields
+	if intent.Venue.Kind == core.TimeMatchVenueAutomaticVideo {
+		query.Set("conferenceDataVersion", "1")
+		fields += googleOwnedConferenceFields
+	}
+	query.Set("fields", fields)
 	parsed.RawQuery = query.Encode()
 	return endpoint(parsed.String())
 }
