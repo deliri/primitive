@@ -29,7 +29,12 @@ func TestIdleCgroupCacheReclaimNativeOwnedGroup(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: temporal.WithoutCancellation(t.Context()), Duration: duration})
+		parent, err := temporal.WithoutCancellation(temporal.DetachedContextRequest{Parent: t.Context()})
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: parent, Duration: duration})
 		if err != nil {
 			t.Error(err)
 			return
