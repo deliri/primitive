@@ -140,7 +140,8 @@ func TestIdleCgroupCacheReclaimRetainsCancellationAndContracts(t *testing.T) {
 	if _, err := ReclaimIdleWorkloadMemoryCache(t.Context(), core.ByteLength{}); !errors.Is(err, core.ErrHostFactsContract) {
 		t.Fatalf("zero=%v, want contract", err)
 	}
-	if _, err := ReclaimIdleWorkloadMemoryCache(nil, amount); !errors.Is(err, core.ErrNilContext) {
+	var absent context.Context
+	if _, err := ReclaimIdleWorkloadMemoryCache(absent, amount); !errors.Is(err, core.ErrNilContext) {
 		t.Fatalf("nil context=%v, want nil-context cause", err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"strconv"
 	"strings"
@@ -26,6 +27,10 @@ func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64)
 	if empty {
 		return requestEmptyCgroupCacheReclaim(ctx, root, maximum)
 	}
+	return reclaimCgroupChildren(ctx, root, maximum)
+}
+
+func reclaimCgroupChildren(ctx context.Context, root *os.Root, maximum uint64) (written bool, resultErr error) {
 	directory, err := root.Open(".")
 	if err != nil {
 		return false, err
@@ -34,21 +39,9 @@ func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64)
 	for {
 		rows, readErr := directory.ReadDir(1)
 		for _, row := range rows {
-			if !row.IsDir() || row.Type()&os.ModeSymlink != 0 {
-				continue
-			}
-			component, err := core.ParseRelativePath(row.Name())
-			if err != nil {
-				return false, err
-			}
-			child, err := filestore.OpenChildRoot(ctx, filestore.ChildRootRequest{Location: filestore.Location{Root: root, Path: component}})
-			if err != nil {
-				return false, err
-			}
-			didWrite, reclaimErr := reclaimEmptyCgroupCache(ctx, child, maximum)
-			closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: child})
-			if didWrite || reclaimErr != nil || closeErr != nil {
-				return didWrite, errors.Join(reclaimErr, closeErr)
+			wrote, err := reclaimCgroupChild(ctx, root, row, maximum)
+			if wrote || err != nil {
+				return wrote, err
 			}
 		}
 		if errors.Is(readErr, io.EOF) {
@@ -58,6 +51,22 @@ func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64)
 			return false, readErr
 		}
 	}
+}
+
+func reclaimCgroupChild(ctx context.Context, root *os.Root, row fs.DirEntry, maximum uint64) (bool, error) {
+	if !row.IsDir() || row.Type()&os.ModeSymlink != 0 {
+		return false, nil
+	}
+	component, err := core.ParseRelativePath(row.Name())
+	if err != nil {
+		return false, err
+	}
+	child, err := filestore.OpenChildRoot(ctx, filestore.ChildRootRequest{Location: filestore.Location{Root: root, Path: component}})
+	if err != nil {
+		return false, err
+	}
+	wrote, reclaimErr := reclaimEmptyCgroupCache(ctx, child, maximum)
+	return wrote, errors.Join(reclaimErr, filestore.CloseRoot(filestore.RootHandleRequest{Root: child}))
 }
 
 func emptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (bool, error) {
