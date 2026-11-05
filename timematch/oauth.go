@@ -31,8 +31,8 @@ const (
 	// "See, create, change, and delete events on Google calendars you own." Accepted by events insert/update/delete.
 	googleScopeOwnedEvents = "https://www.googleapis.com/auth/calendar.events.owned"
 	googleScopeOpenID      = "openid"
-	googleScopeEmail       = "email"
-	googleScopeProfile     = "profile"
+	googleScopeEmail       = "https://www.googleapis.com/auth/userinfo.email"
+	googleScopeProfile     = "https://www.googleapis.com/auth/userinfo.profile"
 )
 
 // Microsoft identity platform v2 auth code flow and Graph permissions.

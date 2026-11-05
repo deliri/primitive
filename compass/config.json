@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 483
+      "patch": 484
     },
     "release_notes": [
-      "TimeMatch visitor permission requests contact, free/busy and appointment write access together; one code exchange returns the required provider contact and online-only calendar grant."
+      "Request Google visitor email and profile using canonical userinfo scope names so exact grant validation accepts the provider response."
     ]
   }
 }
