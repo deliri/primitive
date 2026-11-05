@@ -164,3 +164,36 @@ func FuzzCgroupCacheFieldCanonicalValue(f *testing.F) {
 		}
 	})
 }
+
+// One byte permits at most one native page request in the fleet's idle cache;
+// this is not a grant or a claim that concurrently changing parent charge drops.
+// The separate private-group fixture earns the actual charge-reduction claim.
+func TestReclaimIdleWorkloadMemoryCacheNativeEntry(t *testing.T) {
+	t.Parallel()
+	before, err := ObserveWorkloadMemoryScopeParent(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	amount, err := core.NewByteLength(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := ReclaimIdleWorkloadMemoryCache(t.Context(), amount)
+	if err != nil || after.Validate() != nil || after.BindingLimit().State() != before.BindingLimit().State() {
+		t.Fatalf("native result=%+v/%v, want valid same availability as %+v", after, err, before)
+	}
+	beforePath, beforePresent := before.BindingLimit().InterfacePath()
+	afterPath, afterPresent := after.BindingLimit().InterfacePath()
+	beforeLimit, beforeFinite := before.BindingLimit().LimitBytes()
+	afterLimit, afterFinite := after.BindingLimit().LimitBytes()
+	if beforePath != afterPath || beforePresent != afterPresent || beforeLimit != afterLimit || beforeFinite != afterFinite {
+		t.Fatalf("native binding=%+v->%+v, want unchanged native limit/path", before.BindingLimit(), after.BindingLimit())
+	}
+	if before.BindingLimit().State() == WorkloadMemoryLimitLimited {
+		current, currentPresent := after.CurrentBytes()
+		remaining, remainingPresent := after.RemainingBytes()
+		if !currentPresent || !remainingPresent || remaining.Uint64() != afterLimit.Uint64()-min(afterLimit.Uint64(), current.Uint64()) {
+			t.Fatalf("post charge=%d remaining=%d, want exact native saturating pair", current.Uint64(), remaining.Uint64())
+		}
+	}
+}
