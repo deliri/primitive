@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	BrowserPhoneScope        = "https://www.googleapis.com/auth/user.phonenumbers.read"
-	BrowserBirthdayScope     = "https://www.googleapis.com/auth/user.birthday.read"
-	peopleSelfResource       = "people/me"
-	peopleProfileSource      = "READ_SOURCE_TYPE_PROFILE"
-	peopleFieldSourceProfile = "PROFILE"
+	BrowserPhoneScope              = "https://www.googleapis.com/auth/user.phonenumbers.read"
+	BrowserBirthdayScope           = "https://www.googleapis.com/auth/user.birthday.read"
+	peopleSelfResource             = "people/me"
+	peopleProfileSource            = "READ_SOURCE_TYPE_PROFILE"
+	peopleFieldSourceProfile       = "PROFILE"
+	peopleFieldSourceAccount       = "ACCOUNT"
+	peopleFieldSourceDomainProfile = "DOMAIN_PROFILE"
 )
 
 // BrowserProfileRequest is application-selected optional profile access. Basic
@@ -419,5 +421,15 @@ func (profile *BrowserProfile) observeName(values []*people.Name) {
 }
 
 func foreignPeopleFieldSource(metadata *people.FieldMetadata) bool {
-	return metadata.Source != nil && metadata.Source.Type != "" && metadata.Source.Type != peopleFieldSourceProfile
+	if metadata.Source == nil {
+		return false
+	}
+	// READ_SOURCE_TYPE_PROFILE contains these three native source types.
+	// https://developers.google.com/people/api/rest/v1/ReadSourceType
+	switch metadata.Source.Type {
+	case "", peopleFieldSourceProfile, peopleFieldSourceAccount, peopleFieldSourceDomainProfile:
+		return false
+	default:
+		return true
+	}
 }

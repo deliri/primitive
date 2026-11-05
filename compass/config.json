@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 486
+      "patch": 487
     },
     "release_notes": [
-      "Require the requested visitor phone scope before reading profile data; distinguish withheld scope from a profile with no phone."
+      "Accept Google Account and Workspace profile source types included in the already-requested People profile category; keep contact and unknown sources refused."
     ]
   }
 }
