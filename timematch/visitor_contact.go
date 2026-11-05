@@ -10,7 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/googleidentity"
 )
 
-// VisitorContact is the complete contact returned by the consenting provider.
+// VisitorContact is the identity and available contact returned by the consenting provider.
 // It is not an application account, an email-keyed principal or proof of phone
 // possession. Missing provider data never becomes an invented contact.
 type VisitorContact struct {
@@ -22,8 +22,13 @@ type VisitorContact struct {
 }
 
 func (v VisitorContact) Validate() error {
-	if err := errors.Join(v.Subject.Validate(), v.GivenName.Validate(), v.FamilyName.Validate(), v.Email.Validate(), v.Phone.Validate()); err != nil {
+	if err := errors.Join(v.Subject.Validate(), v.GivenName.Validate(), v.FamilyName.Validate(), v.Email.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchConsent, err)
+	}
+	if v.Phone != (googleidentity.PhoneE164{}) {
+		if err := v.Phone.Validate(); err != nil {
+			return errors.Join(core.ErrTimeMatchConsent, err)
+		}
 	}
 	return nil
 }
@@ -74,12 +79,11 @@ func (c Client) visitorContact(ctx context.Context, grant Grant, policy exchange
 		}
 		switch profile.PhoneOutcome {
 		case core.OAuthProfileAvailable:
-		case core.OAuthProfileMissing:
-			return VisitorContact{}, core.ErrTimeMatchPhoneMissing
+			contact.Phone = profile.PhoneNumber
+		case core.OAuthProfileMissing, core.OAuthProfilePartial:
+			// The caller completes only this absent contact before booking.
 		case core.OAuthProfileDenied:
 			return VisitorContact{}, core.ErrTimeMatchPhoneDenied
-		case core.OAuthProfilePartial:
-			return VisitorContact{}, core.ErrTimeMatchPhonePartial
 		case core.OAuthProfileInvalid:
 			return VisitorContact{}, core.ErrTimeMatchPhoneInvalid
 		case core.OAuthProfileUnavailable:
@@ -87,7 +91,6 @@ func (c Client) visitorContact(ctx context.Context, grant Grant, policy exchange
 		default:
 			return VisitorContact{}, core.ErrTimeMatchContract
 		}
-		contact.Phone = profile.PhoneNumber
 	} else {
 		var document struct {
 			ID          string `json:"id"`
