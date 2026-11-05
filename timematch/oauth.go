@@ -10,6 +10,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/googleidentity"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -29,6 +30,9 @@ const (
 	googleScopeCalendarList = "https://www.googleapis.com/auth/calendar.calendarlist.readonly"
 	// "See, create, change, and delete events on Google calendars you own." Accepted by events insert/update/delete.
 	googleScopeOwnedEvents = "https://www.googleapis.com/auth/calendar.events.owned"
+	googleScopeOpenID      = "openid"
+	googleScopeEmail       = "email"
+	googleScopeProfile     = "profile"
 )
 
 // Microsoft identity platform v2 auth code flow and Graph permissions.
@@ -41,6 +45,7 @@ const (
 	microsoftLoginURL        = "https://login.microsoftonline.com/"
 	microsoftScopeReadBasic  = "https://graph.microsoft.com/Calendars.ReadBasic"
 	microsoftScopeReadWrite  = "https://graph.microsoft.com/Calendars.ReadWrite"
+	microsoftScopeUserRead   = "https://graph.microsoft.com/User.Read"
 	microsoftScopeOffline    = "offline_access"
 	microsoftGraphScopeShort = "https://graph.microsoft.com/"
 )
@@ -50,12 +55,12 @@ const bearerTokenType = "bearer"
 func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, error) {
 	switch provider {
 	case ProviderGoogle:
-		// A visitor consents to exactly one purpose per grant: free/busy for
-		// matching (primary calendar, no calendar list), or, in a separate
-		// final consent, writing the confirmed event on calendars they own.
+		// A booking visitor grants profile, free/busy and event creation once.
+		// The client reads no appointment content and never requests offline
+		// access. Read-only availability remains a separate SDK capability.
 		if lifetime == LifetimeVisitor {
 			if access == AccessManageEvents {
-				return []string{googleScopeOwnedEvents}, nil
+				return []string{googleScopeFreeBusy, googleScopeOwnedEvents, googleScopeOpenID, googleScopeEmail, googleScopeProfile, googleidentity.BrowserPhoneScope}, nil
 			}
 			return []string{googleScopeFreeBusy}, nil
 		}
@@ -68,6 +73,9 @@ func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, erro
 		values := []string{microsoftScopeReadBasic}
 		if access == AccessManageEvents {
 			values = []string{microsoftScopeReadWrite}
+			if lifetime == LifetimeVisitor {
+				values = append(values, microsoftScopeUserRead)
+			}
 		}
 		if lifetime == LifetimeBusiness {
 			values = append(values, microsoftScopeOffline)
@@ -78,9 +86,10 @@ func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, erro
 	}
 }
 
-// AuthorizationEndpoint builds the provider consent URL. It requests only
-// calendar scopes: no OpenID, profile or email, so it can never authenticate
-// an application account. A visitor grant is online-only.
+// AuthorizationEndpoint builds the provider consent URL. A booking visitor
+// authorizes contact profile, free/busy and the chosen event in one redirect.
+// This is booking contact data, never an application login or account link.
+// A visitor grant is online-only.
 func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 	if err := r.Validate(); err != nil {
 		return core.HTTPEndpoint{}, err
@@ -395,7 +404,7 @@ func grantedScopes(shape grantShape, raw string) bool {
 		return false
 	}
 	for _, required := range requested {
-		if required == microsoftScopeOffline {
+		if required == microsoftScopeOffline || required == googleidentity.BrowserPhoneScope {
 			continue
 		}
 		found := false
