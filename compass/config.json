@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 485
+      "patch": 486
     },
     "release_notes": [
-      "Preserve the typed provider outcome when required TimeMatch phone data is absent, partial, refused, invalid or unavailable."
+      "Require the requested visitor phone scope before reading profile data; distinguish withheld scope from a profile with no phone."
     ]
   }
 }

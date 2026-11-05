@@ -378,6 +378,18 @@ type grantShape struct {
 func (t tokenWire) grant(shape grantShape) (Grant, error) {
 	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
 	if (t.scopePresent || t.scope != "") && !grantedScopes(shape, t.scope) {
+		if shape.provider == ProviderGoogle && shape.lifetime == LifetimeVisitor && shape.access == AccessManageEvents {
+			phoneGranted := false
+			for granted := range strings.FieldsSeq(t.scope) {
+				if granted == googleidentity.BrowserPhoneScope {
+					phoneGranted = true
+					break
+				}
+			}
+			if !phoneGranted {
+				return Grant{}, core.ErrTimeMatchPhoneDenied
+			}
+		}
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	expires, err := expiry(observed, t.expiresIn)
@@ -410,7 +422,7 @@ func grantedScopes(shape grantShape, raw string) bool {
 		return false
 	}
 	for _, required := range requested {
-		if required == microsoftScopeOffline || required == googleidentity.BrowserPhoneScope {
+		if required == microsoftScopeOffline {
 			continue
 		}
 		found := false
