@@ -3,8 +3,6 @@ package hostfacts
 import (
 	"context"
 	"errors"
-	"io"
-	"io/fs"
 	"os"
 	"strconv"
 	"strings"
@@ -16,7 +14,7 @@ import (
 
 // Native cgroup directories are streamed one at a time. No process population
 // or reclaim credit survives this call. A populated ancestor is only traversed.
-func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (written bool, resultErr error) {
+func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (bool, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return false, err
 	}
@@ -30,43 +28,32 @@ func reclaimEmptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64)
 	return reclaimCgroupChildren(ctx, root, maximum)
 }
 
-func reclaimCgroupChildren(ctx context.Context, root *os.Root, maximum uint64) (written bool, resultErr error) {
-	directory, err := root.Open(".")
+func reclaimCgroupChildren(ctx context.Context, root *os.Root, maximum uint64) (bool, error) {
+	var written bool
+	path, err := core.ParseRelativePath(".")
 	if err != nil {
 		return false, err
 	}
-	defer func() { resultErr = errors.Join(resultErr, directory.Close()) }()
-	for {
-		rows, readErr := directory.ReadDir(1)
-		for _, row := range rows {
-			wrote, err := reclaimCgroupChild(ctx, root, row, maximum)
-			if wrote || err != nil {
-				return wrote, err
-			}
+	walkErr := filestore.Walk(ctx, filestore.WalkRequest{Location: filestore.Location{Root: root, Path: path}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+		if written || !entry.Entry.IsDir() || entry.Entry.Type()&os.ModeSymlink != 0 {
+			return filestore.WalkSkipDirectory, nil
 		}
-		if errors.Is(readErr, io.EOF) {
-			return false, nil
+		child, reclaimErr := filestore.OpenChildRoot(ctx, filestore.ChildRootRequest{Location: filestore.Location{Root: root, Path: entry.Path}})
+		if reclaimErr != nil {
+			return filestore.WalkSkipDirectory, reclaimErr
 		}
-		if readErr != nil {
-			return false, readErr
+		// Walk owns recursive directory iteration; this visitor tests only this root.
+		empty, checkErr := emptyCgroupCache(ctx, child, maximum)
+		if checkErr == nil && empty {
+			written, checkErr = requestEmptyCgroupCacheReclaim(ctx, child, maximum)
 		}
-	}
-}
-
-func reclaimCgroupChild(ctx context.Context, root *os.Root, row fs.DirEntry, maximum uint64) (bool, error) {
-	if !row.IsDir() || row.Type()&os.ModeSymlink != 0 {
-		return false, nil
-	}
-	component, err := core.ParseRelativePath(row.Name())
-	if err != nil {
-		return false, err
-	}
-	child, err := filestore.OpenChildRoot(ctx, filestore.ChildRootRequest{Location: filestore.Location{Root: root, Path: component}})
-	if err != nil {
-		return false, err
-	}
-	wrote, reclaimErr := reclaimEmptyCgroupCache(ctx, child, maximum)
-	return wrote, errors.Join(reclaimErr, filestore.CloseRoot(filestore.RootHandleRequest{Root: child}))
+		closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: child})
+		if written {
+			return filestore.WalkSkipDirectory, errors.Join(checkErr, closeErr)
+		}
+		return filestore.WalkContinue, errors.Join(checkErr, closeErr)
+	}})
+	return written, walkErr
 }
 
 func emptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (bool, error) {
@@ -89,9 +76,9 @@ func emptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (bool,
 		return false, err
 	}
 	for _, name := range [...]string{"anon", "shmem", "file_dirty", "file_writeback"} {
-		value, err := cgroupCacheField(stat, name)
-		if err != nil {
-			return false, err
+		value, fieldErr := cgroupCacheField(stat, name)
+		if fieldErr != nil {
+			return false, fieldErr
 		}
 		if value != 0 {
 			return false, nil
@@ -102,11 +89,17 @@ func emptyCgroupCache(ctx context.Context, root *os.Root, maximum uint64) (bool,
 }
 
 func requestEmptyCgroupCacheReclaim(ctx context.Context, root *os.Root, maximum uint64) (written bool, resultErr error) {
-	file, err := root.OpenFile("memory.reclaim", os.O_WRONLY, 0)
+	path, err := core.ParseRelativePath("memory.reclaim")
 	if err != nil {
 		return false, err
 	}
-	defer func() { resultErr = errors.Join(resultErr, file.Close()) }()
+	file, err := filestore.OpenWriteExisting(ctx, filestore.UpdateHandleRequest{Location: filestore.Location{Root: root, Path: path}})
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		resultErr = errors.Join(resultErr, filestore.CloseFile(filestore.FileHandleRequest{File: file}))
+	}()
 	// Opening the control must not turn an earlier empty observation into authority
 	// to reclaim a newly populated or dirty group.
 	empty, err := emptyCgroupCache(ctx, root, maximum)
@@ -117,10 +110,7 @@ func requestEmptyCgroupCacheReclaim(ctx context.Context, root *os.Root, maximum 
 		return false, err
 	}
 	data := strconv.FormatUint(maximum, 10) + " swappiness=0"
-	n, err := file.WriteString(data)
-	if err == nil && n != len(data) {
-		err = io.ErrShortWrite
-	}
+	_, err = filestore.WriteChunk(ctx, filestore.ChunkWriteRequest{Destination: file, Bytes: []byte(data)})
 	return true, err
 }
 
@@ -128,12 +118,16 @@ func readCacheControl(ctx context.Context, root *os.Root, name string) ([]byte, 
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, err
 	}
-	file, err := root.Open(name)
+	path, err := core.ParseRelativePath(name)
+	if err != nil {
+		return nil, err
+	}
+	file, err := filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: filestore.Location{Root: root, Path: path}})
 	if err != nil {
 		return nil, err
 	}
 	data, readErr := readBoundedValue(ctx, file, 32<<10)
-	return data, errors.Join(readErr, file.Close())
+	return data, errors.Join(readErr, filestore.CloseFile(filestore.FileHandleRequest{File: file}))
 }
 
 func cgroupCacheField(data []byte, name string) (uint64, error) {
