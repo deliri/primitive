@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/googleidentity"
 )
 
 const (
 	googleVisitorScope              = googleScopeFreeBusy
-	googleConfirmScope              = googleScopeOwnedEvents
+	googleConfirmScope              = googleScopeFreeBusy + " " + googleScopeOwnedEvents + " openid email profile " + googleidentity.BrowserPhoneScope
 	googleBusinessAvailabilityScope = googleScopeFreeBusy + " " + googleScopeCalendarList
 	googleBusinessScope             = googleBusinessAvailabilityScope + " " + googleScopeOwnedEvents
 )
@@ -57,7 +58,7 @@ func TestExchangeCodeNativeOutcomes(t *testing.T) {
 		{name: "google expiry boundary of one second derives from ObservedAt", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "1"), wantRequests: 1, wantExpires: "2026-11-02T10:00:01Z", wantPath: "/token"},
 		{name: "google expires_in zero is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "0"), wantErr: core.ErrTimeMatchResponse, wantRequests: 1},
 		{name: "google visitor consent granting only the calendar list is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleScopeCalendarList, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
-		{name: "google visitor confirmation grant is online with owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleConfirmScope, "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
+		{name: "google visitor confirmation grant is online with owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleConfirmScope, "Bearer", "3600"), wantRequests: 3, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
 		{name: "google visitor confirmation without owned events consent is refused", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "google visitor confirmation given a refresh token revokes it and refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "1//unexpected", googleConfirmScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchResponse, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "microsoft visitor confirmation grant has no refresh", provider: ProviderMicrosoft, tenant: MicrosoftTenantCommon, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("eyJ.visitor", "", "Calendars.ReadWrite", "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/common/oauth2/v2.0/token"},
@@ -81,6 +82,14 @@ func TestExchangeCodeNativeOutcomes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.URL.Path == "/oauth2/v3/userinfo" {
+					writeJSON(w, http.StatusOK, `{"sub":"subject","given_name":"Ada","family_name":"Lovelace","email":"ada@example.test","email_verified":true}`)
+					return
+				}
+				if r.URL.Path == "/v1/people/me" {
+					writeJSON(w, http.StatusOK, `{"resourceName":"people/subject","phoneNumbers":[{"canonicalForm":"+14165550123","metadata":{"primary":true,"source":{"type":"PROFILE"}}}]}`)
+					return
+				}
 				if r.URL.Path == "/revoke" {
 					w.WriteHeader(http.StatusOK)
 					return
@@ -213,7 +222,7 @@ func TestAuthorizationEndpointRequestsOnlyCalendarScopes(t *testing.T) {
 		{name: "microsoft personal business adds offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers, access: AccessAvailability, lifetime: LifetimeBusiness, wantHost: "login.microsoftonline.com", wantPath: "/consumers/oauth2/v2.0/authorize", wantScope: microsoftScopeReadBasic + " offline_access"},
 		{name: "microsoft work manage uses read write", provider: ProviderMicrosoft, tenant: MicrosoftTenantOrganizations, access: AccessManageEvents, lifetime: LifetimeBusiness, wantHost: "login.microsoftonline.com", wantPath: "/organizations/oauth2/v2.0/authorize", wantScope: microsoftScopeReadWrite + " offline_access"},
 		{name: "google visitor confirmation adds owned events online without consent prompt", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleConfirmScope, wantAccess: "online"},
-		{name: "microsoft visitor confirmation uses read write without offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "login.microsoftonline.com", wantPath: "/consumers/oauth2/v2.0/authorize", wantScope: microsoftScopeReadWrite},
+		{name: "microsoft visitor confirmation uses read write without offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "login.microsoftonline.com", wantPath: "/consumers/oauth2/v2.0/authorize", wantScope: microsoftScopeReadWrite + " " + microsoftScopeUserRead},
 		{name: "microsoft without tenant is refused", provider: ProviderMicrosoft, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
 		{name: "google with a tenant is refused", provider: ProviderGoogle, tenant: MicrosoftTenantCommon, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
 		{name: "apple has no oauth application", provider: ProviderApple, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
@@ -239,7 +248,7 @@ func TestAuthorizationEndpointRequestsOnlyCalendarScopes(t *testing.T) {
 				t.Fatalf("AuthorizationEndpoint() = (%s, %v), want %s%s scope %q access %q prompt %q", got, err, tc.wantHost, tc.wantPath, tc.wantScope, tc.wantAccess, tc.wantPrompt)
 			}
 			for scope := range strings.FieldsSeq(q.Get("scope")) {
-				if scope == "openid" || scope == "profile" || scope == "email" {
+				if (scope == "openid" || scope == "profile" || scope == "email") && !(tc.lifetime == LifetimeVisitor && tc.access == AccessManageEvents) {
 					t.Fatalf("scope %q requests identity, want calendar scopes only", scope)
 				}
 			}

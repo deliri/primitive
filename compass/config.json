@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 481
+      "patch": 483
     },
     "release_notes": [
-      "Gotoolchain lends one immutable root analysis and reuses full private dependency compiler results on demand within its synchronous callback; foreign and expired loans refuse."
+      "TimeMatch visitor permission requests contact, free/busy and appointment write access together; one code exchange returns the required provider contact and online-only calendar grant."
     ]
   }
 }

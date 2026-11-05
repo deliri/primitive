@@ -160,6 +160,12 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 	}
 	defer token.clear()
 	grant, err := admitExchange(token, r)
+	if err == nil && r.Lifetime == LifetimeVisitor && r.Access == AccessManageEvents {
+		grant.Contact, err = c.visitorContact(ctx, grant, r.Policy)
+		if err != nil {
+			err = errors.Join(err, grant.Close())
+		}
+	}
 	if err != nil && r.Application.Provider == ProviderGoogle {
 		// A refused grant must not stay live at the provider. Revoking the
 		// access token also revokes its refresh token (Google OAuth web-server

@@ -359,7 +359,7 @@ func validateGrantShape(access Access, lifetime Lifetime) error {
 }
 
 // AuthorizationRequest binds application-stored state and PKCE challenge to
-// one calendar-only consent request.
+// one purpose-bound provider consent request.
 type AuthorizationRequest struct {
 	State       core.OAuthState
 	Challenge   core.OAuthPKCEChallenge
@@ -429,6 +429,7 @@ func (r RevokeRequest) Validate() error {
 // for refresh results whose provider did not rotate it (Google). The caller
 // seals what it retains and closes the grant.
 type Grant struct {
+	Contact      VisitorContact
 	AccessToken  Secret
 	RefreshToken Secret
 	ExpiresAt    temporal.Instant
@@ -438,6 +439,14 @@ type Grant struct {
 }
 
 func (g Grant) Validate() error {
+	if g.Contact != (VisitorContact{}) {
+		if g.Lifetime != LifetimeVisitor || g.Access != AccessManageEvents {
+			return core.ErrTimeMatchContract
+		}
+		if err := g.Contact.Validate(); err != nil {
+			return err
+		}
+	}
 	if err := errors.Join(g.Provider.Validate(), g.AccessToken.Validate(), g.ExpiresAt.Validate(), validateGrantShape(g.Access, g.Lifetime)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}

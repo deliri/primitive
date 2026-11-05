@@ -23,7 +23,7 @@ import (
 // other destination fails, so a credential sent elsewhere is observable.
 func fixtureHost(address string) bool {
 	switch address {
-	case "accounts.google.com:443", "oauth2.googleapis.com:443", "www.googleapis.com:443",
+	case "accounts.google.com:443", "oauth2.googleapis.com:443", "www.googleapis.com:443", "people.googleapis.com:443",
 		"login.microsoftonline.com:443", "graph.microsoft.com:443",
 		"caldav.icloud.com:443", "p42-caldav.icloud.com:443":
 		return true
