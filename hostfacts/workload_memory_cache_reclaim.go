@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// ReclaimIdleWorkloadMemoryCache requests at most maximum bytes of file-cache
+// ReclaimIdleWorkloadMemoryCache requests maximum bytes of file-cache
 // reclamation from one currently empty cgroup below the actual prospective
 // scope's binding ancestor. It never changes limits, moves or signals processes,
 // writes global drop_caches, or promises that requested bytes became available.
@@ -16,6 +16,7 @@ import (
 // or writeback memory is eligible. Native membership can change concurrently;
 // emptiness is observed again immediately before the cache-only request.
 //
+// The kernel may reclaim more or less than requested.
 // The returned headroom is a fresh native observation, including after a partial
 // reclaim error when possible. EAGAIN and other native causes remain available
 // through errors.Is/As. Callers must retain other reservations and reobserve all

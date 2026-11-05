@@ -166,7 +166,7 @@ func FuzzCgroupCacheFieldCanonicalValue(f *testing.F) {
 	})
 }
 
-// One byte permits at most one native page request in the fleet's idle cache;
+// A one-byte native request may be rounded or over-reclaimed by the kernel;
 // this is not a grant or a claim that concurrently changing parent charge drops.
 // The separate private-group fixture earns the actual charge-reduction claim.
 func TestReclaimIdleWorkloadMemoryCacheNativeEntry(t *testing.T) {
