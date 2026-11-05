@@ -1,0 +1,1025 @@
+Primitive482 source proof 34a00499fb473083b0b71348e2c3456668ea9d0c5d85ca9e5b3c75689636ff65
+{
+  "at": "2026-11-05T13:31:18.150135+00:00",
+  "source": "8c1ea385b5f6e98c749e3a45ea76fc922950a5d7",
+  "owned_files": [
+    "agent_coordination.md",
+    "filestore/ingress_inventory_external_test.go",
+    "filestore/open_write_existing.go",
+    "filestore/open_write_existing_external_test.go",
+    "hostfacts/architecture_test.go",
+    "hostfacts/doc.go",
+    "hostfacts/workload_memory_cache_reclaim.go",
+    "hostfacts/workload_memory_cache_reclaim_linux.go",
+    "hostfacts/workload_memory_cache_reclaim_linux_test.go",
+    "hostfacts/workload_memory_cache_reclaim_native.go",
+    "hostfacts/workload_memory_cache_reclaim_test.go",
+    "hostfacts/workload_memory_cache_reclaim_unsupported.go"
+  ],
+  "original_pairs": [
+    {
+      "label": "affected16.audit",
+      "sha256": "d4241679002e9eb7cb4ac2791572f21d2e7fc45e8bcd9ceecab26b3429907953",
+      "run": "2026-11-05-cb0ba806be450c363e59cb95073d862f3c5eecbb6acad27aa2c946fda906f467",
+      "receipt": "794b6c74200a268db75913ab7b472fd9c73cd0fe562e84a1f07f31ab17daa831",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 81158,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 81159,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "control06.audit",
+      "sha256": "7bf88aec2005cd0767582b6a56bcd318677d711d2115ec9fa6e3bf91f6d373ca",
+      "run": "2026-11-05-69e84c67520d3c6889a2cfdc5e3b82155a94d10db40574e6d711ac1051baccf0",
+      "receipt": "96b1c9b84e53bb9f988468d9fb4a84d3726becd2ea02771368c9be1727833fca",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 63714,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 63715,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "control08.audit",
+      "sha256": "c9731706c6903fb83854dd62f9cfd786c3b36e49be39e762a9117efc92472156",
+      "run": "2026-11-05-244f485d37bc0887c250ebb286951c4925195c470d7a0c5c52a6b50b5676f6e0",
+      "receipt": "30a251400b140ac450e3b1596d4b98df4220c9a1d08b24f7ebf87902b0803a38",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 65777,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 65778,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "control12.audit",
+      "sha256": "35b7ad6be14d1622553ffe87128b6aa01f99ddd497c17ec7300b01c4f5516487",
+      "run": "2026-11-05-d79622081cd1e39579f3bce0d1ef8a78a3464ab0137745d45019c5bef139eea4",
+      "receipt": "4bd163371bbb6ee84c4070c09601ecd5e31c03ee636e7245bc13465b53f14c8e",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 74046,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 74047,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "core-lint13-go-vet.audit",
+      "sha256": "fdb7946cd0ae6bd8e0cd8a5d12db1eef11c59421ab99d32e369bd4f7ef74937f",
+      "run": "2026-11-05-a0919620232c7ad20f15378227b976099eb4a8a9d5fb50171f48e23068994f2a",
+      "receipt": "fb8e3f44b32678c36246f24bf7d66a94343d78822518323bca65781ec3d62ece",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78520,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78521,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "core-lint13-gocyclo.audit",
+      "sha256": "84966768fb279f1f298e51aa9bc29b29bb758834e31bac1f29f78255de7a8eed",
+      "run": "2026-11-05-4008ea47abc46d46dcaa5bb084ce999e8bc6fc02c2413d6f43d804d77f98cd7b",
+      "receipt": "63c09995964ac7a3be9363aa3ecbd466cfb65151c7bd2e16aa47eac6e74e4077",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78568,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78569,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "core-lint13-staticcheck.audit",
+      "sha256": "89a6787cd9604f26eb54900f234e29788d854359be6a65a51e9164370c288972",
+      "run": "2026-11-05-23f4cfa4febefcc92d501f2ed40b04d3b2f58db53165085f0b84b984213ae28c",
+      "receipt": "bb4a75f16bc4d3263d5c803352ea897a82a361d15f646fb026047fa78182b821",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78541,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78542,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "core-lint13.audit",
+      "sha256": "fae2a71e92a7d6364a6985351fa5d2d6903f6fbd5ef124d3a0149c46d210ffcd",
+      "run": "2026-11-05-b44d371717d12bf9c73dc7ab6a3f2781dddbe694b16928f749d58aa641354399",
+      "receipt": "981d595670a98f1cd18453fb5fbcbd344539792e43a68701f80367227e2cb02f",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78284,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78285,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "entry15.audit",
+      "sha256": "f83a3cc4c145162de53ec197aaf35d83f9fb75c087cf19d226de6445b703ac80",
+      "run": "2026-11-05-d197aa30ba6e013327a5497592f6b6929bdf99ac1f14ea5884859a368f2c5229",
+      "receipt": "1d7f03e22f156b9452fd51135231aadb12a965edc37db46639ef50168be7a99d",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 81151,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 81152,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "file-fuzz19.audit",
+      "sha256": "446f92392d4d8b7141ba5fd41b1a1a56af77de873c823de2a794234fcd083a9b",
+      "run": "2026-11-05-bbd9c4bdbbd5e431a681d94f81dbad1e74aa1eb3fb3cf33276442ea479b0e592",
+      "receipt": "c29c2117675d63133564f897790e9c0e208c273cf91249c0ac75c5ac73034975",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 11352,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 11353,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "fuzz07.audit",
+      "sha256": "da797f80dfe197c033fae1aea4e70faa949b0fd149240a4f2da7fa62fa596d3e",
+      "run": "2026-11-05-a156872c8b2b7668544308ba26b7f16b52233c706a45393a3f22a0d28d7a7b64",
+      "receipt": "db54581bcde1c0cd2559a1285c51f912f8a7faa6149d2235c929ec80ca62c8e7",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 65770,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 65771,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "fuzz09.audit",
+      "sha256": "cb2406c0ebe439241ba19d5415af3518f4dbc439e20e269a05cede0593774336",
+      "run": "2026-11-05-ef7a6688d1050830da84dbec0b32a1bdf5d745f96ff139c9f4dea25ef5362483",
+      "receipt": "09a5a1bd763ca5afb2f0b6c2c2b939fcaa08c5363c7d4b4f6770214e334edf9a",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 67229,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 67230,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "kernel03.audit",
+      "sha256": "06b2924bdfa4a766765b5bc692085b2eaad1e360ad1f4a604377906b871daf20",
+      "run": "2026-11-05-f478e26f3e0c730b3bfa770ed00c73abe62ddfd2f5a7addebd7297f1a2673cc5",
+      "receipt": "47327db7d9d8cd6c376c5561c1327392e0254ec01110b8d2cea07486ee002399",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 60835,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 60836,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "kernel10.audit",
+      "sha256": "2432432147a3b8e2199f48b746d1ab279b7ad9240c992a8c5b6eb377e9bfee80",
+      "run": "2026-11-05-4e8f70025d8d5a6be813f3ebb4e9b162c90f563170c8ff89655ff0dedb15622d",
+      "receipt": "bf90b86d8cddc1db380755a6547617d81ed2e203dbf2cee9c6047e86166e07f9",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 67236,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 67237,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "kernel11.audit",
+      "sha256": "99b11123187d2dd6f0085f1d3a89c6ffe95e64f2759a2dc52be59b96d296b03e",
+      "run": "2026-11-05-c706176d1225b07b81f1705772bde943e315099aaf9d641387e33185bae22e72",
+      "receipt": "9d0d65ee702c2957b3a38fa1f50859de70a853460603f094b603961ddb484972",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 71663,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 71664,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "kernel20.audit",
+      "sha256": "2ece4059fb44e9e29cf7827a61f2122c2d614f86b871c35a261561925a0c917f",
+      "run": "2026-11-05-97cc68d87dcfdf4e49677dd5bd858ed2369234622a1737c59f885e7315c0443d",
+      "receipt": "d73d075d3256514fb885083afdcc2fe1ed275def2f5e93df6422e1f2854357ac",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 11359,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 11360,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "native02.audit",
+      "sha256": "048a34e34475537fa7f0c33d1d244ff30d476ebcb3f60d30dbea0d6bf40b9b77",
+      "run": "2026-11-05-5cb03263f149296e21ae075574e3199d5dee3a632b2aaa8d5b31de467086249d",
+      "receipt": "1b09c86f69244abb2cf1e7f6b5785a5d8a057383f5820e524811cc545992c62e",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 56786,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 56787,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "policy04.audit",
+      "sha256": "e502c7490d9ae9a67d3d86802d90aa61c303ef55f8a59cf58c6ba94ec9638663",
+      "run": "2026-11-05-afbacbd918d86791d43f621cc3f0362fd7f451ea62a9f33a78c02ae05fd8c583",
+      "receipt": "a92dfac6348fe360ea6973ecf9df5ce8875e8ac0adc4db46aebfd5c1854540e5",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 60862,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 60863,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "policy05.audit",
+      "sha256": "61c80c94a38bf3f157a85c8d3ed0a158c14dc2ba2aeabd0ee42da7e7d3e091c1",
+      "run": "2026-11-05-7bb34e98c2148454c94eda311f3728ea7cce79f47ac10501ac03e0671963c8b3",
+      "receipt": "cec37a2abe3995cc438e39a4fd5af22e15c31d504d39958ff746ca956e9709f1",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 62733,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 62734,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "producer18-go-test-filestore.audit",
+      "sha256": "8135f5822339b7ad373788bf509ba3828c77304747ac529c6712846b09ad2f1d",
+      "run": "2026-11-05-cf369db3e9bc203abcd81894a2d9feab6e9f34f0692ca51c2f7172f1ef913f37",
+      "receipt": "b0d00df859bd04478c0e87ac9f552a1e00dca6947ef6928f0a2dad800663a06b",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 14723,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 14725,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "producer18-go-test-hostfacts.audit",
+      "sha256": "0b03fbd466975aa8b7d71c37d22740952973f5192160ff70d6ce6b15288804ee",
+      "run": "2026-11-05-74984e9c147b043c073ed64b4eb845dada5c1edd47efca3ecdb747e2efe3cd12",
+      "receipt": "5ecf572e9f743b98202842e0d0165452e73976f6ed9c696478c56e5becfcd7ea",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 14715,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 14716,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "producer18.audit",
+      "sha256": "53338f7edbaa76b2f9ae1a11b9ac768f6f7a80c177f220a0c3c06b7851529f11",
+      "run": "2026-11-05-b4489a44901b29e1c758b7be7ef5bbff58a8d55bb28c5ed58039fa54b27a0b13",
+      "receipt": "3f315efc5194ebdc9d5c99c5cfe67e14c84a5d0cc12f253e47e28ac3b9165bc3",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 11345,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 11346,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "proper01.audit",
+      "sha256": "93442180f6f6ee34a3b5735518f0371154a2ede375320eba26d2c55c0591e495",
+      "run": "2026-11-05-4820a19070b90c2e4e9609b921285c242644a8b6c8c2bd005174f444b98006ff",
+      "receipt": "29bf89c01cbfa57d321c5fd4f2c4823d07827ea2aaa74e827de188e9700ea716",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 53937,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 53938,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint14-go-vet.audit",
+      "sha256": "6c84f76d253522fea86db05c973a7635fc397cb1ab51564095f8cc29c131c767",
+      "run": "2026-11-05-a62064dc77a5bbc4913fdbe4c31542386b5c1aa2a797216ca9c44287920271b2",
+      "receipt": "9062f8068b5a34a5c7089977ead1550a6d60d03d1d116f1237cc73f2b83a00b4",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78478,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78479,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint14-gocyclo.audit",
+      "sha256": "4777437593e738572c5c83696d55f898590bc54bfb2997ffbcf0dc047ab65ff1",
+      "run": "2026-11-05-8de8502155f5083fdbc9650ecea613fab9afffa47386b30991dd6a2bea1d2784",
+      "receipt": "58b24efa17f1c16698f3918ec35b95a57fa27dc2eff58934f5a4db2f57b0cc1b",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78494,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78495,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint14-staticcheck.audit",
+      "sha256": "39f19e364d1ce10b7425388fcc69ab19f9821e61adb56b4d477081be2eba78f1",
+      "run": "2026-11-05-40ca0ee68c7cd5229010360acd1e8c5aceb4a4dd56e3c9c7ecae7d42e82dd1c2",
+      "receipt": "c2d673025a5b31d17cbc5f3df589e2a4271e26afea37bf11e9e24b9aa8c185cd",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78485,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78486,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint14.audit",
+      "sha256": "3890ea2e96050b6068962bcf15f0ac2e60ca43c322e6713054e5616d1dc6f341",
+      "run": "2026-11-05-d3b305329aa10aac990142db944e557efc7ada668d7a90c8fb80f0c9ffe654b1",
+      "receipt": "67e1fc6f9e97d561ef6264053b8ac8314da4327576b648c90bfcbb509be97ab2",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 78277,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 78278,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17-errcheck.audit",
+      "sha256": "24840b8b7d7f6439f58844aebba5a8b9e6cd8c54cac59df6b9e0d8063cfce323",
+      "run": "2026-11-05-30acdfc9b88edaf5c0e052245bb8de88ee47e0065ea2c9456966e9aec815f6db",
+      "receipt": "bf0d65b8e03430a82c2740ee0be80d83677bd5d3884ac8122da590676ec880c1",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85807,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85808,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17-go-vet.audit",
+      "sha256": "d637adb86f7ef98ebe36cf70d90d0897bffbda4403655c4fa1ee317309268333",
+      "run": "2026-11-05-3caec48e0c6e2ee3614bb0be71ef660a65a0129908cd758651ef573da36a2aaf",
+      "receipt": "9c4a5a9b2eaa23fa2573bdeab9e003d91aef39d8617d6c98bfd720018f807b23",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85797,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85798,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17-gocyclo.audit",
+      "sha256": "2044c001ab80a14b5160ba9d469a6bdcdc38d901d7ff5851d82bec193793e2f0",
+      "run": "2026-11-05-872121aa342c0e9591076183e51aa09cfc7d03a2347518d5facbf0dff8f359cd",
+      "receipt": "f1e071357a8a63fffb075a4c97fc1ec16ef75deda01aaa7a08df9d4e74a6813e",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85730,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85731,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17-staticcheck.audit",
+      "sha256": "5ebebc408a7e0cdce5bb247ee353f50e47101d759c6670bb52860c95308cc10a",
+      "run": "2026-11-05-64711439adc49f727facc67f260788bc0ff7bc317cee4997f4acd8f148b7bea8",
+      "receipt": "95362cece034c8d70d46855a100aa2c307444cdb390be3d2d2462b32175a23a5",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85686,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85687,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17-witness-lint.audit",
+      "sha256": "a12f669f3022978195357ef2db8fa23135b6546c6592d963075ca2c9f158e5fb",
+      "run": "2026-11-05-19c15d378d84796646ce87f21d013114954a26850827f4a912561c6f3a3abc4d",
+      "receipt": "c6fabb8e34c1d4f827c6b2a984f3a938fa4d3fc3df86547ef246acb4081e4968",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85737,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85738,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint17.audit",
+      "sha256": "284abd218f458c9db25f788b4fce92400dde1caddbacb37a2afb8678cfe63172",
+      "run": "2026-11-05-180fd1f378d98204d3480b63941b688a45fd71723333287a9c149282b8b69092",
+      "receipt": "21462de9d204d142fc46df7a5a8444b5af934967ec89bf98de9f963784af1a65",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 85678,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 85679,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-errcheck-filestore.audit",
+      "sha256": "cbc53e7a273fa53f22052f499b17078b96421dc6a0fae13874bcd30547c26193",
+      "run": "2026-11-05-6f479cde2e9dfec5ee764ef55d454dec81ac3db40079d733927507ca3c3694e3",
+      "receipt": "da7512e67617fcb74c09ceeac094170e25f899db05e80f6d667be49cbf6a3eda",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16383,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16384,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-errcheck-hostfacts.audit",
+      "sha256": "35774abdf6c80d4025b46be4b9ece4d5310a62527cfd322bd7971d09006854dd",
+      "run": "2026-11-05-05ceaca1a0d7da6f7ba0b1349a845cb21e5740d9d454db909908dff9823a3fff",
+      "receipt": "cb768624c94669d52b58d0070c851b38a480b660a4687d2aeb5a5bbc5bbd94db",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16375,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16376,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-go-vet-filestore.audit",
+      "sha256": "c59724ae1f26699019998a4ac1929a2a0759c3fa8a2c5ddace12ce7133037bee",
+      "run": "2026-11-05-15cf25e0919d55529adeb5bb30b4aac4cbc2e9e554a2662a38306cb48cfb657c",
+      "receipt": "0a6cd1f3fa4245325e98cafb99e9cad1637e962badf9bcde25e0b2238bf93ce2",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16347,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16348,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-go-vet-hostfacts.audit",
+      "sha256": "9cc9350f3ee744054bbd0c8c039fa9b14b82fd92b0560dd96a07c9867cebb4e2",
+      "run": "2026-11-05-06d2891a238824a7b4f30d34b9a3e45029745906b7463c90d43c0a5804cdf4a5",
+      "receipt": "d8e90ab641495b0dbbf7a514216687889d57438cc62e0927c28eb3f3a515bd0f",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16338,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16339,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-gocyclo.audit",
+      "sha256": "29b8760681b4cd00bbedb2e75df28cdb0fc910186370edf465ecdf6dfb9a715c",
+      "run": "2026-11-05-6b86b93bb7e4c0306761c034dd08e72a8d4bd6b85200cfe6d45e7c757084204c",
+      "receipt": "2bac39797d6b5d0334d2ccd79b6cfec09d8c364e1f2666d82bf3fe5a78ad9602",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16368,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16369,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-staticcheck.audit",
+      "sha256": "9e9e5e5e89d5892e92d59b67f6c3783a3d11d1371463f9120429c8dc8fd6033a",
+      "run": "2026-11-05-152029b989c6af4338cade63ca2ef3a0168a86e044cf21b221ca42adb474b545",
+      "receipt": "f5c438322a2f51d602170cd4a0114b8a3769108fb4a2cd8c4876b1ea8701913e",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16330,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16331,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22-witness-lint.audit",
+      "sha256": "7b9babc88fd6d82008b332916eadf104bda47a9137e2f64feb6565c26e280043",
+      "run": "2026-11-05-5eb01c406a8f870c0cc089d0a25b456b97f5fb38d90ade649ff99f8ae93f51e6",
+      "receipt": "3cf6b7e5169edc6795426654c65f64c75b5d8a64fe95a0ebd5fab00d9d49da1d",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16322,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16323,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "sdk-lint22.audit",
+      "sha256": "5d99ff2789b783f395b30cb9a7b95d9c4b09d7ab234c16fa85c901f896ff4836",
+      "run": "2026-11-05-d9d48f2e400336bc96bac9465052d1c4f5cd4eed6a152aeb3cb45a1a36ba74ef",
+      "receipt": "178b8f20de8fea257ac94c1c818afbbd717cf50f94c590d0a1188c530a5cb67b",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 16040,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 16041,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    },
+    {
+      "label": "truncate21.audit",
+      "sha256": "4bc46de3683e78e9fb6010d451a7d234473fb2e031fad1ee1d92e80fc6cfff36",
+      "run": "2026-11-05-8df3c9d70c57d794ddea924b02bb75cdd7360a6fa84b924accca35a305fe9f92",
+      "receipt": "d4f9cf7b1df3e1f8a551bb11818258c5396b05c568ce503ff6a531acdf782f1d",
+      "joins": [
+        {
+          "selector": "receipt",
+          "pid": 14731,
+          "exit": 0,
+          "joined": true
+        },
+        {
+          "selector": "execution",
+          "pid": 14732,
+          "exit": 0,
+          "joined": true
+        }
+      ]
+    }
+  ],
+  "final_gates": [
+    {
+      "part": "sdk-lint22-errcheck-filestore.execution.json",
+      "total_findings": 42,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-errcheck-hostfacts.execution.json",
+      "total_findings": 0,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-go-vet-filestore.execution.json",
+      "total_findings": 0,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-go-vet-hostfacts.execution.json",
+      "total_findings": 0,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-gocyclo.execution.json",
+      "total_findings": 31,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-staticcheck.execution.json",
+      "total_findings": 18,
+      "owned_findings": []
+    },
+    {
+      "part": "sdk-lint22-witness-lint.execution.json",
+      "total_findings": 189,
+      "owned_findings": []
+    }
+  ],
+  "qualifications": [
+    "Native parser/file/owned-cgroup proof, exact populated and native-write controls and O_TRUNC control; no consumer/Core/full-profile retry or fit release.",
+    "producer18 filestore 173 includes whole ingress metadata roster, not 173 new native behaviors. Linux kernel20 exact native1PASS Furnace; no signal sent.",
+    "File fuzz642 reported/1interesting/6baseline; cgroup field fuzz2122/12/8. Neither unique/cumulative claim.",
+    "Earlier own compile failures, skipped Linux selection on Mac, stale file-stat oracle and corrected failed-only runs retained.",
+    "Full existing SDK lint findings remain open in unchanged source; new source files zero final owned findings."
+  ],
+  "release_source": "0fab261773a9d93749bbb99fae08652776db0ccd",
+  "config_original": {
+    "run": "2026-11-05-03f5333d3f186afb5f42f74a932f3b73e23469ba1a6bdfcd3c0d1d5f2ccacbac",
+    "receipt_sha256": "eda7d531e7770214060a19903e1fdf4673403c2cddc581bb0b49c14c68c38ad0",
+    "reader_joins": [
+      {
+        "selector": "receipt",
+        "pid": 20595,
+        "exit": 0,
+        "joined": true
+      },
+      {
+        "selector": "execution",
+        "pid": 20596,
+        "exit": 0,
+        "joined": true
+      }
+    ],
+    "receipt_digest_equal": true,
+    "binding": "client terminal receipt_digest",
+    "details_execution_equal": true,
+    "tests": {
+      "stream_decoded": true,
+      "started": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "request": {
+      "allocation": {
+        "cpu": 30,
+        "memory_bytes": 31804034457
+      },
+      "gate_only": false,
+      "json_v2": true,
+      "scope": {
+        "kind": "package",
+        "targets": [
+          "compass"
+        ]
+      },
+      "source": {
+        "kind": "snapshot",
+        "origin": "git@github.com:deliri/primitive.git",
+        "commit": "0fab261773a9d93749bbb99fae08652776db0ccd"
+      },
+      "platform": "linux-amd64",
+      "budget": {
+        "cpu": 1,
+        "memory_bytes": 9849155584,
+        "scratch_bytes": 1073741824,
+        "timeout": "900000000000"
+      },
+      "go": [
+        {
+          "flag": "-run",
+          "value": "^TestCurrentPreservesAuthoredConfiguration$"
+        }
+      ],
+      "caller": "an"
+    },
+    "result": {
+      "source_failed": false,
+      "timing": {
+        "coordinator_before_launch": {
+          "observed": true,
+          "elapsed": "34547968291"
+        },
+        "preparation": {
+          "observed": true,
+          "elapsed": "2820446976"
+        },
+        "admission": {
+          "observed": true,
+          "elapsed": "865246"
+        },
+        "build_and_run": {
+          "observed": true,
+          "elapsed": "2466939789"
+        },
+        "before_package_starts": {
+          "observed": true,
+          "elapsed": "1373968575"
+        }
+      },
+      "passed_in_isolation": false,
+      "trimpath_dropped": false,
+      "evidence": {
+        "run": "2026-11-05-03f5333d3f186afb5f42f74a932f3b73e23469ba1a6bdfcd3c0d1d5f2ccacbac",
+        "retention": "verified",
+        "receipt_digest": "eda7d531e7770214060a19903e1fdf4673403c2cddc581bb0b49c14c68c38ad0"
+      },
+      "machine": "furnace",
+      "source": {
+        "kind": "snapshot",
+        "commit": "0fab261773a9d93749bbb99fae08652776db0ccd",
+        "digest": "2459e54cb96f568be28b81a9c4b4cbb01e5875399f25720dbb36a0422b5d19f2",
+        "files": 10206,
+        "bytes": 111329626
+      },
+      "exit_code": 0,
+      "memory": {
+        "sampled_peak_bytes": 129204224,
+        "samples": 3,
+        "interval": "1000000000"
+      },
+      "outcome": "outcome_passed",
+      "packages": {
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "targets": 3,
+        "targets_skipped": 0,
+        "build_failed": false
+      }
+    },
+    "at": "2026-11-05T13:33:04.073517+00:00"
+  },
+  "precise_new_behavior": "hostfacts finite17 native fixtures; real Furnace owned-cgroup1, native entry1, writer native6; filestore whole ingress metadata173 separately qualified"
+}
