@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 480
+      "patch": 481
     },
     "release_notes": [
-      "Core converts uint64 to native int with an explicit platform-width overflow refusal, allowing adapters to preserve exact accepted byte counts."
+      "Gotoolchain lends one immutable root analysis and reuses full private dependency compiler results on demand within its synchronous callback; foreign and expired loans refuse."
     ]
   }
 }
