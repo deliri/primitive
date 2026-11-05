@@ -13,7 +13,7 @@ import (
 
 const (
 	googleVisitorScope              = googleScopeFreeBusy
-	googleConfirmScope              = googleScopeFreeBusy + " " + googleScopeOwnedEvents + " openid email profile " + googleidentity.BrowserPhoneScope
+	googleConfirmScope              = googleScopeFreeBusy + " " + googleScopeOwnedEvents + " openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile " + googleidentity.BrowserPhoneScope
 	googleBusinessAvailabilityScope = googleScopeFreeBusy + " " + googleScopeCalendarList
 	googleBusinessScope             = googleBusinessAvailabilityScope + " " + googleScopeOwnedEvents
 )
@@ -59,6 +59,8 @@ func TestExchangeCodeNativeOutcomes(t *testing.T) {
 		{name: "google expires_in zero is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "0"), wantErr: core.ErrTimeMatchResponse, wantRequests: 1},
 		{name: "google visitor consent granting only the calendar list is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleScopeCalendarList, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "google visitor confirmation grant is online with owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleConfirmScope, "Bearer", "3600"), wantRequests: 3, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
+		{name: "google visitor confirmation missing canonical email scope refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", strings.Replace(googleConfirmScope, " https://www.googleapis.com/auth/userinfo.email", "", 1), "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
+		{name: "google visitor confirmation missing canonical profile scope refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", strings.Replace(googleConfirmScope, " https://www.googleapis.com/auth/userinfo.profile", "", 1), "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "google visitor confirmation without owned events consent is refused", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "google visitor confirmation given a refresh token revokes it and refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "1//unexpected", googleConfirmScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchResponse, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "microsoft visitor confirmation grant has no refresh", provider: ProviderMicrosoft, tenant: MicrosoftTenantCommon, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("eyJ.visitor", "", "Calendars.ReadWrite", "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/common/oauth2/v2.0/token"},
