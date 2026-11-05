@@ -670,3 +670,5 @@ Google official ReadSourceType documentation states READ_SOURCE_TYPE_PROFILE ret
 
 ##488 / preserve consent when provider phone absent · Codex · 2026-11-05
 Owner explicitly asks only for missing phone after connection. Keep provider subject/name/email and sealed calendar grant; absent/partial canonical number is zero optional contact, never fabricated. Invalid/foreign/denied/unavailable response still refuses and revokes. Distro asks inline before existing Book; Kernel validates final SMS recipient before effects. Root owns visitor_contact.go and affected existing native cases.
+
+488 proof: Anvil Furnace native2 changed leaves RED2f08ad83→GREEN72413929 (two leaves plus parent, zero skips), preserves token/contact. Source63690116, snapshot33fc3346. Final scoped vet7e4603d0/Mac and Staticcheckf7b6dc2b/Furnace native0/zero findings, parent3e4b1500. Four original receipt/execution pairs read through supported Anvil API, details exactly equal and positive reader callers joined0. No real provider redemption or message. Distro Book still owns final required SMS number. Logs/requests/receipts retained /Users/d/Library/Logs/offgrid-dev/phone-fallback/.
