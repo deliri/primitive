@@ -1,74 +1,10 @@
-## Dependency analysis publication481 RESERVED — 2026-11-05T00:55:24.197362+00:00
+## Published · Primitive v2026.1.481 · Synchronous dependency compiler loan · 2026-11-05T00:58:17.731764+00:00
 
-Witness Root accepted the explicit sole-publication transfer in this existing checkout. Fresh remote maincc3bc177 and published480 peel eb048a56 verified; remote481 absent, no concurrent publisher. Reserve normal next481 for EXACT three proved new scope files ce645733/7c1c9276/bb456566. Source proof c701 fully retained and reused; no new native/evidence calls, no Witness module change yet. Immutable source/build and borrowed-object loan contract explicit; no watcher or compiler-heap bound. Existing4 errcheck/22 gosec/116 cyclo findings unchanged, SDK Witness not run. Native18/control5FAIL5neutral/work6→2 and one order/cache-qualified fixture benchmark only; no real Witness speed/Corefit/full-bar claim. No foreign source/Core/module/build/cache edits, no held scope released.
+Witness Root completed the explicitly transferred existing publication lane. Atomic main/tag push bound source fa9778ddb42a4d3b500bf86235a3dba0da8a2599 and release aa32e7cfcfcc94f7bc58b33adc1f511881e4697f; annotated tag object f23963bc91cbf5fc8ab1da71ba130b4baca25d88. Fresh remote refs and official Go module Origin match that exact tag/commit. All4597 ZIP members independently h1-bound and byte-compared to release Git AND extracted module; exact three proved files ce645733/7c1c9276/bb456566 equal. Module Sum h1:M48ERatYZXN/D0grqvxs2vc979VQuIfTEX5aUkOvUfY=; GoModSum h1:Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=. Verification /Users/d/.codex/ops/witness-source-selfrun-20261102/codex-primitive-dependency-analysis-scope/publication481/VERIFIED.json SHA 84ef99a1af19a7e377a08e17a4568cd386d68873dafe1ff1640dc33c85602417. No new native passing replay or duplicate evidence retrieval. Metadata Go download68741 and Git object reader alljoined0.
 
-## PUBLICATION OWNERSHIP TRANSFER · Root → Witness Root · 2026-11-04
+Source PROOF c701 binds18 original pairs/36 positive original readers+2 profile readers/10 joined authors: native15+measurement3PASS, meaningful control5FAIL/5neutral, actual direct Go commands6 versus2. One same-process fixture benchmark is order/cache-qualified, not actual Witness/Work gain. Final vet/static0; exact full prior finding multisets errcheck4/gosec22/gocyclo116 unchanged/unwaived; SDK Witness not run. Production-only synchronous loan requires immutable source/build and borrowed compiler objects; foreign/expired/copy handles refuse, reopen is fresh, no watcher/stale-mutation detection or compiler heap bound.
 
-Effective immediately, Witness Root is the SOLE integrator/publisher for the already-proved dependency-analysis loan in this EXISTING checkout `/private/tmp/codex-primitive-timematch457`. Owner explicitly requested completion or this transfer. Root will not publish, reserve a version, mutate these three files, or start a competing SDK capture. No new delegate/review/thread is created.
-
-Exact active HEAD90a4c4acadf33fbceafab2b8a4bbe294a51b7058. Fresh remote maincc3bc177df397cc33a09e28948f31bbb42d9abee; latest published480 at eb048a568732842b7cec33e01579d0f0096755d4 (annotated objecta5b5a1525792345ef5c0c5297c84b1a7bfb2a96f). NO version is reserved. Remote481 absent at transfer; new publisher must freshly check/reserve the next normal version. Tree has ONLY the three intent-visible new scope Go files plus this existing coordination file. Root independently read all659 source/test lines and matched all three exact delivered hashes and PROOF c701f72f; retained native/control/analysis evidence is reused, not replayed or upgraded into full certification.
-
-Scope: integrate/commit the exact THREE NEW `gotoolchain/dependency_analysis_scope*.go` files from c701; preserve/commit existing relevant coordination; perform necessary NORMAL release metadata/version/tag/main push and official module download/hash binding; return immutable module/version/commit/module sum/go.mod sum plus three-file equality. No existing implementation/Core/hostfacts/other leases or Offgrid/Kernel changes. No default checkout/new worktree. No held Core/Work/fullprofile release. Explicit immutable-source synchronous loan contract and baseline/benchmark qualifications remain mandatory. No new passing-test replay is requested. All author/reader/control windows were handed back closed; no Root SDK native job/capture/mutant is active. Root remains on the actual Offgrid credential repair.
-
-## Dependency analysis loan: source and proof delivered to publisher — 2026-11-05T00:09:11.850325+00:00
-
-Witness completed the existing three-file lease. PROOF c701f72f835e3532953810fc66e3e3296a3533167e4d1ffff7536f7ea86ac90e at /Users/d/.codex/ops/witness-source-selfrun-20261102/codex-primitive-dependency-analysis-scope/PROOF.json binds18 original pairs,36 positive original reader joins +2 raw-profile readers,10 joined authors. Native15 + real-command3 passed; four omissions5FAIL/5neutral; same native private facts/physical sites with6 versus2 direct Go calls. One warm/order-qualified benchmark pair and exact CPU/heap bytes retained. Vet/static0; published-identical cc3 baseline and candidate FULL finding multisets match errcheck4/gosec22/gocyclo116, zero in new files; those old findings remain open. Initial90a4 no-native unavailable is preserved; precise cause unproved. SDK Witness-lint not run.
-
-Only new scope ce645733, external test7c1c9276 and measurementbb456566 are intent-visible/uncommitted; all old source/config/module files unchanged. All controls/captures/native/readers joined, source proper, no private/heavy window. Existing publisher owns integration, version, release and official module readback; no version is reserved by Witness. No adoption, Core/Work/fullprofile release or certification inferred.
-
-## Dependency loan controls closed; allocation benchmark starts — 2026-11-04T23:38:14.796343+00:00
-
-All four single-fact counterexamples matched their predictions: five failed nodes and five neutral passes, native build success, proper source restored at each immutable capture, all authors and eight evidence readers joined. The new real-command test passed three nodes and proved6 direct Go invocations for separate analysis versus2 for the loan, with the same two private facts and physical sites. One two-arm benchmark now measures full root + two demands at3s per arm, with exact source bb456566, no timed diagnostics or hidden setup. No current Witness/Work speed, cold-cache, process-tree heap, Core-fit or certification claim. No other SDK captures/mutations until this benchmark is immutable.
-
-## control-no-expiration WINDOW CLOSED — 2026-11-04T23:37:20.528783+00:00
-
-Properexactsource restored, author85502joined1. No mutantremains; originalreadback/semanticclassification next, no passingreplay.
-
-## control-no-expiration WINDOW OPEN — 2026-11-04T23:37:04.314783+00:00
-
-One fact: Only defer owner.close omitted; shared owner remains live after callback, valid in-loan queries unchanged. Predicted 1 failed and 1 neutral passing nodes. Hold other SDK captures until immutable source capture; restore at that capture or natural caller join. No held Core/Work/profile scope.
-
-## control-no-owning-context WINDOW CLOSED — 2026-11-04T23:37:03.862669+00:00
-
-Properexactsource restored, author84598joined1. No mutantremains; originalreadback/semanticclassification next, no passingreplay.
-
-## control-no-owning-context WINDOW OPEN — 2026-11-04T23:36:04.518849+00:00
-
-One fact: Only owning context checks omitted from dependency demands/reuse; caller context and final whole-scope context checks retained. Predicted 2 failed and 2 neutral passing nodes. Hold other SDK captures until immutable source capture; restore at that capture or natural caller join. No held Core/Work/profile scope.
-
-## control-no-unit-ownership WINDOW CLOSED — 2026-11-04T23:36:04.101454+00:00
-
-Properexactsource restored, author84386joined1. No mutantremains; originalreadback/semanticclassification next, no passingreplay.
-
-## control-no-unit-ownership WINDOW OPEN — 2026-11-04T23:35:45.028951+00:00
-
-One fact: Only private owner sourceunit pointer membership omitted. Predicted 1 failed and 1 neutral passing nodes. Hold other SDK captures until immutable source capture; restore at that capture or natural caller join. No held Core/Work/profile scope.
-
-## control-no-result-reuse WINDOW CLOSED — 2026-11-04T23:35:44.238681+00:00
-
-Properexactsource restored, author83483joined1. No mutantremains; originalreadback/semanticclassification next, no passingreplay.
-
-## control-no-result-reuse WINDOW OPEN — 2026-11-04T23:34:44.376551+00:00
-
-One fact: Only full-result lookup/reuse omitted; every demand recompiles from same metadata, no policy/statement/query authority weakened. Predicted 1 failed and 1 neutral passing nodes. Hold other SDK captures until immutable source capture; restore at that capture or natural caller join. No held Core/Work/profile scope.
-
-## Native compiler-command measurement starts — 2026-11-04T23:31:27.947238+00:00
-
-First native scope proof passed all15 selected nodes, including new ownership/expiry/cancellation/private-constant contracts and existing data-flow inventory. Author68728 and both original readers joined; source ce645733 and test7c1c9276 remain unchanged. Root adds only the reviewed NEW measurement test bb456566 under the existing dependency_analysis_scope* lease. It executes the real bound Go command through the existing test-owned recording-wrapper pattern, compares full root plus two physical imports/private facts, and predicts6 versus2 direct Go invocations. Actual results are pending; these are not all compiler children or Core/Work fit. Three new native nodes only; no replay of the15 passing nodes. SDK mutations/captures wait for this immutable capture. No version, module, old source or held-profile change.
-
-## FIRST NATIVE START · Witness dependency scope · 2026-11-04T23:20:55.095046+00:00
-
-RootreadactualnewAPI/source/tests/immutable-loanownerdisposition. OnlyNEWscopece6457/test7c1c92 intent-to-add, Main90a4/SDK480metadata. SIXgenuineowningroots+existingnewstructdataflowinventory, predicted15nodes/actualidentitypending. No benchmark/measurementyet; boundedrequest1GiBscratch900s/noCPU-RAM-platformpins. AllSDKsource/captures/mutantsHOLD untilimmutablecapture; no oldfile/inventory/module/release edits. Publisherownsrelease, no heldCore/Work/fullprofile/privateheavy scope.
-
-## START · Witness dependency analysis scope source-only draft · 2026-11-04
-
-Witness existing analyzer owner implements ONLY NEW gotoolchain/dependency_analysis_scope*.go under Root canonical lease. API/test draft only, no An/native/capture/control/version/module/Core/old-source edit. Own-root synchronous production analysis, demand exactownedunit/directimports, Primitive-local ephemeral fullcompilerreuse; source/buildinputs immutable callercontract, NOT automatic stale detection. Existing publisher owns publication. MINIMAL-NATIVE-PLAN93f8870b and requesta9c7600e retained in Witness ops. Any earned inventory oldfile hunk reported beforeediting.
-
-## ACTIVE LEASE ACK · Witness dependency analysis reuse · Root · 2026-11-04
-
-Owner design disposition: explicit immutable-source synchronous loan is accepted, matching the owning native snapshot contract. Scope opens its own root AnalysisRequest, lends only that root and exact owned-unit/direct-import demands, and expires on return; foreign/expired demands refuse. Source/build inputs must remain immutable for the entire loan; mutation during the loan is a caller contract violation, NOT an automatically detected/stale-safe case. Reopening after changed source/context performs fresh complete analysis. Do not claim mutation detection or add watcher/fingerprint machinery; API docs/tests must state the qualification. Preserve full private compiler authority, first-demand evaluation, physical occurrence order and context/custom cause. No old files/inventory edits approved by this disposition; exact API/test plan remains in Witness’s current lane before native work.
-
-Exact request a9c7600eff4e22ddafe6917e07f026c96e7201dd16561c1a89999913795c0776 read in full. Active SDK main cc3bc177 was clean; no current gotoolchain owner/lease or source capture hold is recorded (older gotoolchain entries are historical published work). Root owns publication, remains on Off Grid auth, and starts no implementation/reviewer/delegate/thread. Witness may own ONLY NEW gotoolchain/dependency_analysis_scope*.go implementation/focused proof files in this existing checkout; no old implementation/Core/hostfacts/module/config/release edits. Existing package/type/parser inventory rows, if earned, must be named in coordination before editing. No version reserved. Smallest seam is one synchronous analysis-owned lifetime, first-demand full-source dependency analysis reuse; no global/cross-run cache, eager batch, export-only substitute or Witness cache. Preserve every invariant in the exact request, physical occurrence/order, full compiler authority, refusal and context cause; expired/foreign/stale scope must refuse. API signature remains uncommitted until implementation shape is source-justified; report any required old-file edit before touching it. No new Root SDK capture is planned. Witness owns focused native/meaningful controls and measured work/allocation proof; return exact source/proof for sole coordinated publication. No held Work/Core/fullprofile release.
+All three-file source leases and sole publication reservation are CLOSED; current SDK source clean after this status commit. Original exact completed coordination is committed in fa9778d before removing its entries here, and retained in publication481/CANONICAL-PREPUBLISH.md. Witness owns official pin/adoption/focused behavioral proof and real Exec profile next; no current Witness runtime/Corefit/fullquiz/certification or held Core/Work/profile release. Root Off Grid/Kernel/hostfacts/source owners remain unchanged.
 
 ## Published · Primitive v2026.1.480 · Checked native-int projection · 2026-11-04
 
