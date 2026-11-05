@@ -18,6 +18,11 @@
 // process environment change. Callers own coordination, binding lifetime, and
 // whether an environment change is permitted; no environment snapshot or
 // restoration model is retained.
+// ReclaimIdleWorkloadMemoryCache performs an explicit bounded request against
+// an observed empty native cgroup cache beneath the actual workload parent.
+// Kernel over/under reclamation is not an available-memory promise; callers
+// retain all reservations and require fresh admission observations. Limits,
+// processes and global cache controls are not changed.
 // ObserveTimeZone admits an explicit bounded IANA name and uses Go's timezone
 // database loader. Calendar interpretation remains caller policy; no ambient
 // Local fallback, product cache or alternate timezone database is introduced.
