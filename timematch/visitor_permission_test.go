@@ -25,9 +25,13 @@ func TestVisitorBookingPermissionRequestsProfileAndCalendarTogether(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			state, e1 := core.ParseOAuthState("visitor-booking-state")
-			challenge, e2 := core.ParseOAuthPKCEChallenge(strings.Repeat("c", 43))
+			verifier, e2 := core.ParseOAuthPKCEVerifier(strings.Repeat("v", 43))
 			if e1 != nil || e2 != nil {
 				t.Fatalf("proof fixture=%v/%v,want nil", e1, e2)
+			}
+			challenge, err := verifier.Challenge()
+			if err != nil {
+				t.Fatal(err)
 			}
 			target, err := AuthorizationEndpoint(AuthorizationRequest{Application: application(t, tc.provider, tc.tenant), State: state, Challenge: challenge, Access: AccessManageEvents, Lifetime: LifetimeVisitor})
 			if err != nil {
