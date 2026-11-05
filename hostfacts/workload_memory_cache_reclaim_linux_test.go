@@ -89,6 +89,14 @@ func TestIdleCgroupCacheReclaimNativeOwnedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	beforeCharge, err := readCacheControl(t.Context(), root, "memory.current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeCurrent, err := parseWorkloadMemoryCharge(beforeCharge)
+	if err != nil {
+		t.Fatal(err)
+	}
 	beforeEvents, err := readCacheControl(t.Context(), root, "memory.events")
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +113,14 @@ func TestIdleCgroupCacheReclaimNativeOwnedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	afterCharge, err := readCacheControl(t.Context(), root, "memory.current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterCurrent, err := parseWorkloadMemoryCharge(afterCharge)
+	if err != nil {
+		t.Fatal(err)
+	}
 	afterEvents, err := readCacheControl(t.Context(), root, "memory.events")
 	if err != nil {
 		t.Fatal(err)
@@ -117,8 +133,8 @@ func TestIdleCgroupCacheReclaimNativeOwnedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if afterFile >= beforeFile || beforeFile-afterFile < amount || beforeOOM != afterOOM {
-		t.Fatalf("native file charge=%d->%d OOM=%d->%d, want at least %d actually reclaimed without kill", beforeFile, afterFile, beforeOOM, afterOOM, amount)
+	if afterCurrent.Uint64() >= beforeCurrent.Uint64() || beforeCurrent.Uint64()-afterCurrent.Uint64() < amount || beforeOOM != afterOOM {
+		t.Fatalf("native current=%d->%d file statistic=%d->%d OOM=%d->%d, want at least %d actually reclaimed from admission charge without kill", beforeCurrent.Uint64(), afterCurrent.Uint64(), beforeFile, afterFile, beforeOOM, afterOOM, amount)
 	}
 	// The disk bytes remain intact: reclaim is not artifact removal.
 	info, err := os.Stat(output)
