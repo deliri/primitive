@@ -675,6 +675,16 @@ const (
 	ErrTimeMatchConflict
 	// ErrTimeMatchIndeterminate identifies a sent write whose provider outcome is unknown.
 	ErrTimeMatchIndeterminate
+	// ErrTimeMatchPhoneMissing identifies provider returned no required phone.
+	ErrTimeMatchPhoneMissing
+	// ErrTimeMatchPhoneDenied identifies provider refused required phone access.
+	ErrTimeMatchPhoneDenied
+	// ErrTimeMatchPhonePartial identifies provider returned an incomplete required phone.
+	ErrTimeMatchPhonePartial
+	// ErrTimeMatchPhoneInvalid identifies provider returned an invalid required phone.
+	ErrTimeMatchPhoneInvalid
+	// ErrTimeMatchPhoneUnavailable identifies provider required phone lookup unavailable.
+	ErrTimeMatchPhoneUnavailable
 	errorIdentityLimit
 )
 
@@ -978,6 +988,11 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTimeMatchResponse, text: "timematch provider response invalid"},
 		{identity: ErrTimeMatchConflict, text: "timematch provider event conflicts with intent"},
 		{identity: ErrTimeMatchIndeterminate, text: "timematch provider write outcome unknown"},
+		{identity: ErrTimeMatchPhoneMissing, text: "timematch provider returned no required phone"},
+		{identity: ErrTimeMatchPhoneDenied, text: "timematch provider refused required phone access"},
+		{identity: ErrTimeMatchPhonePartial, text: "timematch provider returned an incomplete required phone"},
+		{identity: ErrTimeMatchPhoneInvalid, text: "timematch provider returned an invalid required phone"},
+		{identity: ErrTimeMatchPhoneUnavailable, text: "timematch provider required phone lookup unavailable"},
 	}
 }
 
@@ -1251,6 +1266,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding, ErrInstagramAuthentication) {
 		return ErrInstagramContract
+	}
+	if errorIdentityIn(identity, ErrTimeMatchPhoneMissing, ErrTimeMatchPhoneDenied, ErrTimeMatchPhonePartial, ErrTimeMatchPhoneInvalid, ErrTimeMatchPhoneUnavailable) {
+		return ErrTimeMatchConsent
 	}
 	if errorIdentityIn(identity, ErrTimeMatchConsent, ErrTimeMatchResponse, ErrTimeMatchConflict, ErrTimeMatchIndeterminate) {
 		return ErrTimeMatchContract

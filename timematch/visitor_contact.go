@@ -72,8 +72,20 @@ func (c Client) visitorContact(ctx context.Context, grant Grant, policy exchange
 		if err != nil {
 			return VisitorContact{}, errors.Join(core.ErrTimeMatchConsent, err)
 		}
-		if profile.PhoneOutcome != core.OAuthProfileAvailable {
-			return VisitorContact{}, core.ErrTimeMatchConsent
+		switch profile.PhoneOutcome {
+		case core.OAuthProfileAvailable:
+		case core.OAuthProfileMissing:
+			return VisitorContact{}, core.ErrTimeMatchPhoneMissing
+		case core.OAuthProfileDenied:
+			return VisitorContact{}, core.ErrTimeMatchPhoneDenied
+		case core.OAuthProfilePartial:
+			return VisitorContact{}, core.ErrTimeMatchPhonePartial
+		case core.OAuthProfileInvalid:
+			return VisitorContact{}, core.ErrTimeMatchPhoneInvalid
+		case core.OAuthProfileUnavailable:
+			return VisitorContact{}, core.ErrTimeMatchPhoneUnavailable
+		default:
+			return VisitorContact{}, core.ErrTimeMatchContract
 		}
 		contact.Phone = profile.PhoneNumber
 	} else {

@@ -17,6 +17,7 @@ func TestVisitorCodeExchangeReturnsRequiredContact(t *testing.T) {
 		name           string
 		provider       Provider
 		profile, phone string
+		phoneStatus    int
 		wantErr        error
 	}{
 		{name: "Google complete contact", provider: ProviderGoogle},
@@ -26,8 +27,12 @@ func TestVisitorCodeExchangeReturnsRequiredContact(t *testing.T) {
 		{name: "Google missing family name refuses", provider: ProviderGoogle, profile: `{"sub":"subject","given_name":"Ada","email":"ada@example.test","email_verified":true}`, wantErr: core.ErrTimeMatchConsent},
 		{name: "Google missing email refuses", provider: ProviderGoogle, profile: `{"sub":"subject","given_name":"Ada","family_name":"Lovelace","email_verified":true}`, wantErr: core.ErrTimeMatchConsent},
 		{name: "Google missing subject refuses", provider: ProviderGoogle, profile: `{"given_name":"Ada","family_name":"Lovelace","email":"ada@example.test","email_verified":true}`, wantErr: core.ErrTimeMatchConsent},
-		{name: "Google absent phone refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/subject"}`, wantErr: core.ErrTimeMatchConsent},
-		{name: "Google foreign phone subject refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/foreign","phoneNumbers":[{"canonicalForm":"+14165550123","metadata":{"primary":true,"source":{"type":"PROFILE"}}}]}`, wantErr: core.ErrTimeMatchConsent},
+		{name: "Google absent phone refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/subject"}`, wantErr: core.ErrTimeMatchPhoneMissing},
+		{name: "Google foreign phone subject refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/foreign","phoneNumbers":[{"canonicalForm":"+14165550123","metadata":{"primary":true,"source":{"type":"PROFILE"}}}]}`, wantErr: core.ErrTimeMatchPhoneInvalid},
+		{name: "Google incomplete canonical phone refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/subject","phoneNumbers":[{"metadata":{"primary":true}}]}`, wantErr: core.ErrTimeMatchPhonePartial},
+		{name: "Google invalid canonical phone refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/subject","phoneNumbers":[{"canonicalForm":"not a phone","metadata":{"primary":true}}]}`, wantErr: core.ErrTimeMatchPhoneInvalid},
+		{name: "Google denied phone lookup refuses", provider: ProviderGoogle, phoneStatus: 403, wantErr: core.ErrTimeMatchPhoneDenied},
+		{name: "Google unavailable phone lookup refuses", provider: ProviderGoogle, phoneStatus: 503, wantErr: core.ErrTimeMatchPhoneUnavailable},
 		{name: "Outlook missing phone refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test"}`, wantErr: core.ErrTimeMatchConsent},
 		{name: "Outlook malformed phone refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test","mobilePhone":"call me"}`, wantErr: core.ErrTimeMatchConsent},
 		{name: "Outlook missing mailbox refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mobilePhone":"+14165550123"}`, wantErr: core.ErrTimeMatchConsent},
@@ -59,6 +64,10 @@ func TestVisitorCodeExchangeReturnsRequiredContact(t *testing.T) {
 					}
 					_, _ = w.Write([]byte(body))
 				case r.URL.Path == "/v1/people/me":
+					if tc.phoneStatus != 0 {
+						w.WriteHeader(tc.phoneStatus)
+						return
+					}
 					body := tc.phone
 					if body == "" {
 						body = `{"resourceName":"people/subject","phoneNumbers":[{"canonicalForm":"+14165550123","metadata":{"primary":true,"verified":true,"source":{"type":"PROFILE"}}}]}`

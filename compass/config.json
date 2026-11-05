@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 484
+      "patch": 485
     },
     "release_notes": [
-      "Request Google visitor email and profile using canonical userinfo scope names so exact grant validation accepts the provider response."
+      "Preserve the typed provider outcome when required TimeMatch phone data is absent, partial, refused, invalid or unavailable."
     ]
   }
 }
