@@ -799,6 +799,9 @@ func (r EventReceipt) Validate() error {
 // EventWrite creates the intent or verifies that the same intent already
 // exists. ObservedAt is the iCalendar DTSTAMP for Apple.
 type EventWrite struct {
+	// Alerts overrides Google Calendar's defaults on creation only. An empty
+	// list leaves the user's calendar defaults intact. Updates never change it.
+	Alerts     EventAlerts
 	Attempt    EventCreationAttempt
 	Connection Connection
 	Intent     EventIntent
