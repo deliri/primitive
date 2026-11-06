@@ -37,7 +37,13 @@ func TestMicrosoftCalendarAlertNativeCreation(t *testing.T) {
 					return
 				}
 				created.ID = immutableFixtureID
-				writeJSON(w, 201, graphEncoded(t, created))
+				encoded, err := json.Marshal(created)
+				if err != nil {
+					t.Errorf("response encode=%v, want nil", err)
+					writeJSON(w, 500, `{}`)
+					return
+				}
+				writeJSON(w, 201, string(encoded))
 			})
 			owned := intent(t, "primary", "Consultation", "2026-11-06T15:00:00Z", "2026-11-06T15:15:00Z")
 			write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
