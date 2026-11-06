@@ -34,7 +34,7 @@ func TestVisitorCodeExchangeReturnsRequiredContact(t *testing.T) {
 		{name: "Google invalid canonical phone refuses", provider: ProviderGoogle, phone: `{"resourceName":"people/subject","phoneNumbers":[{"canonicalForm":"not a phone","metadata":{"primary":true}}]}`, wantErr: core.ErrTimeMatchPhoneInvalid},
 		{name: "Google denied phone lookup refuses", provider: ProviderGoogle, phoneStatus: 403, wantErr: core.ErrTimeMatchPhoneDenied},
 		{name: "Google unavailable phone lookup refuses", provider: ProviderGoogle, phoneStatus: 503, wantErr: core.ErrTimeMatchPhoneUnavailable},
-		{name: "Outlook missing phone refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test"}`, wantErr: core.ErrTimeMatchConsent},
+		{name: "Outlook absent phone retains calendar and identity", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test","mobilePhone":null}`, absentPhone: true},
 		{name: "Outlook malformed phone refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test","mobilePhone":"call me"}`, wantErr: core.ErrTimeMatchConsent},
 		{name: "Outlook missing mailbox refuses", provider: ProviderMicrosoft, profile: `{"id":"subject","givenName":"Ada","surname":"Lovelace","mobilePhone":"+14165550123"}`, wantErr: core.ErrTimeMatchConsent},
 	}
@@ -126,6 +126,7 @@ func FuzzVisitorProviderContactSemanticClosure(f *testing.F) {
 	f.Add(true, []byte(`{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test","mobilePhone":"+14165550123"}`))
 	f.Add(false, []byte(`{"email_verified":false}`))
 	f.Add(true, []byte(`{`))
+	f.Add(true, []byte(`{"id":"subject","givenName":"Ada","surname":"Lovelace","mail":"ada@example.test","mobilePhone":null}`))
 	f.Fuzz(func(t *testing.T, microsoft bool, body []byte) {
 		provider, tenant := ProviderGoogle, MicrosoftTenantInvalid
 		if microsoft {
