@@ -169,7 +169,7 @@ func googleFixtureWithETag(stored string) string {
 
 func googleStored(t *testing.T, owned EventIntent, summary, status string) string {
 	t.Helper()
-	body, err := googleEvent(owned)
+	body, err := googleEvent(owned, nil)
 	if err != nil {
 		t.Fatalf("googleEvent() error = %v, want nil", err)
 	}

@@ -435,7 +435,7 @@ func TestGoogleOwnedReceiptRejectsUnboundReadback(t *testing.T) {
 			owned := googleOwnershipIntent(t)
 			body := googleForeignWire(t, owned)
 			if !tc.missingMarker {
-				encoded, err := googleEvent(owned)
+				encoded, err := googleEvent(owned, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -464,7 +464,7 @@ func TestGoogleOwnedReceiptRejectsUnboundReadback(t *testing.T) {
 
 func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 	owned := googleOwnershipIntent(f)
-	body, err := googleEvent(owned)
+	body, err := googleEvent(owned, nil)
 	if err != nil {
 		f.Fatal(err)
 	}

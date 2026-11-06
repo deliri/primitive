@@ -291,7 +291,20 @@ type googleExtendedProperties struct {
 func (googlePrivateProperties) timematchInternalFlow()  {}
 func (googleExtendedProperties) timematchInternalFlow() {}
 
+const googleCalendarAlertMethod = "popup"
+
+type googleEventReminder struct {
+	Method  string       `json:"method"`
+	Minutes AlertMinutes `json:"minutes"`
+}
+
+type googleEventReminders struct {
+	UseDefault bool                  `json:"useDefault"`
+	Overrides  []googleEventReminder `json:"overrides"`
+}
+
 type googleEventBody struct {
+	Reminders          *googleEventReminders     `json:"reminders,omitzero"`
 	ConferenceData     *googleConferenceData     `json:"conferenceData,omitzero"`
 	Location           string                    `json:"location,omitzero"`
 	ID                 string                    `json:"id,omitzero"`
@@ -318,13 +331,23 @@ func googleEventProjection(intent EventIntent) (googleEventBody, error) {
 	return googleEventBody{ConferenceData: googleMeetCreateData(intent), Location: intent.Venue.Text(), Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
 }
 
-func googleEvent(intent EventIntent) ([]byte, error) {
+func googleEvent(intent EventIntent, alerts EventAlerts) ([]byte, error) {
+	if err := alerts.Validate(); err != nil {
+		return nil, err
+	}
 	body, err := googleEventProjection(intent)
 	if err != nil {
 		return nil, err
 	}
 	body.ID = intent.ID.value
 	body.ExtendedProperties = &googleExtendedProperties{Private: googlePrivateProperties{EventID: intent.ID.value}}
+	if len(alerts) != 0 {
+		overrides := make([]googleEventReminder, len(alerts))
+		for index, minutes := range alerts {
+			overrides[index] = googleEventReminder{Method: googleCalendarAlertMethod, Minutes: minutes}
+		}
+		body.Reminders = &googleEventReminders{Overrides: overrides}
+	}
 	encoded, err := jsonio.MarshalProjection(body, jsonio.OwnedCodecPolicy{PointerNulls: jsonio.PointerNullPermitted})
 	if err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
@@ -356,7 +379,7 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	body, err := googleEvent(w.Intent)
+	body, err := googleEvent(w.Intent, w.Alerts)
 	if err != nil {
 		return EventReceipt{}, err
 	}

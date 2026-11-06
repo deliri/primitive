@@ -329,7 +329,7 @@ func FuzzGraphCalendarPageSemanticClosure(f *testing.F) {
 }
 
 func FuzzProviderEventObservations(f *testing.F) {
-	googleSeed, seedErr := googleEvent(intent(f, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z"))
+	googleSeed, seedErr := googleEvent(intent(f, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z"), nil)
 	if seedErr != nil {
 		f.Fatal(seedErr)
 	}

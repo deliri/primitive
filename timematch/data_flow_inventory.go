@@ -59,6 +59,8 @@ func (googleBusyCalendar) timematchInternalFlow()      {}
 func (googleFreeBusyResponse) timematchInternalFlow()  {}
 func (googleEventTime) timematchInternalFlow()         {}
 func (googleEventBody) timematchInternalFlow()         {}
+func (googleEventReminder) timematchInternalFlow()     {}
+func (googleEventReminders) timematchInternalFlow()    {}
 func (googleEventObservation) timematchInternalFlow()  {}
 func (graphCalendarPage) timematchInternalFlow()       {}
 func (graphDateTime) timematchInternalFlow()           {}

@@ -810,8 +810,11 @@ type EventWrite struct {
 }
 
 func (w EventWrite) Validate() error {
-	if err := errors.Join(w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
+	if err := errors.Join(w.Alerts.Validate(), w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
+	}
+	if len(w.Alerts) != 0 && w.Connection.Provider != ProviderGoogle {
+		return core.ErrTimeMatchContract
 	}
 	return validateAutomaticVideoProvider(w.Intent.Venue, w.Connection.Provider)
 }

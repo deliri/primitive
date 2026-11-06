@@ -21,7 +21,7 @@ type googleMeetTestEvent struct {
 
 func meetEvent(t testing.TB, owned EventIntent, status string) googleMeetTestEvent {
 	t.Helper()
-	request, err := googleEvent(owned)
+	request, err := googleEvent(owned, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,7 @@ func TestOwnedAppointmentWritersCarryVenue(t *testing.T) {
 			if err := owned.Validate(); err != nil {
 				t.Fatal(err)
 			}
-			google, err := googleEvent(owned)
+			google, err := googleEvent(owned, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

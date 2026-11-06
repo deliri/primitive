@@ -107,7 +107,7 @@ func FuzzOwnedEventVenueSemanticConservation(f *testing.F) {
 			}
 			return
 		}
-		google, err := googleEvent(owned)
+		google, err := googleEvent(owned, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

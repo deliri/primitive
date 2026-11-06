@@ -1,10 +1,12 @@
 package timematch
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"slices"
+	"sync"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -53,6 +55,7 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			var mutex sync.Mutex
 			var saved struct {
 				Reminders *struct {
 					UseDefault bool `json:"useDefault"`
@@ -63,6 +66,8 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 				} `json:"reminders"`
 			}
 			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, body []byte) {
+				mutex.Lock()
+				defer mutex.Unlock()
 				if err := json.Unmarshal(body, &saved); err != nil {
 					t.Error(err)
 					writeJSON(w, 400, `{}`)
@@ -77,6 +82,8 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 			if err != nil || got.Ref.ID != owned.ID || len(fixture.record()) != 1 {
 				t.Fatalf("create=(%+v,%v), calls%d, want owned receipt and1POST", got, err, len(fixture.record()))
 			}
+			mutex.Lock()
+			defer mutex.Unlock()
 			if len(tc.alerts) == 0 {
 				if saved.Reminders != nil {
 					t.Fatalf("reminders=%+v, want omitted", saved.Reminders)
@@ -115,12 +122,47 @@ func TestEventAlertsRefuseBeforeProviderEffects(t *testing.T) {
 			if tc.provider == ProviderApple {
 				connection = appleConnection(t)
 			}
-			write := eventWrite(t, connection, googleOwnershipIntent(t))
+			owned := googleOwnershipIntent(t)
+			if tc.provider == ProviderApple {
+				owned = appleMutationIntent(t)
+			}
+			write := eventWrite(t, connection, owned)
 			write.Alerts = tc.alerts
 			got, err := client.PutEvent(t.Context(), write)
 			if !errors.Is(err, core.ErrTimeMatchContract) || got != (EventReceipt{}) || len(fixture.record()) != 0 {
 				t.Fatalf("alerts=(%+v,%v),calls%d,want typed refusal and no effect", got, err, len(fixture.record()))
 			}
 		})
+	}
+}
+
+// A user may replace our defaults. The provider moves those alerts with the
+// event; an owned summary/time PATCH must not reset them.
+func TestGoogleCalendarAlertsUpdatePreservesUserChoice(t *testing.T) {
+	t.Parallel()
+	client, requests, state, owned := googleOwnedProvider(t, eventIDFixture)
+	state.event.Reminders = &googleEventReminders{Overrides: []googleEventReminder{{Method: "popup", Minutes: 7}}}
+	owned.Interval = window(t, "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z")
+	ref := EventRef{ID: owned.ID, Provider: ProviderGoogle, Calendar: owned.Calendar, Resource: owned.ID.String()}
+	got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: oauthConnection(t, ProviderGoogle), Ref: ref, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
+	if err != nil || got.Ref != ref {
+		t.Fatalf("update=(%+v,%v),want exact owned receipt", got, err)
+	}
+	state.mutex.Lock()
+	defer state.mutex.Unlock()
+	if state.event.Reminders == nil || len(state.event.Reminders.Overrides) != 1 || state.event.Reminders.Overrides[0].Minutes != 7 || state.mutations != 1 {
+		t.Fatalf("provider reminders=%+v, mutations%d,want user's7minutes and1update", state.event.Reminders, state.mutations)
+	}
+	patches := 0
+	for _, request := range requests.record() {
+		if request.method == http.MethodPatch {
+			patches++
+			if bytes.Contains(request.body, []byte(`"reminders"`)) {
+				t.Fatalf("PATCH=%s,want reminders omitted", request.body)
+			}
+		}
+	}
+	if patches != 1 {
+		t.Fatalf("patches=%d,want1", patches)
 	}
 }

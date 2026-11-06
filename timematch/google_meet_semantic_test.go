@@ -89,7 +89,7 @@ func TestGoogleMeetRequestIdentityUsesExistingClosedEventDomain(t *testing.T) {
 			t.Fatal(err)
 		}
 		owned.ID = id
-		body, err := googleEvent(owned)
+		body, err := googleEvent(owned, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
