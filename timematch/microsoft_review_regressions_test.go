@@ -19,6 +19,7 @@ func TestMicrosoftPatchPreservesUserCalendarPreferences(t *testing.T) {
 	owned := intent(t, "primary", "Rescheduled visit", "2026-11-02T17:00:00Z", "2026-11-02T18:00:00Z")
 	var mutex sync.Mutex
 	showAs, reminder := "oof", true
+	reminderMinutes := int64(7)
 	patches := 0
 	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
 		mutex.Lock()
@@ -40,6 +41,7 @@ func TestMicrosoftPatchPreservesUserCalendarPreferences(t *testing.T) {
 		var patch struct {
 			ShowAs   *string `json:"showAs"`
 			Reminder *bool   `json:"isReminderOn"`
+			Minutes  *int64  `json:"reminderMinutesBeforeStart"`
 		}
 		if err := json.Unmarshal(body, &patch); err != nil {
 			t.Errorf("PATCH decode%v, want typed document", err)
@@ -52,14 +54,17 @@ func TestMicrosoftPatchPreservesUserCalendarPreferences(t *testing.T) {
 		if patch.Reminder != nil {
 			reminder = *patch.Reminder
 		}
+		if patch.Minutes != nil {
+			reminderMinutes = *patch.Minutes
+		}
 		patches++
 		writeJSON(w, 200, string(seedJSON(t, graphOwnedDetail(t, owned))))
 	})
 	got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: oauthConnection(t, ProviderMicrosoft), Ref: EventRef{ID: owned.ID, Provider: ProviderMicrosoft, Calendar: owned.Calendar, Resource: immutableFixtureID}, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
 	mutex.Lock()
 	defer mutex.Unlock()
-	if err != nil || got.Ref.ID != owned.ID || patches != 1 || showAs != "oof" || !reminder || len(fixture.record()) != 2 {
-		t.Fatalf("PATCH receipt%+v/error%v/effects%d/showAs%s/reminder%t/HTTP%d, want new owned interval while preserving user preferences", got, err, patches, showAs, reminder, len(fixture.record()))
+	if err != nil || got.Ref.ID != owned.ID || patches != 1 || showAs != "oof" || !reminder || reminderMinutes != 7 || len(fixture.record()) != 2 {
+		t.Fatalf("PATCH receipt%+v/error%v/effects%d/showAs%s/reminder%t/minutes%d/HTTP%d, want new owned interval while preserving user preferences", got, err, patches, showAs, reminder, reminderMinutes, len(fixture.record()))
 	}
 }
 

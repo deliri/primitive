@@ -40,7 +40,7 @@ func TestOwnedAppointmentWritersCarryVenue(t *testing.T) {
 			if err := json.Unmarshal(google, &googleWire); err != nil || googleWire.Location != tc.venue.Text() {
 				t.Fatalf("Google event location = (%q,%v), want %q", googleWire.Location, err, tc.venue.Text())
 			}
-			graph, err := graphEvent(owned, true)
+			graph, err := graphEvent(owned, true, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

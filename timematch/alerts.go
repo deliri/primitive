@@ -11,7 +11,7 @@ const (
 )
 
 // EventAlerts requests calendar notifications, not email or attendee invites.
-// Its bound is Google's documented maximum of five per-event overrides.
+// Its shared bound is Google's maximum of five per-event overrides.
 // https://developers.google.com/workspace/calendar/api/v3/reference/events
 type EventAlerts []temporal.Duration
 
@@ -30,4 +30,28 @@ func (a EventAlerts) Validate() error {
 		}
 	}
 	return nil
+}
+
+// ValidateForProvider refuses a policy the native calendar cannot represent.
+// Graph has one reminderMinutesBeforeStart value per event; CalDAV alert
+// creation is not supported here. Never silently truncate a caller's policy.
+func (a EventAlerts) ValidateForProvider(provider Provider) error {
+	if err := a.Validate(); err != nil {
+		return err
+	}
+	switch provider {
+	case ProviderGoogle:
+		return nil
+	case ProviderMicrosoft:
+		if len(a) <= 1 {
+			return nil
+		}
+	case ProviderApple:
+		if len(a) == 0 {
+			return nil
+		}
+	default:
+		return core.ErrTimeMatchContract
+	}
+	return core.ErrTimeMatchContract
 }

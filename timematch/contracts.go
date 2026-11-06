@@ -799,8 +799,8 @@ func (r EventReceipt) Validate() error {
 // EventWrite creates the intent or verifies that the same intent already
 // exists. ObservedAt is the iCalendar DTSTAMP for Apple.
 type EventWrite struct {
-	// Alerts overrides Google Calendar's defaults on creation only. An empty
-	// list leaves the user's calendar defaults intact. Updates never change it.
+	// Alerts sets native reminders on creation only. Google supports five,
+	// Microsoft supports one. Updates never change the user's preferences.
 	Alerts     EventAlerts
 	Attempt    EventCreationAttempt
 	Connection Connection
@@ -810,11 +810,8 @@ type EventWrite struct {
 }
 
 func (w EventWrite) Validate() error {
-	if err := errors.Join(w.Alerts.Validate(), w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
+	if err := errors.Join(w.Alerts.ValidateForProvider(w.Connection.Provider), w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
-	}
-	if len(w.Alerts) != 0 && w.Connection.Provider != ProviderGoogle {
-		return core.ErrTimeMatchContract
 	}
 	return validateAutomaticVideoProvider(w.Intent.Venue, w.Connection.Provider)
 }

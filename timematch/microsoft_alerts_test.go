@@ -97,3 +97,32 @@ func TestMicrosoftCalendarAlertRejectsUnsupportedPolicyBeforeHTTP(t *testing.T) 
 		})
 	}
 }
+
+func TestCalendarAlertsExhaustiveProviderCardinality(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		provider Provider
+		maximum  int
+	}{
+		{name: "Google five native overrides", provider: ProviderGoogle, maximum: 5},
+		{name: "Microsoft one native reminder", provider: ProviderMicrosoft, maximum: 1},
+		{name: "Apple no supported override", provider: ProviderApple, maximum: 0},
+		{name: "zero provider never admitted", maximum: -1},
+		{name: "future provider never admitted", provider: Provider(255), maximum: -1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			for count := 0; count <= 6; count++ {
+				alerts := make(EventAlerts, count)
+				for index := range alerts {
+					alerts[index] = alertOffsets(t, uint64(index))[0]
+				}
+				err := alerts.ValidateForProvider(tc.provider)
+				if (count <= tc.maximum && err != nil) || (count > tc.maximum && !errors.Is(err, core.ErrTimeMatchContract)) {
+					t.Fatalf("count=%d error=%v, want accepted iff count<=%d", count, err, tc.maximum)
+				}
+			}
+		})
+	}
+}

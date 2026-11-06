@@ -117,7 +117,7 @@ func FuzzOwnedEventVenueSemanticConservation(f *testing.F) {
 		if err := json.Unmarshal(google, &g); err != nil || g.Location != owned.Venue.Text() {
 			t.Fatalf("fuzzed Google venue = (%q,%v), want exact accepted destination", g.Location, err)
 		}
-		graph, err := graphEvent(owned, true)
+		graph, err := graphEvent(owned, true, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

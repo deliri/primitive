@@ -32,7 +32,7 @@ func graphEncoded(t testing.TB, value core.Validatable) string {
 
 func graphOwnedDetail(t testing.TB, owned EventIntent) graphCreated {
 	t.Helper()
-	body, err := graphEvent(owned, true)
+	body, err := graphEvent(owned, true, nil)
 	if err != nil {
 		t.Fatalf("graphEvent() error = %v, want nil", err)
 	}

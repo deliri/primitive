@@ -312,17 +312,21 @@ type graphEventLocation struct {
 func (graphEventLocation) timematchInternalFlow() {}
 
 type graphEventBody struct {
-	Location      *graphEventLocation  `json:"location,omitzero"`
-	Subject       string               `json:"subject"`
-	Start         graphDateTime        `json:"start"`
-	End           graphDateTime        `json:"end"`
-	ShowAs        string               `json:"showAs,omitzero"`
-	TransactionID string               `json:"transactionId,omitzero"`
-	IsReminderOn  *bool                `json:"isReminderOn,omitzero"`
-	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
+	Location                   *graphEventLocation  `json:"location,omitzero"`
+	Subject                    string               `json:"subject"`
+	Start                      graphDateTime        `json:"start"`
+	End                        graphDateTime        `json:"end"`
+	ShowAs                     string               `json:"showAs,omitzero"`
+	TransactionID              string               `json:"transactionId,omitzero"`
+	IsReminderOn               *bool                `json:"isReminderOn,omitzero"`
+	ReminderMinutesBeforeStart *int64               `json:"reminderMinutesBeforeStart,omitzero"`
+	Ownership                  []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
 }
 
-func graphEvent(intent EventIntent, create bool) ([]byte, error) {
+func graphEvent(intent EventIntent, create bool, alerts EventAlerts) ([]byte, error) {
+	if err := alerts.ValidateForProvider(ProviderMicrosoft); err != nil {
+		return nil, err
+	}
 	utc, locationErr := temporal.NewLocation(temporal.LocationUTC)
 	if locationErr != nil {
 		return nil, locationErr
@@ -356,6 +360,11 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		// user's reminders and presence choice (Graph event-update).
 		body.ShowAs = "busy"
 		reminder := false
+		if len(alerts) == 1 {
+			reminder = true
+			minutes := alerts[0].Nanoseconds() / int64(temporal.NanosecondsPerMinute)
+			body.ReminderMinutesBeforeStart = &minutes
+		}
 		body.IsReminderOn = &reminder
 		// transactionId: "A custom identifier specified by a client app for the
 		// server to avoid redundant POST operations in case of client retries
@@ -385,7 +394,7 @@ func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, e
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	body, err := graphEvent(w.Intent, true)
+	body, err := graphEvent(w.Intent, true, w.Alerts)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -417,7 +426,7 @@ func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceip
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	body, err := graphEvent(u.Intent, false)
+	body, err := graphEvent(u.Intent, false, nil)
 	if err != nil {
 		return EventReceipt{}, err
 	}
