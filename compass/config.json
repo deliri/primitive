@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 487
+      "patch": 490
     },
     "release_notes": [
-      "Accept Google Account and Workspace profile source types included in the already-requested People profile category; keep contact and unknown sources refused."
+      "Support one native Microsoft calendar reminder while refusing unsupported multiple reminders and preserving preferences on appointment updates."
     ]
   }
 }
