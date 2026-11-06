@@ -294,8 +294,8 @@ func (googleExtendedProperties) timematchInternalFlow() {}
 const googleCalendarAlertMethod = "popup"
 
 type googleEventReminder struct {
-	Method  string       `json:"method"`
-	Minutes AlertMinutes `json:"minutes"`
+	Method  string `json:"method"`
+	Minutes int64  `json:"minutes"`
 }
 
 type googleEventReminders struct {
@@ -344,7 +344,7 @@ func googleEvent(intent EventIntent, alerts EventAlerts) ([]byte, error) {
 	if len(alerts) != 0 {
 		overrides := make([]googleEventReminder, len(alerts))
 		for index, minutes := range alerts {
-			overrides[index] = googleEventReminder{Method: googleCalendarAlertMethod, Minutes: minutes}
+			overrides[index] = googleEventReminder{Method: googleCalendarAlertMethod, Minutes: minutes.Nanoseconds() / int64(temporal.NanosecondsPerMinute)}
 		}
 		body.Reminders = &googleEventReminders{Overrides: overrides}
 	}

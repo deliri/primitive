@@ -10,12 +10,26 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
+
+func alertOffsets(t testing.TB, minutes ...uint64) EventAlerts {
+	t.Helper()
+	leads := make(EventAlerts, len(minutes))
+	for index, value := range minutes {
+		lead, err := temporal.DurationFromMinutes(value)
+		if err != nil {
+			t.Fatalf("duration %d error=%v,want nil", value, err)
+		}
+		leads[index] = lead
+	}
+	return leads
+}
 
 func TestEventAlertsExhaustiveLeadAndCardinality(t *testing.T) {
 	t.Parallel()
 	for value := 0; value <= 65535; value++ {
-		err := (EventAlerts{AlertMinutes(value)}).Validate()
+		err := (alertOffsets(t, uint64(value))).Validate()
 		if (value <= 40320 && err != nil) || (value > 40320 && !errors.Is(err, core.ErrTimeMatchContract)) {
 			t.Fatalf("lead %d error=%v, want accepted iff0..40320", value, err)
 		}
@@ -23,7 +37,7 @@ func TestEventAlertsExhaustiveLeadAndCardinality(t *testing.T) {
 	for count := 0; count <= 6; count++ {
 		alerts := make(EventAlerts, count)
 		for index := range alerts {
-			alerts[index] = AlertMinutes(index)
+			alerts[index] = alertOffsets(t, uint64(index))[0]
 		}
 		err := alerts.Validate()
 		if (count <= 5 && err != nil) || (count > 5 && !errors.Is(err, core.ErrTimeMatchContract)) {
@@ -49,9 +63,9 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 		name   string
 		alerts EventAlerts
 	}{
-		{name: "owner selected day and half hour", alerts: EventAlerts{1440, 30}},
+		{name: "owner selected day and half hour", alerts: alertOffsets(t, 1440, 30)},
 		{name: "empty preserves calendar defaults"},
-		{name: "at start and four week endpoints", alerts: EventAlerts{0, 40320}},
+		{name: "at start and four week endpoints", alerts: alertOffsets(t, 0, 40320)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -60,8 +74,8 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 				Reminders *struct {
 					UseDefault bool `json:"useDefault"`
 					Overrides  []struct {
-						Method  string       `json:"method"`
-						Minutes AlertMinutes `json:"minutes"`
+						Method  string `json:"method"`
+						Minutes int64  `json:"minutes"`
 					} `json:"overrides"`
 				} `json:"reminders"`
 			}
@@ -94,8 +108,8 @@ func TestGoogleCalendarAlertsNativeCreation(t *testing.T) {
 				t.Fatalf("reminders=%+v, want explicit overrides%v", saved.Reminders, tc.alerts)
 			}
 			for index, alert := range saved.Reminders.Overrides {
-				if alert.Method != "popup" || alert.Minutes != tc.alerts[index] {
-					t.Fatalf("alert%d=%+v, want popup/%d", index, alert, tc.alerts[index])
+				if alert.Method != "popup" || alert.Minutes != tc.alerts[index].Nanoseconds()/int64(temporal.NanosecondsPerMinute) {
+					t.Fatalf("alert%d=%+v, want popup/%v", index, alert, tc.alerts[index])
 				}
 			}
 		})
@@ -109,11 +123,11 @@ func TestEventAlertsRefuseBeforeProviderEffects(t *testing.T) {
 		provider Provider
 		alerts   EventAlerts
 	}{
-		{name: "beyond four weeks", provider: ProviderGoogle, alerts: EventAlerts{40321}},
-		{name: "duplicate alerts", provider: ProviderGoogle, alerts: EventAlerts{30, 30}},
-		{name: "six overrides", provider: ProviderGoogle, alerts: EventAlerts{1, 2, 3, 4, 5, 6}},
-		{name: "Microsoft cannot silently drop two alerts", provider: ProviderMicrosoft, alerts: EventAlerts{1440, 30}},
-		{name: "Apple cannot silently drop two alerts", provider: ProviderApple, alerts: EventAlerts{1440, 30}},
+		{name: "beyond four weeks", provider: ProviderGoogle, alerts: alertOffsets(t, 40321)},
+		{name: "duplicate alerts", provider: ProviderGoogle, alerts: alertOffsets(t, 30, 30)},
+		{name: "six overrides", provider: ProviderGoogle, alerts: alertOffsets(t, 1, 2, 3, 4, 5, 6)},
+		{name: "Microsoft cannot silently drop two alerts", provider: ProviderMicrosoft, alerts: alertOffsets(t, 1440, 30)},
+		{name: "Apple cannot silently drop two alerts", provider: ProviderApple, alerts: alertOffsets(t, 1440, 30)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -164,5 +178,18 @@ func TestGoogleCalendarAlertsUpdatePreservesUserChoice(t *testing.T) {
 	}
 	if patches != 1 {
 		t.Fatalf("patches=%d,want1", patches)
+	}
+}
+
+func TestEventAlertsRejectSubminutePrecision(t *testing.T) {
+	t.Parallel()
+	for _, nanos := range []int64{1, int64(temporal.NanosecondsPerMinute) - 1, int64(temporal.NanosecondsPerMinute) + 1, 40320*int64(temporal.NanosecondsPerMinute) + 1, 1<<63 - 1} {
+		lead, err := temporal.DurationFromNanoseconds(nanos)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := (EventAlerts{lead}).Validate(); !errors.Is(err, core.ErrTimeMatchContract) {
+			t.Fatalf("lead %d error=%v,want exact whole-minute bound refusal", nanos, err)
+		}
 	}
 }
