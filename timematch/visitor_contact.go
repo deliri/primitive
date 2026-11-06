@@ -106,9 +106,11 @@ func (c Client) visitorContact(ctx context.Context, grant Grant, policy exchange
 		if err != nil {
 			return VisitorContact{}, err
 		}
-		contact.Phone, err = googleidentity.ParsePhoneE164(document.MobilePhone)
-		if err != nil {
-			return VisitorContact{}, errors.Join(core.ErrTimeMatchConsent, err)
+		if document.MobilePhone != "" {
+			contact.Phone, err = googleidentity.ParsePhoneE164(document.MobilePhone)
+			if err != nil {
+				return VisitorContact{}, errors.Join(core.ErrTimeMatchConsent, err)
+			}
 		}
 	}
 	return contact, contact.Validate()
