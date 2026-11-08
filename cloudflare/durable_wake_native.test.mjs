@@ -99,7 +99,7 @@ const validResults=[
  {name:'one nanosecond beyond millisecond rounds up',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000000000001'},want:2210000000001},
  {name:'last nanosecond in millisecond rounds up',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000000999999'},want:2210000000001},
  {name:'next exact millisecond',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000001000000'},want:2210000000001},
- {name:'largest signed nanosecond instant',result:{processed:1,succeeded:1,failed:0,next_wake_at:'9223372036854775807'},want:9223372036855},
+ {name:'largest whole millisecond representable by native signed nanoseconds',result:{processed:1,succeeded:1,failed:0,next_wake_at:'9223372036854000000'},want:9223372036854},
 ];
 for(const scenario of validResults)test('durable wake result: '+scenario.name,async()=>{
  const f=await fixture({reply:()=>Response.json({data:scenario.result})});try{
@@ -130,6 +130,8 @@ const refusedResults=[
  {name:'zero deadline cannot spin an alarm',data:{processed:0,succeeded:0,failed:0,next_wake_at:'0'}},
  {name:'negative deadline cannot spin an alarm',data:{processed:0,succeeded:0,failed:0,next_wake_at:'-1'}},
  {name:'leading zero deadline is not canonical',data:{processed:0,succeeded:0,failed:0,next_wake_at:'02210000000000000000'}},
+ {name:'last signed nanosecond cannot round beyond native range',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854775807'}},
+ {name:'one nanosecond above native millisecond range refuses',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854000001'}},
  {name:'instant above signed maximum refuses',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854775808'}},
  {name:'oversized body stops at the streaming bound',reply:()=>new Response(' '.repeat(1025),{headers:{'Content-Type':'application/json'}})},
  {name:'network interruption retains retry',reply:()=>{throw Error('Controlled transport unavailable');}},

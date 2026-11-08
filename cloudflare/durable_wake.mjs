@@ -22,7 +22,7 @@ function nextAlarm(value){
  if(value===undefined)return undefined;
  if(typeof value!=='string'||!/^[1-9][0-9]{0,18}$/.test(value))throw Error('Wake deadline refused');
  const instant=BigInt(value);
- if(instant>9223372036854775807n)throw Error('Wake deadline refused');
+ if(instant>9223372036854000000n)throw Error('Wake deadline refused');
  return Number((instant+999999n)/1000000n);
 }
 async function nextFromResponse(response){
