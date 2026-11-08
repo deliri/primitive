@@ -87,3 +87,63 @@ for(const scenario of [
   if(response.status!==scenario.want||f.calls.length!==0||ids.length!==0)throw Error('Rejected wake escaped an effect '+JSON.stringify({status:response.status,want:scenario.want,calls:f.calls.length,objects:ids.length}));
  }finally{await f.close();}
 },20000);
+
+const validResults=[
+ {name:'empty drain retires without a successor',result:{processed:0,succeeded:0,failed:0}},
+ {name:'completed delivery retires',result:{processed:1,succeeded:1,failed:0}},
+ {name:'terminal refusal retires',result:{processed:1,succeeded:0,failed:1}},
+ {name:'deferred claim does not invent success',result:{processed:1,succeeded:0,failed:0}},
+ {name:'mixed outcomes conserve counters',result:{processed:3,succeeded:1,failed:1}},
+ {name:'largest exact integer counters remain exact',result:{processed:Number.MAX_SAFE_INTEGER,succeeded:Number.MAX_SAFE_INTEGER,failed:0}},
+ {name:'exact millisecond deadline',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000000000000'},want:2210000000000},
+ {name:'one nanosecond beyond millisecond rounds up',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000000000001'},want:2210000000001},
+ {name:'last nanosecond in millisecond rounds up',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000000999999'},want:2210000000001},
+ {name:'next exact millisecond',result:{processed:0,succeeded:0,failed:0,next_wake_at:'2210000000001000000'},want:2210000000001},
+ {name:'largest signed nanosecond instant',result:{processed:1,succeeded:1,failed:0,next_wake_at:'9223372036854775807'},want:9223372036855},
+];
+for(const scenario of validResults)test('durable wake result: '+scenario.name,async()=>{
+ const f=await fixture({reply:()=>Response.json({data:scenario.result})});try{
+  const observed=f.observed(),response=await f.request(),state=await observed;
+  if(response.status!==204||f.calls.length!==1||state.alarm!==(scenario.want??null)||state.scope!==(scenario.want===undefined?undefined:scope))throw Error('Authoritative result changed '+JSON.stringify({scenario:scenario.name,state,calls:f.calls.length,status:response.status}));
+ }finally{await f.close();}
+});
+
+const refusedResults=[
+ {name:'redirect cannot move the credential',reply:()=>new Response(null,{status:302,headers:{Location:'https://foreign.test/'}})},
+ {name:'successful status without an acknowledgement',reply:()=>new Response(null,{status:204})},
+ {name:'JSON bytes require JSON media',reply:()=>new Response('{"data":{"processed":0,"succeeded":0,"failed":0}}')},
+ {name:'empty body cannot acknowledge',reply:()=>new Response('',{headers:{'Content-Type':'application/json'}})},
+ {name:'truncated JSON cannot acknowledge',reply:()=>new Response('{"data":', {headers:{'Content-Type':'application/json'}})},
+ {name:'malformed UTF8 cannot acknowledge',reply:()=>new Response(new Uint8Array([0xff]),{headers:{'Content-Type':'application/json'}})},
+ {name:'missing data cannot acknowledge',data:undefined},
+ {name:'array data cannot acknowledge',data:[]},
+ {name:'missing counter cannot acknowledge',data:{processed:0,succeeded:0}},
+ {name:'wrong-type counter cannot acknowledge',data:{processed:'0',succeeded:0,failed:0}},
+ {name:'negative counter cannot acknowledge',data:{processed:-1,succeeded:0,failed:0}},
+ {name:'fractional counter cannot acknowledge',data:{processed:0.5,succeeded:0,failed:0}},
+ {name:'unsafe integer cannot acknowledge',data:{processed:Number.MAX_SAFE_INTEGER+1,succeeded:0,failed:0}},
+ {name:'success cannot exceed work',data:{processed:1,succeeded:2,failed:0}},
+ {name:'terminal outcomes cannot exceed work',data:{processed:1,succeeded:1,failed:1}},
+ {name:'unknown data member cannot redirect work',data:{processed:0,succeeded:0,failed:0,target:'https://foreign.test/'}},
+ {name:'numeric deadline cannot lose nanoseconds',data:{processed:0,succeeded:0,failed:0,next_wake_at:2210000000000000000}},
+ {name:'null deadline cannot mean no deadline',data:{processed:0,succeeded:0,failed:0,next_wake_at:null}},
+ {name:'zero deadline cannot spin an alarm',data:{processed:0,succeeded:0,failed:0,next_wake_at:'0'}},
+ {name:'negative deadline cannot spin an alarm',data:{processed:0,succeeded:0,failed:0,next_wake_at:'-1'}},
+ {name:'leading zero deadline is not canonical',data:{processed:0,succeeded:0,failed:0,next_wake_at:'02210000000000000000'}},
+ {name:'instant above signed maximum refuses',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854775808'}},
+ {name:'oversized body stops at the streaming bound',reply:()=>new Response(' '.repeat(1025),{headers:{'Content-Type':'application/json'}})},
+ {name:'network interruption retains retry',reply:()=>{throw Error('Controlled transport unavailable');}},
+];
+for(const scenario of refusedResults)test('durable wake response refusal: '+scenario.name,async()=>{
+ const f=await fixture({reply:scenario.reply??(()=>Response.json({data:scenario.data}))});try{
+  const before=Date.now(),observed=f.observed(),response=await f.request(),state=await observed,after=Date.now();
+  if(response.status!==204||f.calls.length!==1||state.scope!==scope||!Number.isSafeInteger(state.alarm)||state.alarm<before+60000||state.alarm>after+60000)throw Error('Refused acknowledgement lost retry '+JSON.stringify({state,calls:f.calls.length,status:response.status}));
+ }finally{await f.close();}
+});
+
+for(const width of [1023,1024])test('durable wake bounded response: '+width+' bytes accepted',async()=>{
+ const body=JSON.stringify({data:{processed:0,succeeded:0,failed:0}}),f=await fixture({reply:()=>new Response(body.padEnd(width,' '),{headers:{'Content-Type':'application/json'}})});try{
+  const observed=f.observed();await f.request();const state=await observed;
+  if(f.calls.length!==1||state.scope!==undefined||state.alarm!==null)throw Error('Bounded valid response was refused '+JSON.stringify(state));
+ }finally{await f.close();}
+});
