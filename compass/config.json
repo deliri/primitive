@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 495
+      "patch": 496
     },
     "release_notes": [
-      "Add Client.CloneStandardTransport for private standard HTTP transport and connection-pool custody.",
-      "Preserve configured proxy, redirect, cookie and transport policy while retaining explicit WithoutProxy behavior."
+      "Reserve a durable writer guard before a bounded commit and retain its wake across early empty reads and runtime restarts.",
+      "Require a distinct guarded acknowledgment, preserve overlapping writer deadlines and refuse unsupported alarm timestamps before storage effects."
     ]
   }
 }
