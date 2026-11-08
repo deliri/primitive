@@ -8,10 +8,11 @@ const source=await readFile(process.env.PRIMITIVE_DURABLE_WAKE_MODULE||new URL('
 const token='s'.repeat(64),targetToken='t'.repeat(64),scope='owned-scope';
 const complete=()=>Response.json({data:{processed:0,succeeded:0,failed:0}});
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
-async function fixture({reply=complete,directory,bindings={}}={}){
+async function fixture({reply=complete,directory,bindings={},emptyGuardAfterTransport=false}={}){
  const ownDirectory=directory===undefined,root=directory||await mkdtemp(join(tmpdir(),'primitive-durable-wake-'));
  const calls=[],observations=[],waiters=[],schedules=[];
- const entry=`export {default} from './durable.mjs';import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async schedule(scope,guard){await this.env.SCHEDULE_OBSERVER.fetch('http://schedule-observer/',{method:'POST',body:JSON.stringify({scope,guard})});return super.schedule(scope,guard);}async inspect(){return {scope:await this.ctx.storage.get('scope'),guard:await this.ctx.storage.get('guard_until'),alarm:await this.ctx.storage.getAlarm()};}async now(){return Date.now();}async putGuardForTest(value){await this.ctx.storage.put('guard_until',value);}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
+ const ingress=emptyGuardAfterTransport?`import receiver from './durable.mjs';export default {async fetch(request,env){const headers=new Headers(request.headers);headers.set('X-Wake-Guard-Nanoseconds','');const supplied=new Request(request,{headers});if(!supplied.headers.has('X-Wake-Guard-Nanoseconds')||supplied.headers.get('X-Wake-Guard-Nanoseconds')!=='')throw Error('Empty-field fixture did not reach the receiver');return receiver.fetch(supplied,env);}};`:`export {default} from './durable.mjs';`;
+ const entry=ingress+`import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async schedule(scope,guard){await this.env.SCHEDULE_OBSERVER.fetch('http://schedule-observer/',{method:'POST',body:JSON.stringify({scope,guard})});return super.schedule(scope,guard);}async inspect(){return {scope:await this.ctx.storage.get('scope'),guard:await this.ctx.storage.get('guard_until'),alarm:await this.ctx.storage.getAlarm()};}async now(){return Date.now();}async putGuardForTest(value){await this.ctx.storage.put('guard_until',value);}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
  const values={SCHEDULE_TOKEN:token,TARGET_TOKEN:targetToken,TARGET_URL:'https://backend.example.test/worker/relay',TARGET_SCOPE_HEADER:'X-Blink-Worker-Tenant',...bindings};
  const mf=new Miniflare({cf:false,telemetry:{enabled:false},resourcePersistencePath:root,resourceTmpPath:join(root,'tmp'),workers:[{config:{
   name:'wake-proof',compatibilityDate:'2026-10-07',
@@ -194,7 +195,9 @@ test('durable wake response fuzz: mutated counters conserve work or retain retry
 
 // Actual native Worker/SQLite behavior. The clock/state probes exist only in
 // the fixture subclass, never in the emitted Worker or its public ingress.
-const guardHeader='X-Wake-Guard-Nanoseconds',hourNs='3600000000000';
+const protocolSource=await readFile(new URL('./durable_wake.go',import.meta.url),'utf8');
+const guardHeader=protocolSource.match(/^const DurableWakeGuardHeader = "([^"]+)"$/m)?.[1],hourNs='3600000000000';
+if(!guardHeader)throw Error('Exported Go guard header is not bound to the native fixture');
 function guardedRequest(f,value=hourNs){return f.request(undefined,{headers:{Authorization:'Bearer '+token,[guardHeader]:value}});}
 
 test('durable wake commit guard: early empty read survives a complete runtime restart',async()=>{
@@ -258,8 +261,10 @@ for(const scenario of [
  {name:'exact millisecond remains exact',text:'1000000',ns:1000000n},
  {name:'first nanosecond after a millisecond rounds upward',text:'1000001',ns:1000001n},
  {name:'caller five-minute window remains exact',text:'300000000000',ns:300000000000n},
- {name:'largest signed duration remains exact',text:'9223372036854775807',ns:9223372036854775807n},
- {name:'present empty duration does not mean ordinary wake',text:''},
+ // A relative duration must also fit the absolute native alarm domain. The
+ // earlier assertion that signed-duration range alone was sufficient was wrong.
+ {name:'largest signed duration refuses absolute alarm overflow',text:'9223372036854775807'},
+ {name:'present empty duration refuses when preserved by the Worker',text:'',emptyGuardAfterTransport:true},
  {name:'zero cannot invent a reservation',text:'0'},
  {name:'negative duration cannot arm a past guard',text:'-1'},
  {name:'explicit positive sign is not canonical',text:'+1'},
@@ -274,7 +279,7 @@ for(const scenario of [
  {name:'duplicate duration header cannot select the first value',text:'1,2'},
  {name:'internal header whitespace cannot change numeric meaning',text:'1\t2'},
 ])test('durable wake commit guard header: '+scenario.name,async()=>{
- const release=deferred(),f=await fixture({reply:async()=>{await release.promise;return complete();}});
+ const release=deferred(),f=await fixture({emptyGuardAfterTransport:scenario.emptyGuardAfterTransport,reply:async()=>{await release.promise;return complete();}});
  try{
   const response=await guardedRequest(f,scenario.text);
   if(scenario.ns===undefined){
@@ -287,12 +292,41 @@ for(const scenario of [
  }finally{release.resolve();await f.close();}
 });
 
+test('durable wake commit guard header: transport-normalized empty field cannot acknowledge a guarded writer',async()=>{
+ const release=deferred(),f=await fixture({reply:async()=>{await release.promise;return complete();}});
+ try{
+  const response=await guardedRequest(f,''),state=await f.stub(scope).inspect();
+  // This native HTTP transport drops empty headers (independently observed at
+  // ingress as has=false/get=null). An ordinary 204 must never authorize the
+  // caller's guarded write, which requires exactly 201.
+  if(response.status!==204||f.schedules.length!==1||f.schedules[0].guard!==0||state.guard!==undefined)throw Error('Normalized absence invented guarded authority '+JSON.stringify({status:response.status,schedules:f.schedules,state}));
+ }finally{release.resolve();await f.close();}
+});
+
+test('durable wake commit guard header: overflow cannot alter an existing reservation',async()=>{
+ const f=await fixture();try{
+  if((await guardedRequest(f)).status!==201)throw Error('Initial reservation refused');
+  const before=await f.stub(scope).inspect(),count=f.schedules.length;
+  const response=await guardedRequest(f,'9223372036854775807'),after=await f.stub(scope).inspect();
+  if(response.status!==400||f.schedules.length!==count||f.calls.length!==0||after.scope!==before.scope||after.guard!==before.guard||after.alarm!==before.alarm)throw Error('Overflow mutated existing durable custody '+JSON.stringify({status:response.status,before,after}));
+ }finally{await f.close();}
+});
+
+test('durable wake commit guard header: native actor revalidates overflow before binding storage',async()=>{
+ const f=await fixture();try{
+  let refused=false;
+  try{await f.stub(scope).schedule(scope,9223372036855);}catch(error){if(!String(error).includes('Wake guard deadline refused'))throw error;refused=true;}
+  const state=await f.stub(scope).inspect();
+  if(!refused||state.scope!==undefined||state.guard!==undefined||state.alarm!==null||f.calls.length!==0)throw Error('Native actor overflow crossed storage admission '+JSON.stringify({refused,state,calls:f.calls.length}));
+ }finally{await f.close();}
+});
+
 test('durable wake commit guard header fuzz: typed durations preserve ceiling and real mutations refuse',async()=>{
  const fc=(await import(process.env.PRIMITIVE_FAST_CHECK_MODULE||'fast-check')).default;
  const f=await fixture();let accepted=0,refused=0;
  try{
-  await fc.assert(fc.asyncProperty(fc.bigInt({min:3600000000000n,max:9223372036854775807n}),fc.integer({min:0,max:3}),async(ns,mutation)=>{
-   const canonical=ns.toString(),presented=mutation===0?canonical:mutation===1?'0'+canonical:mutation===2?canonical+'.':'9223372036854775808';
+  await fc.assert(fc.asyncProperty(fc.bigInt({min:3600000000000n,max:2592000000000000n}),fc.integer({min:0,max:4}),async(ns,mutation)=>{
+   const canonical=ns.toString(),presented=mutation===0?canonical:mutation===1?'0'+canonical:mutation===2?canonical+'.':mutation===3?'9223372036854775808':'9223372036854775807';
    if(mutation!==0&&presented===canonical)throw Error('Requested duration mutation was vacuous');
    const before=f.schedules.length,response=await guardedRequest(f,presented);
    if(mutation===0){
@@ -303,7 +337,7 @@ test('durable wake commit guard header fuzz: typed durations preserve ceiling an
     if(response.status!==400||f.schedules.length!==before||f.calls.length!==0)throw Error('Refused representation escaped a native scheduler effect');
     refused++;
    }
-  }),{seed:20261108,numRuns:128,examples:[[3600000000000n,0],[9223372036854775807n,0],[3600000000000n,1],[3600000000000n,2],[3600000000000n,3]],endOnFailure:true});
+  }),{seed:20261108,numRuns:128,examples:[[3600000000000n,0],[2592000000000000n,0],[3600000000000n,1],[3600000000000n,2],[3600000000000n,3],[3600000000000n,4]],endOnFailure:true});
   if(accepted===0||refused===0||f.schedules.length!==accepted||f.calls.length!==0)throw Error('Duration pressure was vacuous or manufactured delivery');
   console.log(JSON.stringify({durable_guard_fuzz:{seed:20261108,accepted,refused,scheduler_calls:f.schedules.length,backend_calls:f.calls.length}}));
  }finally{await f.close();}

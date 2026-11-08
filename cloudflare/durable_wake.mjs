@@ -2,7 +2,8 @@ import {DurableObject} from 'cloudflare:workers';
 
 const scopePattern=/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 const retryMilliseconds=60000,requestMilliseconds=25000,responseMaximumBytes=1024;
-const keyName='scope',guardKey='guard_until',guardHeader='X-Wake-Guard-Nanoseconds',nativeDateMaximum=8640000000000000;
+const keyName='scope',guardKey='guard_until',guardHeader='X-Wake-Guard-Nanoseconds';
+const maximumAlarmNanoseconds=9223372036854000000n,maximumAlarmMilliseconds=Number(maximumAlarmNanoseconds/1000000n);
 
 function secret(value){return typeof value==='string'&&value.length>=32&&value.length<=4096&&/^[\x21-\x7e]+$/.test(value);}
 function destination(env){
@@ -22,7 +23,7 @@ function nextAlarm(value){
  if(value===undefined)return undefined;
  if(typeof value!=='string'||!/^[1-9][0-9]{0,18}$/.test(value))throw Error('Wake deadline refused');
  const instant=BigInt(value);
- if(instant>9223372036854000000n)throw Error('Wake deadline refused');
+ if(instant>maximumAlarmNanoseconds)throw Error('Wake deadline refused');
  return Number((instant+999999n)/1000000n);
 }
 function guardMilliseconds(value){
@@ -32,7 +33,7 @@ function guardMilliseconds(value){
  if(duration>9223372036854775807n)throw Error('Wake guard duration refused');
  return Number((duration+999999n)/1000000n);
 }
-function validGuard(value){return Number.isSafeInteger(value)&&value>0&&value<=nativeDateMaximum;}
+function validGuard(value){return Number.isSafeInteger(value)&&value>0&&value<=maximumAlarmMilliseconds;}
 
 async function nextFromResponse(response){
  if(response.status!==200||response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw Error('Wake response refused');
@@ -61,7 +62,7 @@ export default {
   if(url.search||!path.startsWith('/wake/')||!scopePattern.test(path.slice(6)))return new Response(null,{status:400});
   if(!await authorized(request,env.SCHEDULE_TOKEN))return new Response(null,{status:403});
   if(!await emptyBody(request))return new Response(null,{status:400});
-  let guard;try{guard=guardMilliseconds(request.headers.get(guardHeader));}catch{return new Response(null,{status:400});}
+  let guard;try{guard=guardMilliseconds(request.headers.get(guardHeader));if(guard>0&&!validGuard(Date.now()+guard))throw Error('Wake guard deadline refused');}catch{return new Response(null,{status:400});}
   try{
    destination(env);
    const result=await env.WAKES.getByName(path.slice(6)).schedule(path.slice(6),guard);
@@ -77,11 +78,12 @@ export class DurableWake extends DurableObject {
   await this.ctx.blockConcurrencyWhile(async()=>{
    const saved=await this.ctx.storage.get(keyName);
    if(saved!==undefined&&saved!==scope)throw Error('Wake scope binding refused');
-   if(saved===undefined)await this.ctx.storage.put(keyName,scope);
    let at=Date.now();const previous=await this.ctx.storage.get(guardKey);
    if(previous!==undefined&&!validGuard(previous))throw Error('Wake guard state refused');
+   const until=at+guard;
+   if(guard>0&&!validGuard(until))throw Error('Wake guard deadline refused');
+   if(saved===undefined)await this.ctx.storage.put(keyName,scope);
    if(guard>0){
-    const until=at+guard;if(!validGuard(until))throw Error('Wake guard deadline refused');
     at=Math.max(previous??0,until);
     if(previous===undefined||at>previous)await this.ctx.storage.put(guardKey,at);
    }
