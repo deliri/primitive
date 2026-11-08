@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 494
+      "patch": 495
     },
     "release_notes": [
-      "Add ResponseForwarder for caller-owned Go response decorators, preserving native status, body, flush and hijack behavior.",
-      "Reject missing writers and preserve unsupported-operation refusals without adding response policy or hot-path allocations."
+      "Add Client.CloneStandardTransport for private standard HTTP transport and connection-pool custody.",
+      "Preserve configured proxy, redirect, cookie and transport policy while retaining explicit WithoutProxy behavior."
     ]
   }
 }
