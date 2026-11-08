@@ -181,3 +181,36 @@ delivery were observed; video/PDF downloads matched their source SHA-256;
 same-grant overwrites returned 412; each delete was accepted. That probe did
 not execute a product's workout form, authentication, CSRF or persistence flow.
 The broader application smoke and repository-wide gates remain separate work.
+
+
+## Durable authenticated wake executor
+
+`DurableWakeModule()` returns the native Worker module and `DurableWake` SQLite
+Durable Object class. Bind the class as `WAKES`; provide distinct secret bindings
+`SCHEDULE_TOKEN` and `TARGET_TOKEN` (32–4096 visible ASCII bytes), plus trusted
+`TARGET_URL` (canonical HTTPS, no query/fragment/user information) and
+`TARGET_SCOPE_HEADER` (an `X-` header). Never expose either credential to a browser.
+
+The only ingress is an authenticated empty `POST /wake/<scope>`; the scope is a
+1–63 byte lowercase DNS label. It can neither choose a destination nor supply a
+payload. One object retains only that scope and the platform alarm. Delivery
+sends the real authenticated backend POST directly, with the scope header.
+Redirects are not followed. The destination remains authoritative for work.
+
+A 200 JSON response carries `data` with nonnegative safe-integer `processed`,
+`succeeded` and `failed` counters, terminal totals no greater than processed,
+and optional `next_wake_at` as exact positive nanoseconds in a JSON string.
+The body is bounded to 1024 bytes. A future deadline is rounded upward to native
+milliseconds; the maximum representable deadline is 9223372036854000000ns.
+Missing future work retires the alarm. Network, status or protocol refusal
+persists a retry 60 seconds later. A new wake during delivery is never cleared
+or postponed by the old response. Delivery is at least once: the backend must
+retain its existing claim, idempotency and exact ownership checks.
+
+Native proof uses Node 26.13.0, Miniflare 5.20260930.0-alpha and its installed
+Workerd 1.20261023.1 with compatibility date 2026-10-07. Install Miniflare and
+fast-check 4.10.2 in an owned private dependency directory, then run the native
+`.test.mjs` with `PRIMITIVE_MINIFLARE_MODULE` and
+`PRIMITIVE_FAST_CHECK_MODULE` naming their actual module entry points. The
+controlled backend is not a live provider test. The restart fixtures dispose
+and recreate the whole native runtime while retaining the SQLite directory.

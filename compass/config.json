@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 492
+      "patch": 493
     },
     "release_notes": [
-      "Add explicit appointment-lifetime Google and Microsoft calendar grants with visitor identity and refresh access; callers own finite retention and erasure.",
-      "Require refresh callers to supply the original grant lifetime; preserve one-shot visitor and ongoing business permissions."
+      "Add a scope-bound native Cloudflare Worker and SQLite Durable Object alarm executor for a fixed authenticated HTTPS drain.",
+      "Persist future deadlines and failed-delivery retries across runtime restarts, preserve concurrent wake requests, and bound response bytes and temporal conversion."
     ]
   }
 }
