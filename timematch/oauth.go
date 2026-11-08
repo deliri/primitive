@@ -110,7 +110,7 @@ func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 	switch r.Application.Provider {
 	case ProviderGoogle:
 		// access_type=offline returns a refresh token; prompt=consent makes
-		// Google issue it again on a repeated business connection.
+		// Google issue it again on a repeated retained connection.
 		if r.Lifetime == LifetimeBusiness || r.Lifetime == LifetimeAppointment {
 			query.Set("access_type", "offline")
 			query.Set("prompt", "consent")

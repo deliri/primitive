@@ -436,7 +436,7 @@ func (r RevokeRequest) Validate() error {
 	return nil
 }
 
-// Grant owns provider credentials. RefreshToken is absent for visitors and
+// Grant owns provider credentials. RefreshToken is absent for one-shot visitors and
 // for refresh results whose provider did not rotate it (Google). The caller
 // seals what it retains and closes the grant.
 type Grant struct {

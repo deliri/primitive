@@ -13,7 +13,16 @@ import (
 // This is a token-admission unit oracle. The TLS native tests separately prove
 // code redemption, exact provider paths and contact reads.
 func FuzzAppointmentTokenAdmission(f *testing.F) {
-	wantScope, err := scopes(ProviderGoogle, AccessManageEvents, LifetimeAppointment)
+	fuzzAppointmentTokenAdmission(f, ProviderGoogle)
+}
+
+func FuzzMicrosoftAppointmentTokenAdmission(f *testing.F) {
+	fuzzAppointmentTokenAdmission(f, ProviderMicrosoft)
+}
+
+func fuzzAppointmentTokenAdmission(f *testing.F, provider Provider) {
+	f.Helper()
+	wantScope, err := scopes(provider, AccessManageEvents, LifetimeAppointment)
 	if err != nil {
 		f.Fatal(err)
 	}
@@ -23,7 +32,11 @@ func FuzzAppointmentTokenAdmission(f *testing.F) {
 	withoutRefresh.RefreshToken = ""
 	f.Add(seedJSON(f, withoutRefresh))
 	withoutProfile := seed
-	withoutProfile.Scope = strings.Join(slices.DeleteFunc(slices.Clone(wantScope), func(value string) bool { return value == googleScopeProfile }), " ")
+	profileScope := googleScopeProfile
+	if provider == ProviderMicrosoft {
+		profileScope = microsoftScopeUserRead
+	}
+	withoutProfile.Scope = strings.Join(slices.DeleteFunc(slices.Clone(wantScope), func(value string) bool { return value == profileScope }), " ")
 	f.Add(seedJSON(f, withoutProfile))
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -35,7 +48,7 @@ func FuzzAppointmentTokenAdmission(f *testing.F) {
 			return
 		}
 		defer token.clear()
-		grant, err := admitExchange(token, CodeExchange{Application: Application{Provider: ProviderGoogle}, Access: AccessManageEvents, Lifetime: LifetimeAppointment, ObservedAt: at(t, "2026-11-02T10:00:00Z")})
+		grant, err := admitExchange(token, CodeExchange{Application: Application{Provider: provider}, Access: AccessManageEvents, Lifetime: LifetimeAppointment, ObservedAt: at(t, "2026-11-02T10:00:00Z")})
 		defer func() {
 			if err := grant.Close(); err != nil {
 				t.Errorf("appointment fuzz grant close error = %v, want nil", err)
@@ -55,6 +68,14 @@ func FuzzAppointmentTokenAdmission(f *testing.F) {
 		}
 		if token.scopePresent {
 			got := strings.Fields(token.scope)
+			if provider == ProviderMicrosoft {
+				for _, required := range []string{microsoftScopeReadWrite, microsoftScopeUserRead, microsoftScopeOffline} {
+					if !slices.Contains(got, required) {
+						t.Fatalf("accepted Microsoft appointment scope = %q, want independently required %q", token.scope, required)
+					}
+				}
+				return
+			}
 			for _, required := range []string{googleScopeFreeBusy, googleScopeOwnedEvents, googleScopeOpenID, googleidentity.BrowserPhoneScope} {
 				if !slices.Contains(got, required) {
 					t.Fatalf("accepted appointment scope = %q, want independently required %q", token.scope, required)
