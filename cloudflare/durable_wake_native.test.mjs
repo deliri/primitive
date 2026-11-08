@@ -8,11 +8,11 @@ const source=await readFile(process.env.PRIMITIVE_DURABLE_WAKE_MODULE||new URL('
 const token='s'.repeat(64),targetToken='t'.repeat(64),scope='owned-scope';
 const complete=()=>Response.json({data:{processed:0,succeeded:0,failed:0}});
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
-async function fixture({reply=complete,directory,bindings={},emptyGuardAfterTransport=false}={}){
+async function fixture({reply=complete,directory,bindings={},emptyGuardAfterTransport=false,overflowAtActor=false}={}){
  const ownDirectory=directory===undefined,root=directory||await mkdtemp(join(tmpdir(),'primitive-durable-wake-'));
  const calls=[],observations=[],waiters=[],schedules=[];
  const ingress=emptyGuardAfterTransport?`import receiver from './durable.mjs';export default {async fetch(request,env){const headers=new Headers(request.headers);headers.set('X-Wake-Guard-Nanoseconds','');const supplied=new Request(request,{headers});if(!supplied.headers.has('X-Wake-Guard-Nanoseconds')||supplied.headers.get('X-Wake-Guard-Nanoseconds')!=='')throw Error('Empty-field fixture did not reach the receiver');return receiver.fetch(supplied,env);}};`:`export {default} from './durable.mjs';`;
- const entry=ingress+`import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async schedule(scope,guard){await this.env.SCHEDULE_OBSERVER.fetch('http://schedule-observer/',{method:'POST',body:JSON.stringify({scope,guard})});return super.schedule(scope,guard);}async inspect(){return {scope:await this.ctx.storage.get('scope'),guard:await this.ctx.storage.get('guard_until'),alarm:await this.ctx.storage.getAlarm()};}async now(){return Date.now();}async putGuardForTest(value){await this.ctx.storage.put('guard_until',value);}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
+ const entry=ingress+`import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async schedule(scope,guard){await this.env.SCHEDULE_OBSERVER.fetch('http://schedule-observer/',{method:'POST',body:JSON.stringify({scope,guard})});return super.schedule(scope,${overflowAtActor?'9223372036855':'guard'});}async inspect(){return {scope:await this.ctx.storage.get('scope'),guard:await this.ctx.storage.get('guard_until'),alarm:await this.ctx.storage.getAlarm()};}async now(){return Date.now();}async putGuardForTest(value){await this.ctx.storage.put('guard_until',value);}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
  const values={SCHEDULE_TOKEN:token,TARGET_TOKEN:targetToken,TARGET_URL:'https://backend.example.test/worker/relay',TARGET_SCOPE_HEADER:'X-Blink-Worker-Tenant',...bindings};
  const mf=new Miniflare({cf:false,telemetry:{enabled:false},resourcePersistencePath:root,resourceTmpPath:join(root,'tmp'),workers:[{config:{
   name:'wake-proof',compatibilityDate:'2026-10-07',
@@ -313,11 +313,11 @@ test('durable wake commit guard header: overflow cannot alter an existing reserv
 });
 
 test('durable wake commit guard header: native actor revalidates overflow before binding storage',async()=>{
- const f=await fixture();try{
-  let refused=false;
-  try{await f.stub(scope).schedule(scope,9223372036855);}catch(error){if(!String(error).includes('Wake guard deadline refused'))throw error;refused=true;}
-  const state=await f.stub(scope).inspect();
-  if(!refused||state.scope!==undefined||state.guard!==undefined||state.alarm!==null||f.calls.length!==0)throw Error('Native actor overflow crossed storage admission '+JSON.stringify({refused,state,calls:f.calls.length}));
+ const f=await fixture({overflowAtActor:true});try{
+  // Corrupt only the actor argument after public admission. The real entry
+  // catches the actor refusal; observe storage on a fresh native actor stub.
+  const response=await guardedRequest(f),state=await f.stub(scope).inspect();
+  if(response.status!==503||state.scope!==undefined||state.guard!==undefined||state.alarm!==null||f.calls.length!==0)throw Error('Native actor overflow crossed storage admission '+JSON.stringify({status:response.status,state,calls:f.calls.length}));
  }finally{await f.close();}
 });
 
