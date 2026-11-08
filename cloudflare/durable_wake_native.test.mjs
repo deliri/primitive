@@ -38,12 +38,13 @@ test('durable wake: native alarm posts once to the fixed authenticated destinati
 },20000);
 
 test('durable wake: backend failure retains its native alarm beyond exception retries',async()=>{
- const f=await fixture({reply:()=>new Response(null,{status:503})});try{
+ const root=await mkdtemp(join(tmpdir(),'primitive-durable-retry-'));let f;try{
+  f=await fixture({directory:root,reply:()=>new Response(null,{status:503})});
   const observed=f.observed(),response=await f.request();if(response.status!==204)throw Error('Valid schedule refused '+response.status);const state=await observed;
   if(f.calls.length!==1||state.scope!==scope||!Number.isSafeInteger(state.alarm))throw Error('Failed delivery lost persisted retry '+JSON.stringify(state));
-  await f.mf.unsafeEvictDurableObject('wake-proof','ProbeWake',{name:scope});
-  const restored=await f.stub(scope).inspect();if(restored.alarm!==state.alarm||restored.scope!==scope)throw Error('Eviction changed persisted retry');
- }finally{await f.close();}
+  await f.close();f=await fixture({directory:root});
+  const restored=await f.stub(scope).inspect();if(restored.alarm!==state.alarm||restored.scope!==scope||f.calls.length!==0)throw Error('Runtime restart changed persisted retry');
+ }finally{if(f)await f.close();await rm(root,{recursive:true,force:true});}
 },20000);
 
 test('durable wake: future canonical deadline survives a whole runtime restart',async()=>{
