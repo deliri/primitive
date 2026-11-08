@@ -34,5 +34,14 @@
     "bytes": 23592,
     "sha256": "0f894d3ebdfb6a8a19ddb2f56ac47fffb375c202166e8f15c929f161472a2722",
     "status": "retained draft; not applied to production main"
+  },
+  {
+    "former_branch": "claude/kernel-witness-passthrough-red-control",
+    "tip": "dd7f17c2de0d50c4b7cff265ff0d30860984cfc8",
+    "base": "b56303c5c57a7dba3b452ced1de5038c394473b2",
+    "patch_file": "claude--kernel-witness-passthrough-red-control.patch.reference",
+    "bytes": 843,
+    "sha256": "4a0256e5978658de0ccf5d17efdf10a7a4977288bfcaa56269a5feb98459059f",
+    "status": "retained native negative control; not applied to production main"
   }
 ]

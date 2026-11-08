@@ -8,3 +8,5 @@ Captured on 2026-11-03 for the owner's no-lingering-branches requirement. These 
 - The Darwin CPU alternative has no completed changed-Darwin test evidence in its handoff. Its new Mach ownership path is not promoted without that proof.
 
 Known handoff/proof references are retained in the canonical `agent_coordination.md`, including the Darwin checkpoint at `/private/tmp/primitive-resource-cpu-uncached-proof/PROOF-CHECKPOINT.json` and the manual TAR-stage evidence. No new behavior, native acceptance, version bump, consumer adoption or speed claim follows from this source preservation. These noncompiled references are not a second implementation.
+
+On 2026-11-08, the response-forwarder negative control was retained here before branch retirement. Its two deliberate changes admit a typed-nil writer and traverse a decorator that declined hijacking. Native control `0cdd4699` failed the two intended leaves; proper source `b56303c5` passed139 nodes. Only the noncompiled patch and ancestry are preserved; the proper response forwarding implementation stays unchanged. Originals remain in the existing private receipt store.
