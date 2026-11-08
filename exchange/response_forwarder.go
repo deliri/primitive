@@ -29,7 +29,7 @@ func NewResponseForwarder(writer http.ResponseWriter) (ResponseForwarder, error)
 
 // Validate rejects an absent or typed-nil native writer.
 func (f ResponseForwarder) Validate() error {
-	if core.WriterIsNil(f.writer) {
+	if f.writer == nil {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -70,9 +70,5 @@ func (f ResponseForwarder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if err := f.Validate(); err != nil {
 		return nil, nil, err
 	}
-	hijacker, ok := f.writer.(http.Hijacker)
-	if !ok {
-		return nil, nil, http.ErrNotSupported
-	}
-	return hijacker.Hijack()
+	return http.NewResponseController(f.writer).Hijack()
 }
