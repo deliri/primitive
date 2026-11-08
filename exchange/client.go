@@ -92,7 +92,9 @@ func cloneStandardHTTPTransport(roundTripper http.RoundTripper) (*http.Transport
 	if !ok || transport == nil {
 		return nil, core.ErrExchangeContract
 	}
-	return transport.Clone(), nil
+	owned := transport.Clone()
+	owned.Proxy = nil
+	return owned, nil
 }
 
 // Validate rejects an unset client or a competing client-wide timeout.
