@@ -206,7 +206,7 @@ test('durable wake commit guard: early empty read survives a complete runtime re
   const early=await observed;
   if(f.calls.length!==1||early.scope!==scope||early.guard!==state.guard||early.alarm!==state.guard)throw Error('Empty read before commit retired the reservation '+JSON.stringify(early));
   await f.close();f=await fixture({directory:root});const restored=await f.stub(scope).inspect();
-  if(restored.scope!==scope||restored.guard!==state.guard||restored.alarm!==state.guard||f.calls.length!==0)throw Error('Restart lost the unknown writer guard '+JSON.stringify(restored));
+  if(restored.scope!==scope||restored.guard!==early.guard||restored.alarm!==early.guard||f.calls.length!==0)throw Error('Restart lost the unknown writer guard '+JSON.stringify(restored));
  }finally{if(f)await f.close();await rm(root,{recursive:true,force:true});}
 },30000);
 
