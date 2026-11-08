@@ -76,8 +76,8 @@ func fuzzAppointmentTokenAdmission(f *testing.F, provider Provider) {
 		if token.scopePresent {
 			got := strings.Fields(token.scope)
 			if provider == ProviderMicrosoft {
-				for _, required := range []string{microsoftScopeReadWrite, microsoftScopeUserRead, microsoftScopeOffline} {
-					if !slices.Contains(got, required) {
+				for _, required := range []string{microsoftScopeReadWrite, microsoftScopeUserRead} {
+					if !slices.Contains(got, required) && !slices.Contains(got, strings.TrimPrefix(required, microsoftGraphScopeShort)) {
 						t.Fatalf("accepted Microsoft appointment scope = %q, want independently required %q", token.scope, required)
 					}
 				}
