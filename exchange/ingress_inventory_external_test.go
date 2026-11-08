@@ -114,6 +114,7 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		{Door: exchange.SocketServerCall.ServeHTTP, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketServerCallLayerTriad, Reason: "Passes the exact Go request and writer to a caller-owned Go handler."},
 		{Door: exchange.ServeSocketWithWriteStall, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketWriteStallAdmissionAndFinalBound, Reason: "Owns finite response write stalls around one existing handler; native quiet/blocked/cancel tests prove the lifetime without decoding payloads."},
 		{Door: exchange.NewResponseForwarder, Kind: exchange.IngressCapabilityForTest, Proof: TestResponseForwarderLayerTriad, Reason: "Admits a caller decorator's wrapped Go writer capability; decodes no external representation."},
+		{Door: exchange.Client.CloneStandardTransport, Kind: exchange.IngressCapabilityForTest, Proof: TestClientCloneStandardTransportProxyAndPoolCustodyNative, Reason: "Derives private standard-transport custody while preserving the caller's HTTP policy; admits no external representation."},
 		{Door: exchange.Client.CloseIdleConnections, Kind: exchange.IngressCapabilityForTest, Proof: TestCloseIdleConnectionsPreservesActiveNativeCall, Reason: "Revalidates and closes the native client's idle pool while preserving joined active calls; no external document decoding."},
 	}
 	for _, door := range []any{exchange.ResponseForwarder.WriteHeader, exchange.ResponseForwarder.Write, exchange.ResponseForwarder.Flush, exchange.ResponseForwarder.Hijack} {

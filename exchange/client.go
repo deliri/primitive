@@ -41,6 +41,23 @@ func NewStandardClient() (Client, error) {
 	return NewClient(&http.Client{})
 }
 
+// CloneStandardTransport derives a client with its own standard Go transport
+// and idle connection pool. Proxy, redirect, cookie and transport policy are
+// preserved. An implicit default transport is cloned without changing the
+// caller or process-wide default. Opaque transports cannot be cloned safely.
+func (c Client) CloneStandardTransport() (Client, error) {
+	if err := c.Validate(); err != nil {
+		return Client{}, err
+	}
+	transport, err := cloneStandardHTTPTransport(c.http.Transport)
+	if err != nil {
+		return Client{}, err
+	}
+	client := *c.http
+	client.Transport = transport
+	return NewClient(&client)
+}
+
 // WithoutProxy derives an immutable client whose standard transport connects
 // directly. The caller's client and transport remain unchanged. Opaque custom
 // RoundTrippers are refused because Exchange cannot prove that they bypass
@@ -59,6 +76,15 @@ func (c Client) WithoutProxy() (Client, error) {
 }
 
 func directHTTPTransport(roundTripper http.RoundTripper) (*http.Transport, error) {
+	owned, err := cloneStandardHTTPTransport(roundTripper)
+	if err != nil {
+		return nil, err
+	}
+	owned.Proxy = nil
+	return owned, nil
+}
+
+func cloneStandardHTTPTransport(roundTripper http.RoundTripper) (*http.Transport, error) {
 	if roundTripper == nil {
 		roundTripper = http.DefaultTransport
 	}
@@ -66,9 +92,7 @@ func directHTTPTransport(roundTripper http.RoundTripper) (*http.Transport, error
 	if !ok || transport == nil {
 		return nil, core.ErrExchangeContract
 	}
-	owned := transport.Clone()
-	owned.Proxy = nil
-	return owned, nil
+	return transport.Clone(), nil
 }
 
 // Validate rejects an unset client or a competing client-wide timeout.
