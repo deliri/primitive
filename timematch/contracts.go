@@ -151,7 +151,7 @@ func (o DeleteOutcome) Validate() error {
 // tenant names are the documented v2 endpoint path segments.
 func providerNames() []string { return []string{"google", "microsoft", "apple"} }
 func accessNames() []string   { return []string{"availability", "manage_events"} }
-func lifetimeNames() []string { return []string{"visitor", "business"} }
+func lifetimeNames() []string { return []string{"visitor", "business", "appointment"} }
 func tenantNames() []string   { return []string{"common", "consumers", "organizations"} }
 func stateNames() []string    { return []string{"known", "unknown"} }
 func revokeNames() []string {
