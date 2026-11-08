@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/googleidentity"
 )
 
 // Native Exchange and the actual profile parsers execute against local TLS.
@@ -16,13 +17,14 @@ import (
 func TestAppointmentCodeExchangeKeepsContactAndRefreshNative(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name          string
-		provider      Provider
-		tenant        MicrosoftTenant
-		absentPhone   bool
-		absentRefresh bool
-		absentProfile bool
-		wantErr       error
+		name             string
+		provider         Provider
+		tenant           MicrosoftTenant
+		absentPhone      bool
+		absentRefresh    bool
+		absentProfile    bool
+		absentPhoneScope bool
+		wantErr          error
 	}{
 		{name: "Google appointment retains profile and refresh together", provider: ProviderGoogle},
 		{name: "Microsoft personal appointment retains profile and refresh together", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers},
@@ -34,6 +36,7 @@ func TestAppointmentCodeExchangeKeepsContactAndRefreshNative(t *testing.T) {
 		{name: "Microsoft missing refresh refuses before contact reads", provider: ProviderMicrosoft, tenant: MicrosoftTenantCommon, absentRefresh: true, wantErr: core.ErrTimeMatchConsent},
 		{name: "Google missing profile scope cannot become retained identity", provider: ProviderGoogle, absentProfile: true, wantErr: core.ErrTimeMatchConsent},
 		{name: "Microsoft missing profile scope cannot become retained identity", provider: ProviderMicrosoft, tenant: MicrosoftTenantOrganizations, absentProfile: true, wantErr: core.ErrTimeMatchConsent},
+		{name: "Google missing phone permission preserves its exact refusal", provider: ProviderGoogle, absentPhoneScope: true, wantErr: core.ErrTimeMatchPhoneDenied},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -53,6 +56,9 @@ func TestAppointmentCodeExchangeKeepsContactAndRefreshNative(t *testing.T) {
 							remove = microsoftScopeUserRead
 						}
 						scope = slices.DeleteFunc(scope, func(value string) bool { return value == remove })
+					}
+					if tc.absentPhoneScope {
+						scope = slices.DeleteFunc(scope, func(value string) bool { return value == googleidentity.BrowserPhoneScope })
 					}
 					refresh := "appointment-refresh"
 					if tc.absentRefresh {
@@ -101,6 +107,21 @@ func TestAppointmentCodeExchangeKeepsContactAndRefreshNative(t *testing.T) {
 			}()
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("appointment exchange error = %v, want %v", err, tc.wantErr)
+			}
+			wantRequests := 2
+			if tc.provider == ProviderGoogle && tc.wantErr == nil {
+				wantRequests = 3
+			} else if tc.provider == ProviderMicrosoft && tc.wantErr != nil {
+				wantRequests = 1
+			}
+			exchanges := 0
+			for _, request := range peer.record() {
+				if strings.HasSuffix(request.path, "/token") {
+					exchanges++
+				}
+			}
+			if len(peer.record()) != wantRequests || exchanges != 1 {
+				t.Fatalf("appointment total requests/exchanges = %d/%d, want %d/1", len(peer.record()), exchanges, wantRequests)
 			}
 			if tc.wantErr != nil {
 				if grant.AccessToken.IsSet() || grant.RefreshToken.IsSet() || grant.Contact != (VisitorContact{}) {
