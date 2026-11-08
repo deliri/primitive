@@ -176,13 +176,13 @@ test('durable wake response fuzz: mutated counters conserve work or retain retry
    value={processed:1,succeeded:0,failed:0,[field]:representation};
    const before=Date.now(),observed=f.observed(),response=await f.request(),state=await observed;
    if(response.status!==204)throw Error('Valid wake authentication refused');
+   const counters=[value.processed,value.succeeded,value.failed],valid=counters.every(Number.isSafeInteger)&&counters.every(n=>n>=0)&&BigInt(value.succeeded)+BigInt(value.failed)<=BigInt(value.processed);
    if(state.scope===undefined){
     accepted++;
-    const counters=[value.processed,value.succeeded,value.failed];
-    if(state.alarm!==null||!counters.every(Number.isSafeInteger)||counters.some(n=>n<0)||BigInt(value.succeeded)+BigInt(value.failed)>BigInt(value.processed))throw Error('Accepted counter representation invented completion '+JSON.stringify(value));
+    if(state.alarm!==null||!valid)throw Error('Accepted counter representation invented completion '+JSON.stringify(value));
    }else{
     refused++;
-    if(state.scope!==scope||!Number.isSafeInteger(state.alarm)||state.alarm<before+60000)throw Error('Refused counter representation lost durable retry');
+    if(valid||state.scope!==scope||!Number.isSafeInteger(state.alarm)||state.alarm<before+60000)throw Error('Counter representation lost its classification or durable retry');
    }
   }),{seed:20261108,numRuns:128,examples:[['processed',1],['succeeded',1],['failed',1],['processed',-1]],endOnFailure:true});
   if(accepted===0||refused===0||f.calls.length!==accepted+refused)throw Error('Fuzz path was vacuous or lost a delivery');
