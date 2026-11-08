@@ -43,5 +43,23 @@
     "bytes": 843,
     "sha256": "4a0256e5978658de0ccf5d17efdf10a7a4977288bfcaa56269a5feb98459059f",
     "status": "retained native negative control; not applied to production main"
+  },
+  {
+    "former_branch": "codex/exchange-clone-proxy-control",
+    "tip": "1bf049626ed94ba06bb4694ccaae0598189493ee",
+    "base": "85e9ebb5b5db05abdb05fa8a29e5659540d4bf13",
+    "patch_file": "codex--exchange-clone-proxy-control.patch.reference",
+    "bytes": 488,
+    "sha256": "f88d0299d23a7107d591bdc5243873605e0c40585c1c8b076a9e2ec820949ca2",
+    "status": "retained native negative control; not applied to production main"
+  },
+  {
+    "former_branch": "codex/exchange-clone-pool-control",
+    "tip": "7acea46a813561d5e81b5f6e908e4dc8cc06eca8",
+    "base": "85e9ebb5b5db05abdb05fa8a29e5659540d4bf13",
+    "patch_file": "codex--exchange-clone-pool-control.patch.reference",
+    "bytes": 443,
+    "sha256": "9f5b3ae16376911ebcc0595772a5f823eed60b65e751b4169a47b5905cfee926",
+    "status": "retained native negative control; not applied to production main"
   }
 ]
