@@ -79,7 +79,7 @@ export class DurableWake extends DurableObject {
   try{
    if(typeof scope!=='string'||!scopePattern.test(scope))throw Error('Wake scope binding refused');
    const target=destination(this.env);
-   const response=await fetch(target,{method:'POST',headers:{Authorization:`Bearer ${this.env.TARGET_TOKEN}`,[this.env.TARGET_SCOPE_HEADER]:scope,Accept:'application/json'},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(requestMilliseconds)});
+   const response=await fetch(target,{method:'POST',headers:{Authorization:`Bearer ${this.env.TARGET_TOKEN}`,[this.env.TARGET_SCOPE_HEADER]:scope,Accept:'application/json'},redirect:'manual',cache:'no-store',signal:AbortSignal.timeout(requestMilliseconds)});
    next=await nextFromResponse(response);
   }catch{
    // Explicit durable rearming also survives outages beyond Cloudflare's six

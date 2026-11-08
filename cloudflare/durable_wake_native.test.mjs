@@ -61,7 +61,7 @@ test('durable wake: future canonical deadline survives a whole runtime restart',
 test('durable wake: a commit arriving during delivery cannot be erased by the old reply',async()=>{
  const entered=deferred(),release=deferred();const f=await fixture({reply:async(_,count)=>{if(count===1){entered.resolve();await release.promise;}return complete();}});
  try{
-  const first=f.observed(),response=await f.request();if(response.status!==204)throw Error('Initial request status '+response.status);await entered.promise;
+  const first=f.observed(),response=await f.request();if(response.status!==204)throw Error('Initial request status '+response.status);await Promise.race([entered.promise,first.then(()=>{throw Error('Alarm completed without entering the backend');})]);
   if((await f.request()).status!==204)throw Error('Concurrent commit was refused');
   const second=f.observed();release.resolve();const a=await first,b=await second;
   if(f.calls.length!==2||a.scope!==scope||a.alarm===null||b.scope!==undefined||b.alarm!==null)throw Error('Concurrent commit was lost '+JSON.stringify({calls:f.calls.length,a,b}));
