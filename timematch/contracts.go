@@ -61,6 +61,10 @@ const (
 	LifetimeInvalid Lifetime = iota
 	LifetimeVisitor
 	LifetimeBusiness
+	// Appointment retains refresh capability for one booked appointment.
+	// The caller owns its finite consent deadline and erases it at cancellation
+	// or appointment end; it is not ongoing business access.
+	LifetimeAppointment
 )
 
 func (l Lifetime) Validate() error {
