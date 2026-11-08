@@ -38,13 +38,20 @@ async function nextFromResponse(response){
  return nextAlarm(result.next_wake_at);
 }
 
+async function emptyBody(request){
+ const reader=request.body?.getReader();
+ if(!reader)return true;
+ try{for(;;){const part=await reader.read();if(part.done)return true;if(part.value.length!==0)return false;}}
+ finally{await reader.cancel();reader.releaseLock();}
+}
+
 export default {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
   if(request.method!=='POST')return new Response(null,{status:405,headers:{Allow:'POST'}});
   if(url.search||!path.startsWith('/wake/')||!scopePattern.test(path.slice(6)))return new Response(null,{status:400});
   if(!await authorized(request,env.SCHEDULE_TOKEN))return new Response(null,{status:403});
-  if(request.body!==null){await request.body.cancel();return new Response(null,{status:400});}
+  if(!await emptyBody(request))return new Response(null,{status:400});
   try{
    destination(env);
    const result=await env.WAKES.getByName(path.slice(6)).schedule(path.slice(6));
