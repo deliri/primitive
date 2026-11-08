@@ -38,6 +38,13 @@ func fuzzAppointmentTokenAdmission(f *testing.F, provider Provider) {
 	}
 	withoutProfile.Scope = strings.Join(slices.DeleteFunc(slices.Clone(wantScope), func(value string) bool { return value == profileScope }), " ")
 	f.Add(seedJSON(f, withoutProfile))
+	if provider == ProviderMicrosoft {
+		shortScope := seed
+		// Graph returns short resource scopes; refresh_token, rather than an
+		// echoed offline_access scope, proves the retained grant.
+		shortScope.Scope = strings.TrimPrefix(microsoftScopeReadWrite, microsoftGraphScopeShort) + " " + strings.TrimPrefix(microsoftScopeUserRead, microsoftGraphScopeShort)
+		f.Add(seedJSON(f, shortScope))
+	}
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		token, err := decodeJSON[tokenWire](data)
