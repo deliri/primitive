@@ -11,7 +11,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
 async function fixture({reply=complete,directory,bindings={}}={}){
  const ownDirectory=directory===undefined,root=directory||await mkdtemp(join(tmpdir(),'primitive-durable-wake-'));
  const calls=[],observations=[],waiters=[];
- const entry=`export {default} from './durable.mjs';import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async inspect(){return {scope:await this.ctx.storage.get('scope'),alarm:await this.ctx.storage.getAlarm()};}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
+ const entry=`export {default} from './durable.mjs';import {DurableWake} from './durable.mjs';export class ProbeWake extends DurableWake {async inspect(){return {scope:await this.ctx.storage.get('scope'),guard:await this.ctx.storage.get('guard_until'),alarm:await this.ctx.storage.getAlarm()};}async now(){return Date.now();}async putGuardForTest(value){await this.ctx.storage.put('guard_until',value);}async alarm(){await super.alarm();await this.env.OBSERVER.fetch('http://observer/',{method:'POST',body:JSON.stringify(await this.inspect())});}}`;
  const values={SCHEDULE_TOKEN:token,TARGET_TOKEN:targetToken,TARGET_URL:'https://backend.example.test/worker/relay',TARGET_SCOPE_HEADER:'X-Blink-Worker-Tenant',...bindings};
  const mf=new Miniflare({resourcePersistencePath:root,workers:[{config:{
   name:'wake-proof',compatibilityDate:'2026-10-07',
@@ -188,4 +188,64 @@ test('durable wake response fuzz: mutated counters conserve work or retain retry
   if(accepted===0||refused===0||f.calls.length!==accepted+refused)throw Error('Fuzz path was vacuous or lost a delivery');
   console.log(JSON.stringify({durable_wake_response_fuzz:{seed:20261108,accepted,refused,backend_calls:f.calls.length}}));
  }finally{await f.close();}
+},30000);
+
+
+// Actual native Worker/SQLite behavior. The clock/state probes exist only in
+// the fixture subclass, never in the emitted Worker or its public ingress.
+const guardHeader='X-Wake-Guard-Nanoseconds',hourNs='3600000000000';
+function guardedRequest(f,value=hourNs){return f.request(undefined,{headers:{Authorization:'Bearer '+token,[guardHeader]:value}});}
+
+test('durable wake commit guard: early empty read survives a complete runtime restart',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'primitive-durable-guard-'));let f;
+ try{
+  f=await fixture({directory:root});
+  const before=await f.stub(scope).now(),response=await guardedRequest(f),state=await f.stub(scope).inspect(),after=await f.stub(scope).now();
+  if(response.status!==201||f.calls.length!==0||state.scope!==scope||!Number.isSafeInteger(state.guard)||state.guard<before+3600000||state.guard>after+3600000||state.alarm!==state.guard)throw Error('Pre-commit reservation did not durably arm its guard '+JSON.stringify({status:response.status,state,calls:f.calls.length}));
+  const observed=f.observed();if((await f.request()).status!==204)throw Error('Ordinary immediate wake refused');
+  const early=await observed;
+  if(f.calls.length!==1||early.scope!==scope||early.guard!==state.guard||early.alarm!==state.guard)throw Error('Empty read before commit retired the reservation '+JSON.stringify(early));
+  await f.close();f=await fixture({directory:root});const restored=await f.stub(scope).inspect();
+  if(restored.scope!==scope||restored.guard!==state.guard||restored.alarm!==state.guard||f.calls.length!==0)throw Error('Restart lost the unknown writer guard '+JSON.stringify(restored));
+ }finally{if(f)await f.close();await rm(root,{recursive:true,force:true});}
+},30000);
+
+test('durable wake commit guard: a later shorter writer cannot shorten an existing guard',async()=>{
+ const f=await fixture();try{
+  if((await guardedRequest(f,'7200000000000')).status!==201)throw Error('First guard reservation refused');
+  const first=await f.stub(scope).inspect();
+  if((await guardedRequest(f)).status!==201)throw Error('Second guard reservation refused');
+  const second=await f.stub(scope).inspect();
+  if(second.guard!==first.guard||second.alarm!==first.alarm||f.calls.length!==0)throw Error('Shorter writer shortened outstanding custody '+JSON.stringify({first,second,calls:f.calls.length}));
+  const observed=f.observed();await f.request();const empty=await observed;
+  if(empty.guard!==first.guard||empty.alarm!==first.guard||empty.scope!==scope)throw Error('Empty read lost the longer writer guard '+JSON.stringify(empty));
+ }finally{await f.close();}
+});
+
+test('durable wake commit guard: empty read begun after expiry retires the transient guard',async()=>{
+ const f=await fixture();try{
+  if((await guardedRequest(f)).status!==201)throw Error('Guard reservation refused');
+  // A known expired persisted deadline forces the real native expiry branch.
+  await f.stub(scope).putGuardForTest(1);
+  const observed=f.observed();await f.request();const state=await observed;
+  if(f.calls.length!==1||state.scope!==undefined||state.guard!==undefined||state.alarm!==null)throw Error('Completed post-guard read retained manufactured work '+JSON.stringify(state));
+ }finally{await f.close();}
+});
+
+test('durable wake commit guard: an empty read spanning expiry must read again before retiring',async()=>{
+ const entered=deferred(),release=deferred();const f=await fixture({reply:async(_,count)=>{if(count===1){entered.resolve();await release.promise;}return complete();}});
+ try{
+  if((await guardedRequest(f)).status!==201)throw Error('Guard reservation refused');
+  const first=f.observed();await f.request();await entered.promise;
+  // Native RPC clock observations synchronize on actual expiry, not a sleep.
+  // The snapshot has already started. Move its persisted guard just beyond
+  // that fact, then observe its expiry while the backend reply is held.
+  const until=(await f.stub(scope).now())+1;await f.stub(scope).putGuardForTest(until);
+  const backstop=AbortSignal.timeout(10000);
+  while((await f.stub(scope).now())<until){if(backstop.aborted)throw Error('Native clock observation exceeded its deadlock backstop');}
+  const second=f.observed();release.resolve();const a=await first;
+  if(a.scope!==scope||a.guard!==until||a.alarm===null)throw Error('Pre-expiry snapshot falsely certified post-expiry absence '+JSON.stringify(a));
+  const b=await second;
+  if(f.calls.length!==2||b.scope!==undefined||b.guard!==undefined||b.alarm!==null)throw Error('Fresh post-expiry snapshot did not retire '+JSON.stringify({b,calls:f.calls.length}));
+ }finally{release.resolve();await f.close();}
 },30000);
