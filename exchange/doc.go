@@ -25,4 +25,6 @@
 // while allowing quiet computation beyond a server's whole-response timeout.
 // The caller still owns the total request deadline; cancellation interrupts
 // blocked writes, and final HTTP framing retains a finite write bound.
+// ResponseForwarder lets a caller's own http.ResponseWriter decorator hand its
+// already-decided status, body bytes, flush and hijack to the wrapped writer.
 package exchange

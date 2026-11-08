@@ -142,6 +142,7 @@ type exchangeContractInventory struct {
 	ServerErrorResponse                         protocolContract[ServerErrorResponse]
 	ServerRedirectResponse                      protocolContract[ServerRedirectResponse]
 	observedStandardResponseWriter              capabilityWrapper[observedStandardResponseWriter]
+	ResponseForwarder                           capabilityWrapper[ResponseForwarder]
 	BasicAuthorizationRequest                   protocolContract[BasicAuthorizationRequest]
 	BearerAuthorization                         protocolContract[BearerAuthorization]
 	OfficialSDKResponseBoundary                 protocolContract[OfficialSDKResponseBoundary]
@@ -330,10 +331,12 @@ func TestRawHTTPAdmissionIsSealedSocketOrGoSDKTransport(t *testing.T) {
 	// The SDK adapter must implement Go's http.RoundTripper signature; its
 	// typed constructor is its admission boundary. The private stall writer must
 	// expose Go's exact Unwrap signature so ResponseController can traverse it.
+	// A caller's own http.ResponseWriter decorator admits its wrapped writer
+	// through ResponseForwarder, which only forwards already-decided effects.
 	// These exceptions are compiler bound and cannot grow silently.
 	// Public mutable variables are forbidden too: they could replace a checked
 	// function with an unclassified function-valued ingress after initialization.
-	want := []string{IngressSymbolForTest(NewSocketServerCall), IngressSymbolForTest(officialSDKResponseTransport.RoundTrip), IngressSymbolForTest((*socketStallWriter).Unwrap)}
+	want := []string{IngressSymbolForTest(NewSocketServerCall), IngressSymbolForTest(officialSDKResponseTransport.RoundTrip), IngressSymbolForTest((*socketStallWriter).Unwrap), IngressSymbolForTest(NewResponseForwarder), reflect.TypeFor[ResponseForwarder]().Name()}
 	slices.Sort(want)
 	if !slices.Equal(got, want) {
 		t.Fatalf("public raw HTTP or mutable-global exposure=%q,want sealed socket and required Go transport contract %q", got, want)
