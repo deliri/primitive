@@ -312,6 +312,16 @@ test('durable wake commit guard header: overflow cannot alter an existing reserv
  }finally{await f.close();}
 });
 
+test('durable wake commit guard header: valid duration near the absolute native horizon stays supported',async()=>{
+ const f=await fixture();try{
+  const maximum=9223372036854n,before=BigInt(await f.stub(scope).now());
+  // Leave one observed hour of range, not an executor quota or a fixed date.
+  const ns=(maximum-before-3600000n)*1000000n;
+  const response=await guardedRequest(f,ns.toString()),state=await f.stub(scope).inspect();
+  if(response.status!==201||f.calls.length!==0||state.scope!==scope||!Number.isSafeInteger(state.guard)||BigInt(state.guard)>maximum||BigInt(state.guard)<maximum-3600000n||state.alarm!==state.guard)throw Error('Supported long duration was narrowed '+JSON.stringify({status:response.status,state}));
+ }finally{await f.close();}
+});
+
 test('durable wake commit guard header: native actor revalidates overflow before binding storage',async()=>{
  const f=await fixture({overflowAtActor:true});try{
   // Corrupt only the actor argument after public admission. The real entry
