@@ -1,6 +1,6 @@
 # Cloudflare capability contract
 
-Primitive owns these provider mechanics. Every network operation uses Exchange;
+Primitive owns these provider mechanics. Go network operations use Exchange;
 Temporal owns instants and durations. The Stream receiver borrows caller-owned
 seekable scratch obtained through Filestore. It authenticates the complete body
 before publishing any byte to the destination. Product code retains decisions
@@ -193,7 +193,8 @@ Durable Object class. Bind the class as `WAKES`; provide distinct secret binding
 
 The only ingress is an authenticated empty `POST /wake/<scope>`; the scope is a
 1–63 byte lowercase DNS label. It can neither choose a destination nor supply a
-payload. One object retains only that scope and the platform alarm. Delivery
+payload. One object retains only that scope, an optional transient writer guard,
+and the platform alarm. Delivery
 sends the real authenticated backend POST directly, with the scope header.
 Redirects are not followed. The destination remains authoritative for work.
 
@@ -207,6 +208,30 @@ persists a retry 60 seconds later. A new wake during delivery is never cleared
 or postponed by the old response. Delivery is at least once: the backend must
 retain its existing claim, idempotency and exact ownership checks.
 
+Ordinary requests receive HTTP 204. Before beginning a bounded write, a caller
+may reserve a guard using `DurableWakeGuardHeader`, whose value is a canonical
+positive decimal duration in nanoseconds. A reservation requires exactly HTTP
+201; a 204 response from an older executor or an HTTP transport which drops an
+empty header does **not** authorize the write. A preserved empty, zero, negative,
+noncanonical or overflowing duration is refused. Both ingress and the native
+actor validate the resulting absolute deadline against the same alarm range
+used by `next_wake_at`; no storage binding is written before actor validation.
+
+The caller must include its entire possible writer lifetime in the duration,
+including a server-side commit that may outlive an interrupted client call.
+Primitive supplies no Firestore timeout, retry allowance or business lifetime.
+Its reservation acknowledgment precedes the caller's write; the caller then
+sends the ordinary immediate wake after commit. If the caller disappears, the
+persisted guard alarm still requests an authoritative read. Overlapping writers
+retain the latest guard. An empty response can retire a guard only when its
+authoritative read **began** at or after expiry. A response spanning expiry
+requires another read, even though it arrived after expiry. This protects the
+pre-commit crash window without storing a second work queue or appointment data.
+
+The module executes inside Cloudflare's native Worker runtime and therefore
+uses its native fetch/storage/alarm APIs. It is not Go HTTP executed outside
+Exchange. The Go application still sends its schedule requests through Exchange.
+
 Native proof uses Node 26.13.0, Miniflare 5.20260930.0-alpha and its installed
 Workerd 1.20261023.1 with compatibility date 2026-10-07. Install Miniflare and
 fast-check 4.10.2 in an owned private dependency directory, then run the native
@@ -214,3 +239,15 @@ fast-check 4.10.2 in an owned private dependency directory, then run the native
 `PRIMITIVE_FAST_CHECK_MODULE` naming their actual module entry points. The
 controlled backend is not a live provider test. The restart fixtures dispose
 and recreate the whole native runtime while retaining the SQLite directory.
+
+The guard proof adds early-empty-read/restart, overlapping writers, post-expiry
+retirement and held-response/spanning-expiry cases. Native header tests bind
+the actual exported Go header, millisecond ceiling, malformed representations,
+absolute overflow before effects, existing custody preservation and actor-side
+revalidation. Semantic pressure separately generates valid one-hour to thirty-day
+durations and malformed/overflow mutations. That interval is a test input domain,
+not a product quota. Four one-fact controls remove early-read retention, replace
+snapshot time with response time, overwrite the retained maximum, or admit zero;
+each fails the intended native assertion. Earlier fixture and oracle failures
+remain retained; focused corrected results do not erase them. This is component
+proof, not a verified application writer bound, cloud deployment or cold wake.
