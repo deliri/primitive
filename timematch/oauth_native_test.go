@@ -147,7 +147,7 @@ func TestRefreshAndRevokeNative(t *testing.T) {
 		client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			writeJSON(w, 200, tokenBody("eyJ.next", "0.rotated", microsoftScopeReadBasic+" offline_access", "Bearer", "3600"))
 		})
-		grant, err := client.Refresh(t.Context(), RefreshRequest{Application: application(t, ProviderMicrosoft, MicrosoftTenantCommon), RefreshToken: secret(t, "0.previous"), Access: AccessAvailability, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
+		grant, err := client.Refresh(t.Context(), RefreshRequest{Lifetime: LifetimeBusiness, Application: application(t, ProviderMicrosoft, MicrosoftTenantCommon), RefreshToken: secret(t, "0.previous"), Access: AccessAvailability, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
 		form, _ := url.ParseQuery(string(fixture.record()[0].body))
 		if err != nil || string(grant.RefreshToken.value) != "0.rotated" || form.Get("refresh_token") != "0.previous" || form.Get("grant_type") != "refresh_token" || !strings.Contains(form.Get("scope"), "offline_access") {
 			t.Fatalf("Refresh() = (%q, %v) form %v, want rotated token from refresh_token grant", grant.RefreshToken.value, err, form)
@@ -158,7 +158,7 @@ func TestRefreshAndRevokeNative(t *testing.T) {
 		client, _ := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			writeJSON(w, 200, tokenBody("ya29.next", "", googleBusinessScope, "Bearer", "3600"))
 		})
-		grant, err := client.Refresh(t.Context(), RefreshRequest{Application: application(t, ProviderGoogle, MicrosoftTenantInvalid), RefreshToken: secret(t, "1//previous"), Access: AccessManageEvents, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
+		grant, err := client.Refresh(t.Context(), RefreshRequest{Lifetime: LifetimeBusiness, Application: application(t, ProviderGoogle, MicrosoftTenantInvalid), RefreshToken: secret(t, "1//previous"), Access: AccessManageEvents, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
 		if err != nil || grant.RefreshToken.IsSet() || grant.Lifetime != LifetimeBusiness {
 			t.Fatalf("Refresh() = (refresh=%t, %v), want no refresh and nil", grant.RefreshToken.IsSet(), err)
 		}
@@ -168,7 +168,7 @@ func TestRefreshAndRevokeNative(t *testing.T) {
 		client, _ := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			writeJSON(w, 400, `{"error":"invalid_grant"}`)
 		})
-		_, err := client.Refresh(t.Context(), RefreshRequest{Application: application(t, ProviderGoogle, MicrosoftTenantInvalid), RefreshToken: secret(t, "1//revoked"), Access: AccessAvailability, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
+		_, err := client.Refresh(t.Context(), RefreshRequest{Lifetime: LifetimeBusiness, Application: application(t, ProviderGoogle, MicrosoftTenantInvalid), RefreshToken: secret(t, "1//revoked"), Access: AccessAvailability, ObservedAt: at(t, "2026-11-02T10:00:00Z"), Policy: fixturePolicy(t)})
 		if !errors.Is(err, core.ErrTimeMatchConsent) {
 			t.Fatalf("Refresh(revoked) error = %v, want %v", err, core.ErrTimeMatchConsent)
 		}
@@ -233,7 +233,7 @@ func TestAuthorizationEndpointRequestsOnlyCalendarScopes(t *testing.T) {
 		{name: "apple has no oauth application", provider: ProviderApple, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
 		{name: "future provider is refused", provider: ProviderApple + 1, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
 		{name: "zero access is refused", provider: ProviderGoogle, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
-		{name: "future lifetime is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeBusiness + 1, wantErr: core.ErrTimeMatchContract},
+		{name: "future lifetime is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeAppointment + 1, wantErr: core.ErrTimeMatchContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

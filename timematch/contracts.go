@@ -68,7 +68,7 @@ const (
 )
 
 func (l Lifetime) Validate() error {
-	if l < LifetimeVisitor || l > LifetimeBusiness {
+	if l < LifetimeVisitor || l > LifetimeAppointment {
 		return core.ErrTimeMatchContract
 	}
 	return nil
@@ -359,6 +359,9 @@ func (a Application) Validate() error {
 }
 
 func validateGrantShape(access Access, lifetime Lifetime) error {
+	if lifetime == LifetimeAppointment && access != AccessManageEvents {
+		return core.ErrTimeMatchContract
+	}
 	return errors.Join(access.Validate(), lifetime.Validate())
 }
 
@@ -399,18 +402,22 @@ func (r CodeExchange) Validate() error {
 	return nil
 }
 
-// RefreshRequest renews a retained business grant.
+// RefreshRequest renews the same explicitly retained grant lifetime.
 type RefreshRequest struct {
 	RefreshToken Secret
 	ObservedAt   temporal.Instant
 	Application  Application
 	Policy       exchange.OperationPolicy
 	Access       Access
+	Lifetime     Lifetime
 }
 
 func (r RefreshRequest) Validate() error {
-	if err := errors.Join(r.Application.Validate(), r.RefreshToken.Validate(), r.ObservedAt.Validate(), r.Access.Validate(), validatePolicy(r.Policy)); err != nil {
+	if err := errors.Join(r.Application.Validate(), r.RefreshToken.Validate(), r.ObservedAt.Validate(), validateGrantShape(r.Access, r.Lifetime), validatePolicy(r.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
+	}
+	if r.Lifetime == LifetimeVisitor {
+		return core.ErrTimeMatchContract
 	}
 	return nil
 }
@@ -444,7 +451,7 @@ type Grant struct {
 
 func (g Grant) Validate() error {
 	if g.Contact != (VisitorContact{}) {
-		if g.Lifetime != LifetimeVisitor || g.Access != AccessManageEvents {
+		if g.Lifetime != LifetimeVisitor && g.Lifetime != LifetimeAppointment || g.Access != AccessManageEvents {
 			return core.ErrTimeMatchContract
 		}
 		if err := g.Contact.Validate(); err != nil {

@@ -55,10 +55,9 @@ const bearerTokenType = "bearer"
 func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, error) {
 	switch provider {
 	case ProviderGoogle:
-		// A booking visitor grants profile, free/busy and event creation once.
-		// The client reads no appointment content and never requests offline
-		// access. Read-only availability remains a separate SDK capability.
-		if lifetime == LifetimeVisitor {
+		// Both visitor lifetimes use the same profile and owned-event scopes.
+		// Retention changes refresh access, never calendar discovery authority.
+		if lifetime == LifetimeVisitor || lifetime == LifetimeAppointment {
 			if access == AccessManageEvents {
 				return []string{googleScopeFreeBusy, googleScopeOwnedEvents, googleScopeOpenID, googleScopeEmail, googleScopeProfile, googleidentity.BrowserPhoneScope}, nil
 			}
@@ -73,11 +72,11 @@ func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, erro
 		values := []string{microsoftScopeReadBasic}
 		if access == AccessManageEvents {
 			values = []string{microsoftScopeReadWrite}
-			if lifetime == LifetimeVisitor {
+			if lifetime == LifetimeVisitor || lifetime == LifetimeAppointment {
 				values = append(values, microsoftScopeUserRead)
 			}
 		}
-		if lifetime == LifetimeBusiness {
+		if lifetime == LifetimeBusiness || lifetime == LifetimeAppointment {
 			values = append(values, microsoftScopeOffline)
 		}
 		return values, nil
@@ -89,7 +88,8 @@ func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, erro
 // AuthorizationEndpoint builds the provider consent URL. A booking visitor
 // authorizes contact profile, free/busy and the chosen event in one redirect.
 // This is booking contact data, never an application login or account link.
-// A visitor grant is online-only.
+// The one-shot visitor grant remains online-only. An appointment grant can
+// refresh until the caller's own finite consent deadline.
 func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 	if err := r.Validate(); err != nil {
 		return core.HTTPEndpoint{}, err
@@ -111,7 +111,7 @@ func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 	case ProviderGoogle:
 		// access_type=offline returns a refresh token; prompt=consent makes
 		// Google issue it again on a repeated business connection.
-		if r.Lifetime == LifetimeBusiness {
+		if r.Lifetime == LifetimeBusiness || r.Lifetime == LifetimeAppointment {
 			query.Set("access_type", "offline")
 			query.Set("prompt", "consent")
 		} else {
@@ -160,7 +160,7 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 	}
 	defer token.clear()
 	grant, err := admitExchange(token, r)
-	if err == nil && r.Lifetime == LifetimeVisitor && r.Access == AccessManageEvents {
+	if err == nil && (r.Lifetime == LifetimeVisitor || r.Lifetime == LifetimeAppointment) && r.Access == AccessManageEvents {
 		grant.Contact, err = c.visitorContact(ctx, grant, r.Policy)
 		if err != nil {
 			err = errors.Join(err, grant.Close())
@@ -182,20 +182,20 @@ func admitExchange(token tokenWire, r CodeExchange) (Grant, error) {
 	if r.Lifetime == LifetimeVisitor && len(token.refresh) != 0 {
 		return Grant{}, core.ErrTimeMatchResponse
 	}
-	if r.Lifetime == LifetimeBusiness && len(token.refresh) == 0 {
+	if (r.Lifetime == LifetimeBusiness || r.Lifetime == LifetimeAppointment) && len(token.refresh) == 0 {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: r.Lifetime, observed: r.ObservedAt})
 }
 
-// Refresh renews a business grant. Microsoft rotates the refresh token on
+// Refresh renews the explicitly retained grant. Microsoft rotates the refresh token on
 // every use ("You're expected to discard the old refresh token"); the
 // returned Grant then carries the replacement. Google returns none.
 func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 	if err := c.begin(ctx, r); err != nil {
 		return Grant{}, err
 	}
-	scope, err := scopes(r.Application.Provider, r.Access, LifetimeBusiness)
+	scope, err := scopes(r.Application.Provider, r.Access, r.Lifetime)
 	if err != nil {
 		return Grant{}, err
 	}
@@ -211,7 +211,7 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 		return Grant{}, err
 	}
 	defer token.clear()
-	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: LifetimeBusiness, observed: r.ObservedAt})
+	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: r.Lifetime, observed: r.ObservedAt})
 }
 
 // Revoke invalidates the submitted token at Google. Submit the refresh token
@@ -378,7 +378,7 @@ type grantShape struct {
 func (t tokenWire) grant(shape grantShape) (Grant, error) {
 	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
 	if (t.scopePresent || t.scope != "") && !grantedScopes(shape, t.scope) {
-		if shape.provider == ProviderGoogle && shape.lifetime == LifetimeVisitor && shape.access == AccessManageEvents {
+		if shape.provider == ProviderGoogle && (shape.lifetime == LifetimeVisitor || shape.lifetime == LifetimeAppointment) && shape.access == AccessManageEvents {
 			phoneGranted := false
 			for granted := range strings.FieldsSeq(t.scope) {
 				if granted == googleidentity.BrowserPhoneScope {
