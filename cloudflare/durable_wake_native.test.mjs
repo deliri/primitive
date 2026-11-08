@@ -133,7 +133,7 @@ const refusedResults=[
  {name:'last signed nanosecond cannot round beyond native range',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854775807'}},
  {name:'one nanosecond above native millisecond range refuses',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854000001'}},
  {name:'instant above signed maximum refuses',data:{processed:0,succeeded:0,failed:0,next_wake_at:'9223372036854775808'}},
- {name:'oversized body stops at the streaming bound',reply:()=>new Response(' '.repeat(1025),{headers:{'Content-Type':'application/json'}})},
+ {name:'oversized body stops at the streaming bound',reply:()=>new Response(JSON.stringify({data:{processed:0,succeeded:0,failed:0}}).padEnd(1025,' '),{headers:{'Content-Type':'application/json'}})},
  {name:'network interruption retains retry',reply:()=>{throw Error('Controlled transport unavailable');}},
 ];
 for(const scenario of refusedResults)test('durable wake response refusal: '+scenario.name,async()=>{
@@ -149,3 +149,43 @@ for(const width of [1023,1024])test('durable wake bounded response: '+width+' by
   if(f.calls.length!==1||state.scope!==undefined||state.alarm!==null)throw Error('Bounded valid response was refused '+JSON.stringify(state));
  }finally{await f.close();}
 });
+
+test('durable wake public ingress fuzz: foreign credentials never create authority',async()=>{
+ const fc=(await import(process.env.PRIMITIVE_FAST_CHECK_MODULE||'fast-check')).default;
+ const f=await fixture();let refused=0;try{
+  await fc.assert(fc.asyncProperty(fc.string({maxLength:128}),async candidate=>{
+   // HTTP field bytes are a separate native boundary. Keep only representations
+   // which the platform admits, and force a credential different from the grant.
+   const presented=Buffer.from(candidate).toString('base64url');
+   if(presented===token)throw Error('Fuzz mutation did not change authority');
+   const response=await f.request(undefined,{headers:{Authorization:'Bearer '+presented}});
+   if(response.status!==403||f.calls.length!==0)throw Error('Foreign authority crossed wake ingress');
+   refused++;
+  }),{seed:20261108,numRuns:256,endOnFailure:true});
+  const ids=await f.mf.listDurableObjectIds('WAKES');
+  if(ids.length!==0)throw Error('Rejected credentials manufactured durable state');
+  console.log(JSON.stringify({durable_wake_ingress_fuzz:{seed:20261108,refused,backend_calls:f.calls.length,objects:ids.length}}));
+ }finally{await f.close();}
+});
+
+test('durable wake response fuzz: mutated counters conserve work or retain retry',async()=>{
+ const fc=(await import(process.env.PRIMITIVE_FAST_CHECK_MODULE||'fast-check')).default;
+ let value,accepted=0,refused=0;
+ const f=await fixture({reply:()=>Response.json({data:value})});try{
+  await fc.assert(fc.asyncProperty(fc.constantFrom('processed','succeeded','failed'),fc.oneof(fc.integer({min:-2,max:3}),fc.jsonValue({maxDepth:2})),async(field,representation)=>{
+   value={processed:1,succeeded:0,failed:0,[field]:representation};
+   const before=Date.now(),observed=f.observed(),response=await f.request(),state=await observed;
+   if(response.status!==204)throw Error('Valid wake authentication refused');
+   if(state.scope===undefined){
+    accepted++;
+    const counters=[value.processed,value.succeeded,value.failed];
+    if(state.alarm!==null||!counters.every(Number.isSafeInteger)||counters.some(n=>n<0)||BigInt(value.succeeded)+BigInt(value.failed)>BigInt(value.processed))throw Error('Accepted counter representation invented completion '+JSON.stringify(value));
+   }else{
+    refused++;
+    if(state.scope!==scope||!Number.isSafeInteger(state.alarm)||state.alarm<before+60000)throw Error('Refused counter representation lost durable retry');
+   }
+  }),{seed:20261108,numRuns:128,examples:[['processed',1],['succeeded',1],['failed',1],['processed',-1]],endOnFailure:true});
+  if(accepted===0||refused===0||f.calls.length!==accepted+refused)throw Error('Fuzz path was vacuous or lost a delivery');
+  console.log(JSON.stringify({durable_wake_response_fuzz:{seed:20261108,accepted,refused,backend_calls:f.calls.length}}));
+ }finally{await f.close();}
+},30000);
