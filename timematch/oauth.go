@@ -160,7 +160,7 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 	}
 	defer token.clear()
 	grant, err := admitExchange(token, r)
-	if err == nil && (r.Lifetime == LifetimeVisitor || r.Lifetime == LifetimeAppointment) && r.Access == AccessManageEvents {
+	if err == nil && r.Lifetime == LifetimeVisitor && r.Access == AccessManageEvents {
 		grant.Contact, err = c.visitorContact(ctx, grant, r.Policy)
 		if err != nil {
 			err = errors.Join(err, grant.Close())
@@ -182,7 +182,7 @@ func admitExchange(token tokenWire, r CodeExchange) (Grant, error) {
 	if r.Lifetime == LifetimeVisitor && len(token.refresh) != 0 {
 		return Grant{}, core.ErrTimeMatchResponse
 	}
-	if (r.Lifetime == LifetimeBusiness || r.Lifetime == LifetimeAppointment) && len(token.refresh) == 0 {
+	if r.Lifetime == LifetimeBusiness && len(token.refresh) == 0 {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: r.Lifetime, observed: r.ObservedAt})
@@ -195,7 +195,7 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 	if err := c.begin(ctx, r); err != nil {
 		return Grant{}, err
 	}
-	scope, err := scopes(r.Application.Provider, r.Access, r.Lifetime)
+	scope, err := scopes(r.Application.Provider, r.Access, LifetimeBusiness)
 	if err != nil {
 		return Grant{}, err
 	}
@@ -211,7 +211,7 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 		return Grant{}, err
 	}
 	defer token.clear()
-	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: r.Lifetime, observed: r.ObservedAt})
+	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: LifetimeBusiness, observed: r.ObservedAt})
 }
 
 // Revoke invalidates the submitted token at Google. Submit the refresh token
