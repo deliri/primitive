@@ -6,11 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 496
+      "patch": 497
     },
     "release_notes": [
-      "Reserve a durable writer guard before a bounded commit and retain its wake across early empty reads and runtime restarts.",
-      "Require a distinct guarded acknowledgment, preserve overlapping writer deadlines and refuse unsupported alarm timestamps before storage effects."
+      "Admit the exact Go 1.27.4 release compiler while preserving rejection of older and unreviewed compiler identities."
     ]
   }
 }

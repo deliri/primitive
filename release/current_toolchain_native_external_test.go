@@ -21,8 +21,8 @@ func TestCurrentGoToolchainAdmitsTheInstalledNativeExecutable(t *testing.T) {
 		t.Fatal(err)
 	}
 	version, err := verified.GoToolchain().Version()
-	if err != nil || version != "go1.27.3" {
-		t.Fatalf("verified compiler=%q/%v, want go1.27.3", version, err)
+	if err != nil || version != "go1.27.4" {
+		t.Fatalf("verified compiler=%q/%v, want go1.27.4", version, err)
 	}
 	platform, err := hostfacts.CurrentPlatform()
 	if err != nil {

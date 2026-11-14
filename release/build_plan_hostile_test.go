@@ -373,12 +373,15 @@ func TestGoToolchainIdentityPinsExactReleaseCompilerAcrossItsBackingDomain(t *te
 		}
 	}
 	current := release.CurrentGoToolchain()
+	if got := current.String(); got != "go-1.27.4" {
+		t.Fatalf("release.CurrentGoToolchain().String() = %q, want go-1.27.4", got)
+	}
 	version, err := current.Version()
 	if err != nil {
 		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
 	}
-	if version != "go1.27.3" {
-		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.27.3", version)
+	if version != "go1.27.4" {
+		t.Fatalf("release.CurrentGoToolchain().Version() = %q, want go1.27.4", version)
 	}
 	if got := release.GoToolchainUnknown.String(); got != core.UnknownEnumDiagnostic {
 		t.Fatalf("release.GoToolchainUnknown.String() = %q, want %q", got, core.UnknownEnumDiagnostic)
