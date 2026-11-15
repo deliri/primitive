@@ -429,8 +429,16 @@ func errorResultPreserves(ctx context.Context, value ssa.Value, reference *error
 	}
 	if merged, ok := value.(*ssa.Phi); ok {
 		for _, edge := range merged.Edges {
-			if !errorSameValue(edge, reference.Origin) {
+			if errorSameValue(edge, reference.Origin) {
+				continue
+			}
+			call, ok := edge.(*ssa.Call)
+			if !ok {
 				return false, nil
+			}
+			preserved, err := errorCallPreserves(ctx, call, reference)
+			if err != nil || !preserved {
+				return false, err
 			}
 		}
 		return len(merged.Edges) != 0, nil

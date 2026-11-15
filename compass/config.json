@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 497
+      "patch": 498
     },
     "release_notes": [
-      "Admit the exact Go 1.27.4 release compiler while preserving rejection of older and unreviewed compiler identities."
+      "Preserve native error causes across merged conditional wrapping and joining while refusing branches that discard or replace the cause."
     ]
   }
 }

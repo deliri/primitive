@@ -21,6 +21,7 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
 		name, declarations, body string
+		carry                    func(error, bool) error
 		want                     bool
 	}{
 		{name: "direct call", body: "return validate()", want: true},
@@ -54,6 +55,46 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 		{name: "plain formatted joined copy", body: `err:=errors.Join(validate());return fmt.Errorf("%v",err)`},
 		{name: "assigned Join guarded by nil", body: "err:=errors.Join(validate());if err!=nil{return err};return nil", want: true},
 		{name: "native format wrapping", body: "return fmt.Errorf(\"%w\",validate())", want: true},
+		{name: "merged wrapping with percent-w", body: `err:=validate();if err!=nil{err=fmt.Errorf("wrap: %w",err)};return err`, want: true, carry: func(err error, _ bool) error {
+			if err != nil {
+				err = fmt.Errorf("wrap: %w", err)
+			}
+			return err
+		}},
+		{name: "merged joining preserves original", body: `err:=validate();if flag{err=errors.Join(err,errors.New("policy"))};return err`, want: true, carry: func(err error, flag bool) error {
+			if flag {
+				err = errors.Join(err, errors.New("policy"))
+			}
+			return err
+		}},
+		{name: "merged both wrapping arms preserve original", body: `err:=validate();if flag{err=fmt.Errorf("a: %w",err)}else{err=fmt.Errorf("b: %w",err)};return err`, want: true, carry: func(err error, flag bool) error {
+			if flag {
+				err = fmt.Errorf("a: %w", err)
+			} else {
+				err = fmt.Errorf("b: %w", err)
+			}
+			return err
+		}},
+		{name: "merged percent-v arm loses original", body: `err:=validate();if flag{err=fmt.Errorf("lost: %v",err)};return err`, carry: func(err error, flag bool) error {
+			if flag {
+				err = fmt.Errorf("lost: %v", err)
+			}
+			return err
+		}},
+		{name: "merged replacement arm loses original", body: `err:=validate();if flag{err=errors.New("replacement")};return err`, carry: func(err error, flag bool) error {
+			if flag {
+				err = errors.New("replacement")
+			}
+			return err
+		}},
+		{name: "merged mixed wrapping arms lose original", body: `err:=validate();if flag{err=fmt.Errorf("a: %w",err)}else{err=fmt.Errorf("b: %v",err)};return err`, carry: func(err error, flag bool) error {
+			if flag {
+				err = fmt.Errorf("a: %w", err)
+			} else {
+				err = fmt.Errorf("b: %v", err)
+			}
+			return err
+		}},
 		{name: "plain formatting loses original", body: "return fmt.Errorf(\"%v\",validate())"},
 		{name: "local helper retains original", declarations: "func carry(err error)error{return err}", body: "return carry(validate())", want: true},
 		{name: "local helper replaces original", declarations: "func carry(err error)error{return nil}", body: "return carry(validate())"},
@@ -75,6 +116,15 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
 			source := "package sample;import(\"errors\";\"fmt\");var flag,other bool;var _=errors.Join;var _=fmt.Errorf;func validate()error{return nil};" + row.declarations + "\nfunc F()error{" + row.body + "}"
+			if row.carry != nil {
+				preserved := true
+				for _, flag := range [...]bool{false, true} {
+					preserved = errors.Is(row.carry(core.ErrGoToolchainOutput, flag), core.ErrGoToolchainOutput) && preserved
+				}
+				if preserved != row.want {
+					t.Fatalf("native runtime cause preservation=%t, want %t", preserved, row.want)
+				}
+			}
 			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
 			observed := 0
 			for _, unit := range analysis.Units {
