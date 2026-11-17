@@ -21,6 +21,9 @@
 // its typed concrete peer can differ from the HTTP/TLS authority, without
 // rewriting a signed request or replacing TLS verification. Its context
 // bounds acquisition; the recipient owns the acquired connection's lifetime.
+// ResolveIP looks up one validated DNS name through Go's default resolver and
+// returns at most 16 distinct unmapped addresses, so a caller can apply its own
+// address policy before DialTCP pins one peer. No caching or retry occurs.
 // ServeSocketWithWriteStall opts one call into bounded active response writes
 // while allowing quiet computation beyond a server's whole-response timeout.
 // The caller still owns the total request deadline; cancellation interrupts

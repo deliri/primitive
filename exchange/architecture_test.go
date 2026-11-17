@@ -261,6 +261,7 @@ type exchangeContractInventory struct {
 	socketStallWriter          internalFlow[socketStallWriter]
 	ListenAddress              protocolContract[ListenAddress]
 	TCPDialRequest             protocolContract[TCPDialRequest]
+	ResolveIPRequest           protocolContract[ResolveIPRequest]
 	ServerRuntimePolicy        protocolContract[ServerRuntimePolicy]
 	ServerRuntimeConfiguration protocolContract[ServerRuntimeConfiguration]
 	ServerListener             capabilityWrapper[ServerListener]

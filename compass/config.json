@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 498
+      "patch": 499
     },
     "release_notes": [
-      "Preserve native error causes across merged conditional wrapping and joining while refusing branches that discard or replace the cause."
+      "Resolve one validated DNS name to at most sixteen distinct unmapped addresses through Go's default resolver, so callers can apply address policy before dialing a fixed peer."
     ]
   }
 }
