@@ -1,14 +1,18 @@
 package gcsobjects
 
 import (
+	"bufio"
+	"cmp"
 	"context"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
+	"iter"
 	"math"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -245,27 +249,41 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 	if err := gcsUsageContextError(ctx); err != nil {
 		return 0, err
 	}
-	reader := csv.NewReader(source)
-	reader.ReuseRecord = true
-	header, err := reader.Read()
+	next, stop := iter.Pull2(usageCSVFields(ctx, source))
+	defer stop()
+	header, err, present := next()
+	if !present {
+		return 0, errors.Join(core.ErrObjectStoreSource, io.EOF)
+	}
 	if err != nil {
 		return 0, errors.Join(core.ErrObjectStoreSource, err)
 	}
 	var positions [usageColumns]int
 	var seen [usageColumns]bool
 	names := usageColumnNames()
-	for index, name := range header {
+	minimumNameBytes := len(names[0])
+	for _, name := range names {
+		minimumNameBytes = min(minimumNameBytes, len(name))
+	}
+	index := 0
+	for name := range header {
+		position := index
+		index++
 		if name == "" || !utf8.ValidString(name) {
 			return 0, core.ErrObjectStoreSource
 		}
-		for column, known := range names {
+		if len(name) < minimumNameBytes {
+			continue
+		}
+		for column := range names {
+			known := names[column]
 			if name != known {
 				continue
 			}
 			if seen[column] {
 				return 0, fmt.Errorf("%w: duplicated usage column %s", core.ErrObjectStoreSource, known)
 			}
-			positions[column], seen[column] = index, true
+			positions[column], seen[column] = position, true
 		}
 	}
 	for column, present := range seen {
@@ -273,25 +291,36 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 			return 0, fmt.Errorf("%w: missing usage column %s", core.ErrObjectStoreSource, names[column])
 		}
 	}
+	var order [usageColumns]gcsUsageColumn
+	for column := range order {
+		order[column] = gcsUsageColumn(column)
+	}
+	slices.SortFunc(order[:], func(a, b gcsUsageColumn) int { return cmp.Compare(positions[a], positions[b]) })
 	var count uint64
 	for {
 		if err := gcsUsageContextError(ctx); err != nil {
 			return 0, err
 		}
-		values, readErr := reader.Read()
-		switch readErr {
-		case io.EOF:
+		fields, readErr, present := next()
+		if !present {
 			return count, nil
-		case nil:
-		default:
+		}
+		if readErr != nil {
 			return 0, errors.Join(core.ErrObjectStoreSource, readErr)
 		}
-		for _, value := range values {
+		var values [usageColumns]string
+		position, selected := 0, 0
+		for value := range fields {
 			if !utf8.ValidString(value) {
 				return 0, core.ErrObjectStoreSource
 			}
+			if selected < len(order) && position == positions[order[selected]] {
+				values[order[selected]] = value
+				selected++
+			}
+			position++
 		}
-		row, rowErr := decodeGCSUsageRecord(values, positions)
+		row, rowErr := decodeGCSUsageRecord(values)
 		if rowErr != nil {
 			return 0, errors.Join(core.ErrObjectStoreSource, rowErr)
 		}
@@ -305,9 +334,80 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 	}
 }
 
-func decodeGCSUsageRecord(values []string, positions [usageColumns]int) (GCSUsageRecord, error) {
+// usageCSVFields avoids an allocation per ignored column in unquoted records.
+// Strings lends those fields directly. Quoting and field-count errors remain
+// owned by encoding/csv; once needed, that reader consumes the remaining stream.
+// The largest record is still owned memory, as in encoding/csv's whole-record API.
+func usageCSVFields(ctx context.Context, source io.Reader) iter.Seq2[iter.Seq[string], error] {
+	return func(yield func(iter.Seq[string], error) bool) {
+		buffered := bufio.NewReader(source)
+		var native *csv.Reader
+		width, priorLines := 0, 0
+		for {
+			if err := gcsUsageContextError(ctx); err != nil {
+				yield(nil, err)
+				return
+			}
+			if native != nil {
+				values, err := native.Read()
+				if err == io.EOF {
+					return
+				}
+				if err != nil {
+					if parsed, ok := errors.AsType[*csv.ParseError](err); ok {
+						adjusted := *parsed
+						adjusted.StartLine += priorLines
+						adjusted.Line += priorLines
+						err = &adjusted
+					}
+					yield(nil, err)
+					return
+				}
+				if !yield(slices.Values(values), nil) {
+					return
+				}
+				continue
+			}
+			line, readErr := buffered.ReadString('\n')
+			if readErr != nil && readErr != io.EOF {
+				yield(nil, readErr)
+				return
+			}
+			if len(line) == 0 {
+				return
+			}
+			fields := strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
+			if fields == "" {
+				priorLines++
+				if readErr == io.EOF {
+					return
+				}
+				continue
+			}
+			columns := strings.Count(fields, ",") + 1
+			if strings.Contains(fields, `"`) || width != 0 && columns != width {
+				native = csv.NewReader(io.MultiReader(strings.NewReader(line), buffered))
+				native.ReuseRecord = true
+				native.FieldsPerRecord = width
+				continue
+			}
+			if width == 0 {
+				width = columns
+			}
+			priorLines++
+			if !yield(strings.SplitSeq(fields, ","), nil) {
+				return
+			}
+			if readErr == io.EOF {
+				return
+			}
+		}
+	}
+}
+
+func decodeGCSUsageRecord(values [usageColumns]string) (GCSUsageRecord, error) {
 	var row GCSUsageRecord
-	value := func(column gcsUsageColumn) string { return values[positions[column]] }
+	value := func(column gcsUsageColumn) string { return values[column] }
 	micros, err := strconv.ParseInt(value(usageTime), 10, 64)
 	if err != nil || micros > math.MaxInt64/int64(temporal.NanosecondsPerMicrosecond) || micros < math.MinInt64/int64(temporal.NanosecondsPerMicrosecond) {
 		return row, errors.Join(core.ErrObjectStoreSource, err, strconv.ErrRange)

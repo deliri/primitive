@@ -1,0 +1,9 @@
+# Primitive 2026.1.500
+
+GCS usage-log decoding iterates unquoted CSV fields without allocating a slice entry for every ignored column. It projects only the seventeen owned columns into a fixed array. Go's `encoding/csv` still owns quoting, malformed quotes, record-width errors and their original source coordinates. Records retain their existing whole-record string ownership; quoted input uses the native whole-record parser. Header validation, unknown-column UTF-8 checks, provider extent/checksum/EOF/close checks and cancellation remain enforced.
+
+Focused Go 1.27.4 race runs passed 143 test nodes across the affected CSV, native SDK and lifetime tests. New tests compare exact fields and parse-error coordinates against Go's CSV reader, including window boundaries. Omitting the quote delegation fails three intended leaves; omitting the source-line adjustment fails two. Three semantic fuzz campaigns used three-second budgets, with 7, 11 and 9 reported executions; that is thin exploratory pressure. Final affected Gofmt, Vet and Staticcheck returned no findings. Anvil remained shut down under the owner's direct-Go authorization.
+
+The original Blink Kernel 32 MiB, 11,184,712-column failure passed on Furnace with this parser source: one exact record/request and 123 response bytes, in 3.70 seconds under the unchanged ten-second provider deadline. The earlier header-only candidate still exceeded that deadline. This consumer proof used an explicit private copy of the pinned SDK plus the changed parser; published dependency adoption follows separately.
+
+Source, complete attempts, meaningful controls and native consumer receipts are retained under `/data/evidence/primitive/2026-11-18/witness-kernel-csv500`. The local proof rollup is `/Users/d/.codex/ops/witness-blink-kernel-20261118/csv-diagnosis/PRIMITIVE500-PROOF.json`. These are implementation facts; independent acceptance remains with the user.

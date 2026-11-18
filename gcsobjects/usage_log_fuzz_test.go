@@ -17,6 +17,11 @@ func FuzzGCSUsageCSVSemanticClosure(f *testing.F) {
 	names := usageColumnNames()
 	values := usageRecordValues(f, seed)
 	f.Add(usageCSVFixture(f, names[:], values))
+	for _, name := range []string{"x", "", string([]byte{0xff})} {
+		header := append(append([]string(nil), names[:]...), name)
+		row := append(append([]string(nil), values...), "opaque")
+		f.Add(usageCSVFixture(f, header, row))
+	}
 	f.Add(usageCSVFixture(f, names[:]))
 	f.Add(usageCSVFixture(f, names[:len(names)-1]))
 	duplicateHeader := append([]string(nil), names[:]...)
