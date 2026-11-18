@@ -29,14 +29,14 @@ func TestSignPublicCanonicalBodyProductionPathMatrix(t *testing.T) {
 		{name: "prime extent irregular chunks seal", makeBody: sizedBodyFixture(7919, 113, testDomainPrimary, false), wantBytes: 7919},
 		{name: "one page in one write seals", makeBody: sizedBodyFixture(4096, 4096, testDomainPrimary, false), wantBytes: 4096},
 		{name: "sixty four kibibytes in pages seals", makeBody: sizedBodyFixture(64<<10, 4096, testDomainPrimary, false), wantBytes: 64 << 10},
-		{name: "maximum minus one seals", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes-1, 8191, testDomainPrimary, false), wantBytes: attest.CanonicalBodyMaximumBytes - 1},
-		{name: "exact maximum seals", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes, 8192, testDomainPrimary, false), wantBytes: attest.CanonicalBodyMaximumBytes},
+		{name: "maximum minus one seals", makeBody: sizedBodyFixture(canonicalBodyTestWindowBytes-1, 8191, testDomainPrimary, false), wantBytes: canonicalBodyTestWindowBytes - 1},
+		{name: "exact maximum seals", makeBody: sizedBodyFixture(canonicalBodyTestWindowBytes, 8192, testDomainPrimary, false), wantBytes: canonicalBodyTestWindowBytes},
 		{name: "alternate domain seals", makeBody: sizedBodyFixture(1, 1, testDomainAlternate, false), wantBytes: 1},
 		{name: "embedded zero bytes seal exactly", makeBody: literalBodyFixture(testDomainPrimary, []byte{0, 1, 0, 2}), wantBytes: 4},
 		{name: "utf8 bytes seal without interpretation", makeBody: literalBodyFixture(testDomainPrimary, []byte("世界")), wantBytes: 6},
 		{name: "zero canonical extent rejects", makeBody: sizedBodyFixture(0, 1, testDomainPrimary, false), wantErr: core.ErrAttestContract},
-		{name: "maximum plus one rejects", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes+1, 8192, testDomainPrimary, false), wantErr: core.ErrAttestContract},
-		{name: "ignored limit error remains terminal", makeBody: sizedBodyFixture(attest.CanonicalBodyMaximumBytes+1, 8192, testDomainPrimary, true), wantErr: core.ErrAttestContract},
+		{name: "past historical quota streams", makeBody: sizedBodyFixture(canonicalBodyTestWindowBytes+1, 8192, testDomainPrimary, false), wantBytes: canonicalBodyTestWindowBytes + 1},
+		{name: "caller error posture does not truncate valid bytes", makeBody: sizedBodyFixture(canonicalBodyTestWindowBytes+1, 8192, testDomainPrimary, true), wantBytes: canonicalBodyTestWindowBytes + 1},
 		{name: "unknown domain rejects before signing", makeBody: literalBodyFixture(testDomainUnknown, []byte("x")), wantErr: core.ErrAttestContract},
 		{name: "validation error remains reachable", makeBody: hostileBodyFixture(hostileBodyValidationError), wantErr: core.ErrAttestContract, wantNative: fixtureErrorValidation},
 		{name: "validation panic is contained", makeBody: hostileBodyFixture(hostileBodyValidationPanic), wantErr: core.ErrAttestContract},
@@ -505,7 +505,7 @@ func verifyValidationRequestFixture(
 	case verifyValidationZeroWrite:
 		request.Body = hostileBody{mode: hostileBodyZeroWrite}
 	case verifyValidationAlternateBody:
-		request.Body = sizedBody{size: attest.CanonicalBodyMaximumBytes, chunkSize: 8192, domain: testDomainPrimary}
+		request.Body = sizedBody{size: canonicalBodyTestWindowBytes, chunkSize: 8192, domain: testDomainPrimary}
 	case verifyValidationZeroEnvelope:
 		request.Envelope = attest.Envelope[testDomain]{}
 	case verifyValidationZeroTrust:

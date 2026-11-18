@@ -31,18 +31,14 @@ func TestAttestProducerLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative oversized producer emits no envelope", func(t *testing.T) {
+	t.Run("negative producer error after many windows emits no envelope", func(t *testing.T) {
 		t.Parallel()
 
 		gotEnvelope, gotErr := attest.Sign(attest.SignRequest[testDomain]{
-			Body: sizedBody{
-				size:      attest.CanonicalBodyMaximumBytes + 1,
-				chunkSize: 8192,
-				domain:    testDomainPrimary,
-			},
+			Body:   &streamFailureBody{size: canonicalBodyTestWindowBytes + 1, callbackErr: fixtureErrorWrite},
 			Signer: deterministicPrivateKey(t, "producer-negative"),
 		})
-		if !errors.Is(gotErr, core.ErrAttestContract) {
+		if !errors.Is(gotErr, core.ErrAttestContract) || !errors.Is(gotErr, fixtureErrorWrite) {
 			t.Fatalf("attest.Sign() error = %v, want %v", gotErr, core.ErrAttestContract)
 		}
 		if gotEnvelope != (attest.Envelope[testDomain]{}) {
@@ -90,7 +86,7 @@ func TestAttestEnvelopeSchemaLayerTriad(t *testing.T) {
 			literalBody{domain: testDomainPrimary, value: []byte("schema")},
 			deterministicPrivateKey(t, "schema-negative"),
 		)
-		length, gotLengthErr := core.NewByteCount(attest.CanonicalBodyMaximumBytes + 1)
+		length, gotLengthErr := core.NewByteCount(uint64(attest.CanonicalBodyMaximumBytes) + 1)
 		if gotLengthErr != nil {
 			t.Fatalf("core.NewByteCount() error = %v, want nil", gotLengthErr)
 		}

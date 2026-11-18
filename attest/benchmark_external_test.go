@@ -25,7 +25,7 @@ type benchmarkCanonicalBody struct {
 }
 
 func (b *benchmarkCanonicalBody) Validate() error {
-	if b.size < 1 || b.size > attest.CanonicalBodyMaximumBytes {
+	if b.size < 1 {
 		return core.ErrAttestContract
 	}
 	return nil
@@ -76,9 +76,19 @@ func BenchmarkSignCanonicalBody64KiB(b *testing.B) {
 	b.ReportAllocs()
 	benchmarkSignCanonicalBody(b, 64<<10)
 }
-func BenchmarkSignCanonicalBodyMaximum(b *testing.B) {
+func BenchmarkSignCanonicalBody1MiB(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkSignCanonicalBody(b, attest.CanonicalBodyMaximumBytes)
+	benchmarkSignCanonicalBody(b, canonicalBodyTestWindowBytes)
+}
+
+func BenchmarkSignCanonicalBodyLargeStreams(b *testing.B) {
+	b.ReportAllocs()
+	for _, size := range []int{canonicalBodyTestWindowBytes, (17 << 20) + 37} {
+		b.Run("bytes_"+strconv.Itoa(size), func(b *testing.B) {
+			b.ReportAllocs()
+			benchmarkSignCanonicalBody(b, size)
+		})
+	}
 }
 func benchmarkSignCanonicalBody(b *testing.B, size int) {
 	b.Helper()
@@ -126,9 +136,9 @@ func BenchmarkVerifyCanonicalBody64KiB(b *testing.B) {
 	b.ReportAllocs()
 	benchmarkVerifyCanonicalBody(b, 64<<10, 1)
 }
-func BenchmarkVerifyCanonicalBodyMaximum(b *testing.B) {
+func BenchmarkVerifyCanonicalBody1MiB(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkVerifyCanonicalBody(b, attest.CanonicalBodyMaximumBytes, 1)
+	benchmarkVerifyCanonicalBody(b, canonicalBodyTestWindowBytes, 1)
 }
 func benchmarkVerifyCanonicalBody(b *testing.B, size, trustCount int) {
 	b.Helper()

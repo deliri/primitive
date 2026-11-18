@@ -14,13 +14,12 @@ type canonicalFacts[D SigningDomain[D]] struct {
 }
 
 // canonicalDigestWriter adds attest's policy to Core's streaming digest: a
-// canonical body has a maximum size, may not be empty, and is written exactly
-// once. The hashing itself, and the refusal to hash a short write, belong to
+// canonical body may not be empty and is written exactly once. The hashing,
+// exact native byte count, and refusal to hash a short write belong to
 // Core and are not repeated here.
 type canonicalDigestWriter struct {
 	digest *core.DigestWriter
 	err    error
-	count  int
 	closed bool
 }
 
@@ -35,16 +34,11 @@ func (w *canonicalDigestWriter) Write(data []byte) (int, error) {
 	if w.err != nil {
 		return 0, w.err
 	}
-	if len(data) > CanonicalBodyMaximumBytes-w.count {
-		w.err = contractError(errors.New(bodyLimitErrorText))
-		return 0, w.err
-	}
 	written, err := w.digest.Write(data)
 	if err != nil {
 		w.err = contractError(err)
 		return written, w.err
 	}
-	w.count += written
 	return written, nil
 }
 
@@ -56,24 +50,17 @@ func (w *canonicalDigestWriter) close(callbackErr error) (core.ByteCount, core.S
 	if callbackErr != nil {
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(callbackErr)
 	}
-	if w.count == 0 {
+	digest, observed, err := w.digest.Seal()
+	if err != nil {
+		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
+	}
+	if observed.Uint64() == 0 {
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(errors.New(bodyEmptyErrorText))
 	}
-	checkedCount, err := core.CheckedUint32FromInt(w.count)
+	length, err := core.NewByteCount(observed.Uint64())
 	if err != nil {
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
 	}
-	length, err := core.NewByteCount(uint64(checkedCount))
-	if err != nil {
-		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
-	}
-	digest, _, err := w.digest.Seal()
-	if err != nil {
-		return core.ByteCount{}, core.SHA256Digest{}, contractError(err)
-	}
-	// Core's byte length is discarded on purpose: attest's canonical count is a
-	// ByteCount bounded by CanonicalBodyMaximumBytes, which is a narrower fact
-	// about the same bytes and is checked above.
 	return length, digest, nil
 }
 

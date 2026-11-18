@@ -45,7 +45,7 @@ func (b observedExecutionBody) WriteCanonical(destination io.Writer) error {
 	case bodyExitIgnoredOverflow:
 		// The first byte plus this exact maximum exceeds the contract. The
 		// defective owner ignores the writer's refusal and attempts recovery.
-		body := sizedBody{size: attest.CanonicalBodyMaximumBytes, chunkSize: 8192, domain: testDomainPrimary, ignoreErr: true}
+		body := sizedBody{size: canonicalBodyTestWindowBytes, chunkSize: 8192, domain: testDomainPrimary, ignoreErr: true}
 		_ = body.WriteCanonical(destination)
 		_, _ = io.WriteString(destination, "late")
 		return nil

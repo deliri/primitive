@@ -74,6 +74,9 @@ func (b literalBody) WriteCanonical(destination io.Writer) error {
 	return err
 }
 
+// Evidence window only; valid streams continue beyond this historical quota.
+const canonicalBodyTestWindowBytes = 1 << 20
+
 type sizedBody struct {
 	size      int
 	chunkSize int

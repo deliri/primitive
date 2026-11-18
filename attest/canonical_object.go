@@ -3,6 +3,7 @@ package attest
 import (
 	"bytes"
 	"errors"
+	"math"
 	"strconv"
 	"unicode/utf8"
 
@@ -12,6 +13,9 @@ import (
 )
 
 const (
+	// canonicalObjectNativeMaximumBytes is the native extent addressable by the
+	// caller-owned buffer and its uint32 member-name coordinates.
+	canonicalObjectNativeMaximumBytes = int(min(uint64(^uint(0)>>1), uint64(math.MaxUint32)))
 	// CanonicalFieldNameMaximumBytes bounds one canonical member name.
 	CanonicalFieldNameMaximumBytes = 64
 	// CanonicalObjectMaximumFields bounds the members of one canonical object.
@@ -69,12 +73,12 @@ type CanonicalObject struct {
 // BeginCanonicalObject starts one canonical object at the end of destination.
 // The caller keeps ownership of the backing array. Scalar members use fixed
 // stack storage; string and nested-value owners may allocate while producing
-// their independently validated canonical encodings. String input is admitted
-// against the remaining object extent before encoding, so that allocation is
-// bounded by CanonicalBodyMaximumBytes.
+// their independently validated canonical encodings. The complete buffer belongs to the caller; allocations follow the encoded
+// value. Extent checks protect native buffer and name-coordinate representation,
+// rather than imposing a transfer quota on streaming signing.
 func BeginCanonicalObject(destination []byte) CanonicalObject {
 	object := CanonicalObject{buffer: destination, opened: true}
-	if len(destination) >= CanonicalBodyMaximumBytes {
+	if len(destination) >= canonicalObjectNativeMaximumBytes {
 		object.err = contractError(errors.New(canonicalObjectExtentErrorText))
 		return object
 	}
@@ -90,7 +94,7 @@ func (o *CanonicalObject) String(name string, value string) {
 	}
 	// Quotes are the smallest possible JSON string overhead. Escaping can only
 	// increase it, so an input that fails this check cannot fit in the object.
-	if len(value) > CanonicalBodyMaximumBytes-len(o.buffer)-2 {
+	if len(value) > canonicalObjectNativeMaximumBytes-len(o.buffer)-2 {
 		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return
 	}
@@ -171,7 +175,7 @@ func (o *CanonicalObject) End() ([]byte, error) {
 	if o.count == 0 {
 		return nil, contractError(errors.New(canonicalObjectEmptyErrorText))
 	}
-	if len(o.buffer) >= CanonicalBodyMaximumBytes {
+	if len(o.buffer) >= canonicalObjectNativeMaximumBytes {
 		return nil, contractError(errors.New(canonicalObjectExtentErrorText))
 	}
 	o.buffer = append(o.buffer, canonicalObjectClose)
@@ -198,7 +202,7 @@ func (o *CanonicalObject) fail(err error) {
 }
 
 func (o *CanonicalObject) appendEncodedMember(span canonicalNameSpan, encoded []byte) {
-	if len(encoded) > CanonicalBodyMaximumBytes-len(o.buffer) {
+	if len(encoded) > canonicalObjectNativeMaximumBytes-len(o.buffer) {
 		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return
 	}
@@ -222,7 +226,7 @@ func (o *CanonicalObject) beginMember(name string) (canonicalNameSpan, bool) {
 	if o.count > 0 {
 		prefixLength++ // member comma
 	}
-	if prefixLength > CanonicalBodyMaximumBytes-len(o.buffer) {
+	if prefixLength > canonicalObjectNativeMaximumBytes-len(o.buffer) {
 		o.fail(errors.New(canonicalObjectExtentErrorText))
 		return canonicalNameSpan{}, false
 	}
@@ -322,7 +326,7 @@ func marshalCanonicalMember(value core.ValidatedJSONMarshaler) ([]byte, error) {
 }
 
 func validateCanonicalMemberEncoding(encoded []byte) error {
-	if len(encoded) == 0 || len(encoded) > CanonicalBodyMaximumBytes {
+	if len(encoded) == 0 || len(encoded) > canonicalObjectNativeMaximumBytes {
 		return errors.New(canonicalMemberExtentErrorText)
 	}
 	if !utf8.Valid(encoded) {

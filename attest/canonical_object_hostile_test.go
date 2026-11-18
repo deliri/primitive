@@ -233,8 +233,6 @@ func TestCanonicalObjectTypedMembersEmitExactlyOneAcceptedEncoding(t *testing.T)
 func TestCanonicalObjectRejectsHostileMemberOwnersWithoutPartialOutput(t *testing.T) {
 	t.Parallel()
 
-	oversized := strings.Repeat("x", attest.CanonicalBodyMaximumBytes+1)
-
 	cases := []struct {
 		write func(*attest.CanonicalObject)
 		name  string
@@ -276,14 +274,8 @@ func TestCanonicalObjectRejectsHostileMemberOwnersWithoutPartialOutput(t *testin
 		{name: "member owner emitting invalid utf-8 is refused", write: func(o *attest.CanonicalObject) {
 			o.Value("v", canonicalMember{encoded: "\"\xff\"", valid: true})
 		}},
-		{name: "member owner emitting more than the body ceiling is refused", write: func(o *attest.CanonicalObject) {
-			o.Value("v", canonicalMember{encoded: `"` + oversized + `"`, valid: true})
-		}},
 		{name: "string member carrying invalid utf-8 is refused", write: func(o *attest.CanonicalObject) {
 			o.String("v", "\xff")
-		}},
-		{name: "string member larger than the complete object ceiling is refused", write: func(o *attest.CanonicalObject) {
-			o.String("v", oversized)
 		}},
 	}
 
@@ -427,28 +419,6 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 		}
 	})
 
-	t.Run("a destination already above the body ceiling is refused before any member", func(t *testing.T) {
-		t.Parallel()
-
-		object := attest.BeginCanonicalObject(make([]byte, attest.CanonicalBodyMaximumBytes+1))
-		object.Bool("v", true)
-		got, gotErr := object.End()
-		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-			t.Fatalf("End() over an oversized destination = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
-		}
-	})
-
-	t.Run("a destination exactly at the body ceiling is refused before any member", func(t *testing.T) {
-		t.Parallel()
-
-		object := attest.BeginCanonicalObject(make([]byte, attest.CanonicalBodyMaximumBytes))
-		object.Bool("v", true)
-		got, gotErr := object.End()
-		if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-			t.Fatalf("End() at an exhausted destination = (%q, %v), want (nil, %v)", got, gotErr, core.ErrAttestContract)
-		}
-	})
-
 	t.Run("an invalid field name is rejected before its nested owner is invoked", func(t *testing.T) {
 		t.Parallel()
 
@@ -586,15 +556,15 @@ func TestCanonicalObjectStringExtentIncludesEscapesAndClosingByte(t *testing.T) 
 			if err != nil {
 				t.Fatalf("framing oracle error = %v, want nil", err)
 			}
-			room := attest.CanonicalBodyMaximumBytes - len(empty)
+			room := canonicalBodyTestWindowBytes - len(empty)
 			for _, boundary := range []struct {
 				name  string
 				delta int
 			}{
-				{name: "one byte below maximum", delta: -1},
-				{name: "exact maximum including closing brace", delta: 0},
-				{name: "one byte above maximum", delta: 1},
-				{name: "encoded member itself exceeds remaining storage", delta: 2},
+				{name: "one byte below former quota", delta: -1},
+				{name: "exact former quota including closing brace", delta: 0},
+				{name: "one byte above former quota", delta: 1},
+				{name: "encoded member continues beyond former storage quota", delta: 2},
 			} {
 				delta := boundary.delta
 				t.Run(boundary.name, func(t *testing.T) {
@@ -604,18 +574,12 @@ func TestCanonicalObjectStringExtentIncludesEscapesAndClosingByte(t *testing.T) 
 					want, err := core.MarshalCanonicalJSONDocument(struct {
 						V string `json:"v"`
 					}{V: input})
-					if err != nil || len(want) != attest.CanonicalBodyMaximumBytes+delta {
-						t.Fatalf("oracle extent = (%d, %v), want %d", len(want), err, attest.CanonicalBodyMaximumBytes+delta)
+					if err != nil || len(want) != canonicalBodyTestWindowBytes+delta {
+						t.Fatalf("oracle extent = (%d, %v), want %d", len(want), err, canonicalBodyTestWindowBytes+delta)
 					}
 					object := attest.BeginCanonicalObject(nil)
 					object.String("v", input)
 					got, gotErr := object.End()
-					if delta > 0 {
-						if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {
-							t.Fatalf("oversized End() = (%d bytes, %v), want nil and %v", len(got), gotErr, core.ErrAttestContract)
-						}
-						return
-					}
 					if gotErr != nil || !bytes.Equal(got, want) {
 						t.Fatalf("bounded End() = (%d bytes, %v), want %d exact oracle bytes", len(got), gotErr, len(want))
 					}
@@ -667,7 +631,7 @@ func TestCanonicalObjectReusedScalarsAllocateNoHeap(t *testing.T) {
 	}
 }
 
-func TestCanonicalObjectDestinationPrefixConsumesTheDocumentBudget(t *testing.T) {
+func TestCanonicalObjectDestinationPrefixSurvivesTheFormerQuota(t *testing.T) {
 	t.Parallel()
 	member, err := core.MarshalCanonicalJSONDocument(struct {
 		V bool `json:"v"`
@@ -680,9 +644,9 @@ func TestCanonicalObjectDestinationPrefixConsumesTheDocumentBudget(t *testing.T)
 		name    string
 		extent  int
 	}{
-		{name: "prefix leaves one byte of slack", extent: attest.CanonicalBodyMaximumBytes - 1},
-		{name: "prefix and member exactly consume document budget", extent: attest.CanonicalBodyMaximumBytes},
-		{name: "prefix leaves no room for closing byte", extent: attest.CanonicalBodyMaximumBytes + 1, wantErr: core.ErrAttestContract},
+		{name: "prefix leaves one byte of slack", extent: canonicalBodyTestWindowBytes - 1},
+		{name: "prefix and member exactly consume document budget", extent: canonicalBodyTestWindowBytes},
+		{name: "prefix and closing byte cross former quota", extent: canonicalBodyTestWindowBytes + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -46,26 +46,25 @@ func (b *streamFailureBody) WriteCanonical(destination io.Writer) error {
 func TestAttestStreamFailureIdentityAndClosureTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		callbackErr  error
-		wantErr      error
-		name         string
-		size         int
-		wantOverflow bool
+		callbackErr error
+		wantErr     error
+		name        string
+		size        int
 	}{
 		{name: "minimum complete body retains exact proof", size: 1},
-		{name: "one below ceiling retains exact proof", size: attest.CanonicalBodyMaximumBytes - 1},
-		{name: "exact ceiling retains exact proof", size: attest.CanonicalBodyMaximumBytes},
+		{name: "one below ceiling retains exact proof", size: canonicalBodyTestWindowBytes - 1},
+		{name: "exact ceiling retains exact proof", size: canonicalBodyTestWindowBytes},
 		{name: "empty callback cannot manufacture proof", wantErr: core.ErrAttestContract},
-		{name: "ignored overflow cannot manufacture proof", size: attest.CanonicalBodyMaximumBytes + 1, wantErr: core.ErrAttestContract, wantOverflow: true},
+		{name: "above historical quota retains exact proof", size: canonicalBodyTestWindowBytes + 1},
 		{name: "cancellation before bytes remains cancellation", callbackErr: context.Canceled, wantErr: core.ErrAttestContract},
 		{name: "cancellation after partial bytes remains cancellation", size: 1, callbackErr: context.Canceled, wantErr: core.ErrAttestContract},
-		{name: "cancellation after complete maximum body prevents proof", size: attest.CanonicalBodyMaximumBytes, callbackErr: context.Canceled, wantErr: core.ErrAttestContract},
-		{name: "overflow retains cancellation alongside writer refusal", size: attest.CanonicalBodyMaximumBytes + 1, callbackErr: context.Canceled, wantErr: core.ErrAttestContract, wantOverflow: true},
+		{name: "cancellation after complete maximum body prevents proof", size: canonicalBodyTestWindowBytes, callbackErr: context.Canceled, wantErr: core.ErrAttestContract},
+		{name: "many-window body retains cancellation alongside writer refusal", size: canonicalBodyTestWindowBytes + 1, callbackErr: context.Canceled, wantErr: core.ErrAttestContract},
 		{name: "partial deadline remains deadline", size: 1, callbackErr: context.DeadlineExceeded, wantErr: core.ErrAttestContract},
-		{name: "overflow retains deadline alongside writer refusal", size: attest.CanonicalBodyMaximumBytes + 1, callbackErr: context.DeadlineExceeded, wantErr: core.ErrAttestContract, wantOverflow: true},
-		{name: "overflow retains wrapped cancellation", size: attest.CanonicalBodyMaximumBytes + 1, callbackErr: fmt.Errorf("body source: %w", context.Canceled), wantErr: core.ErrAttestContract, wantOverflow: true},
-		{name: "overflow retains independent producer failure", size: attest.CanonicalBodyMaximumBytes + 1, callbackErr: fixtureErrorWrite, wantErr: core.ErrAttestContract, wantOverflow: true},
-		{name: "overflow retains joined producer failures", size: attest.CanonicalBodyMaximumBytes + 1, callbackErr: errors.Join(context.Canceled, fixtureErrorWrite), wantErr: core.ErrAttestContract, wantOverflow: true},
+		{name: "many-window body retains deadline alongside writer refusal", size: canonicalBodyTestWindowBytes + 1, callbackErr: context.DeadlineExceeded, wantErr: core.ErrAttestContract},
+		{name: "many-window body retains wrapped cancellation", size: canonicalBodyTestWindowBytes + 1, callbackErr: fmt.Errorf("body source: %w", context.Canceled), wantErr: core.ErrAttestContract},
+		{name: "many-window body retains independent producer failure", size: canonicalBodyTestWindowBytes + 1, callbackErr: fixtureErrorWrite, wantErr: core.ErrAttestContract},
+		{name: "many-window body retains joined producer failures", size: canonicalBodyTestWindowBytes + 1, callbackErr: errors.Join(context.Canceled, fixtureErrorWrite), wantErr: core.ErrAttestContract},
 	}
 	for _, verifying := range []bool{false, true} {
 		operation := "sign"
@@ -84,7 +83,7 @@ func TestAttestStreamFailureIdentityAndClosureTable(t *testing.T) {
 					var proof attest.Verified[testDomain]
 					var err error
 					if verifying {
-						baselineBody := &benchmarkCanonicalBody{size: max(1, min(tc.size, attest.CanonicalBodyMaximumBytes))}
+						baselineBody := &benchmarkCanonicalBody{size: max(1, tc.size)}
 						envelope := mustEnvelope(t, baselineBody, key)
 						proof, err = attest.Verify(attest.VerifyRequest[testDomain]{Body: body, Envelope: envelope, TrustedKeys: mustTrustedKeys(t, mustPublicKey(t, key))})
 						if err == nil {
@@ -96,10 +95,10 @@ func TestAttestStreamFailureIdentityAndClosureTable(t *testing.T) {
 					if !errors.Is(err, tc.wantErr) || tc.callbackErr != nil && !errors.Is(err, tc.callbackErr) {
 						t.Fatalf("operation error = %v; want %v preserving callback %v", err, tc.wantErr, tc.callbackErr)
 					}
-					if (body.writerErr != nil) != tc.wantOverflow || tc.wantOverflow && !errors.Is(err, body.writerErr) {
-						t.Fatalf("writer refusal = %v, operation error = %v; want overflow %t with original refusal preserved", body.writerErr, err, tc.wantOverflow)
+					if body.writerErr != nil {
+						t.Fatalf("writer refusal = %v, operation error = %v; want nil writer error with callback cause preserved", body.writerErr, err)
 					}
-					wantAccepted := min(tc.size, attest.CanonicalBodyMaximumBytes)
+					wantAccepted := tc.size
 					wantSignCalls := 0
 					if !verifying && tc.wantErr == nil {
 						wantSignCalls = 1

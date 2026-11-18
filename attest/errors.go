@@ -14,7 +14,6 @@ const (
 	privateKeyPublicHalfErrorText      = "ed25519 private key public half is inconsistent"
 	bodyMissingErrorText               = "canonical body is missing"
 	bodyEmptyErrorText                 = "canonical body is empty"
-	bodyLimitErrorText                 = "canonical body exceeds its byte limit"
 	writerClosedErrorText              = "canonical body writer is closed"
 	signatureUnsetErrorText            = "ed25519 signature is unset"
 	signatureLengthErrorText           = "ed25519 signature has invalid length"

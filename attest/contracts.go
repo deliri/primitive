@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"encoding"
 	"io"
+	"math"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -11,13 +12,14 @@ import (
 const (
 	// SigningDomainMaximumBytes is the maximum canonical domain-text extent.
 	SigningDomainMaximumBytes = 64
-	// CanonicalBodyMaximumBytes is the maximum canonical body extent.
-	CanonicalBodyMaximumBytes = 1 << 20
+	// CanonicalBodyMaximumBytes is Core.DigestWriter's native signed extent.
+	// Bodies stream through fixed hash state; there is no transfer-size quota.
+	CanonicalBodyMaximumBytes = math.MaxInt64
 	// TrustedKeyMaximumCount is the maximum caller-selected trust-set size.
 	TrustedKeyMaximumCount = 16
 	// EnvelopeCanonicalJSONMaximumBytes is the exact maximum canonical envelope
 	// extent. MarshalJSON never emits more.
-	EnvelopeCanonicalJSONMaximumBytes = 405
+	EnvelopeCanonicalJSONMaximumBytes = 417
 )
 
 // SigningDomain is implemented by a protocol owner's closed domain enum.

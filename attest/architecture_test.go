@@ -184,6 +184,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/keygen",
 		"io",
+		"math",
 		"slices",
 		"strconv",
 		"sync",

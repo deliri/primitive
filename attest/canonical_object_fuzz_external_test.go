@@ -56,13 +56,13 @@ func FuzzCanonicalObjectEmitsStrictlyDecodableAndStableDocuments(f *testing.F) {
 				wantAdmitted = wantAdmitted && prior != name
 			}
 		}
-		// Bound the independent encoder before allocating; escaped output below
-		// this input ceiling is still checked against the exact emitted extent.
-		wantAdmitted = wantAdmitted && len(text) <= attest.CanonicalBodyMaximumBytes
+		// Whole-value encoding owns its allocation; only native coordinate
+		// representability constrains the exact independently emitted extent.
+		wantAdmitted = wantAdmitted && uint64(len(text)) <= math.MaxUint32
 		var want []byte
 		if wantAdmitted {
 			want = canonicalScalarOracle(t, names, facts)
-			wantAdmitted = len(want) <= attest.CanonicalBodyMaximumBytes
+			wantAdmitted = uint64(len(want)) <= math.MaxUint32
 		}
 		if !wantAdmitted {
 			if !errors.Is(gotErr, core.ErrAttestContract) || got != nil {

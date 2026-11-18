@@ -8,6 +8,7 @@ import (
 	"encoding/json/jsontext"
 	"errors"
 	"io"
+	"math"
 	"regexp"
 	"strings"
 	"testing"
@@ -46,7 +47,7 @@ func FuzzSignCanonicalBodyStreaming(f *testing.F) {
 	}
 	f.Add(canonical, uint16(1))
 	f.Add([]byte{}, uint16(1))
-	for _, size := range []int{attest.CanonicalBodyMaximumBytes - 1, attest.CanonicalBodyMaximumBytes, attest.CanonicalBodyMaximumBytes + 1} {
+	for _, size := range []int{canonicalBodyTestWindowBytes - 1, canonicalBodyTestWindowBytes, canonicalBodyTestWindowBytes + 1} {
 		f.Add(bytes.Repeat([]byte{0xa5}, size), uint16(8192))
 	}
 	key := deterministicPrivateKey(f, "fuzz-stream")
@@ -54,7 +55,7 @@ func FuzzSignCanonicalBodyStreaming(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte, chunk uint16) {
 		body := chunkedLiteralBody{value: data, domain: testDomainPrimary, chunkSize: int(chunk) + 1}
 		got, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Signer: key})
-		if len(data) == 0 || len(data) > attest.CanonicalBodyMaximumBytes {
+		if len(data) == 0 {
 			if !errors.Is(gotErr, core.ErrAttestContract) || got != (attest.Envelope[testDomain]{}) {
 				t.Fatalf("Sign() = (%+v, %v), want zero envelope and %v", got, gotErr, core.ErrAttestContract)
 			}
@@ -247,8 +248,8 @@ func FuzzCanonicalObjectNestedMember(f *testing.F) {
 		if gotErr != nil {
 			t.Fatalf("independently admitted nested input rejected: %v", gotErr)
 		}
-		if len(got) > attest.CanonicalBodyMaximumBytes {
-			t.Fatalf("nested object bytes = %d, want <= %d", len(got), attest.CanonicalBodyMaximumBytes)
+		if uint64(len(got)) > math.MaxUint32 {
+			t.Fatalf("nested object bytes = %d, want native coordinate extent <= %d", len(got), uint64(math.MaxUint32))
 		}
 		decoder := jsontext.NewDecoder(bytes.NewReader(got))
 		start, err := decoder.ReadToken()

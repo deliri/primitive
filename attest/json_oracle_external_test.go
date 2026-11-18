@@ -9,6 +9,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ import (
 func nestedJSONAdmitted(raw []byte) bool {
 	limits := core.DefaultStrictJSONLimits()
 	maximum, err := limits.DocumentMaximumBytes.Uint64()
-	if err != nil || len(raw) == 0 || len(raw) > attest.CanonicalBodyMaximumBytes-len(`{"nested":}`) || uint64(len(raw)) > maximum || !utf8.Valid(raw) {
+	if err != nil || len(raw) == 0 || uint64(len(raw)) > maximum || !utf8.Valid(raw) {
 		return false
 	}
 	decoder := jsontext.NewDecoder(bytes.NewReader(raw))
@@ -112,7 +113,7 @@ func envelopeJSONOracle(raw []byte) (envelopeJSONFacts, bool) {
 		return facts, false
 	}
 	length, err := strconv.ParseUint(string(bytes.TrimSpace(parts.BodyLength)), 10, 64)
-	if err != nil || length == 0 || length > attest.CanonicalBodyMaximumBytes {
+	if err != nil || length == 0 || length > math.MaxInt64 {
 		return facts, false
 	}
 	facts.length = length

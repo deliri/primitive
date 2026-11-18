@@ -3,13 +3,14 @@ package lease
 import (
 	json "encoding/json/v2"
 	"errors"
+	"math"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
-	attestBodyLengthCanonicalMaximumBytes  = 7
+	attestBodyLengthCanonicalMaximumBytes  = 19
 	leaseBodyLengthCanonicalMaximumBytes   = 3
 	leaseEnvelopeCanonicalJSONMaximumBytes = attest.EnvelopeCanonicalJSONMaximumBytes -
 		(attest.SigningDomainMaximumBytes - len(decisionDomainToken)) -
@@ -22,8 +23,8 @@ const (
 )
 
 var (
-	_ [attest.CanonicalBodyMaximumBytes - 1_000_000]struct{}
-	_ [9_999_999 - attest.CanonicalBodyMaximumBytes]struct{}
+	_ [attest.CanonicalBodyMaximumBytes - math.MaxInt64]struct{}
+	_ [math.MaxInt64 - attest.CanonicalBodyMaximumBytes]struct{}
 	_ [999 - DecisionCanonicalJSONMaximumBytes]struct{}
 	_ [DecisionCanonicalJSONMaximumBytes - 100]struct{}
 )

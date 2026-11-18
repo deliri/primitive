@@ -102,7 +102,7 @@ func TestEnvelopeJSONPublicHostileRejectionPreservesReceiverMatrix(t *testing.T)
 		{name: "signer uppercase hexadecimal rejects", makeInput: uppercaseSignerFixture},
 		{name: "body length string rejects", makeInput: replaceBodyLengthValueFixture(`"4"`)},
 		{name: "body length negative rejects", makeInput: replaceBodyLengthValueFixture("-1")},
-		{name: "body length maximum plus one rejects", makeInput: replaceBodyLengthValueFixture(strconv.Itoa(attest.CanonicalBodyMaximumBytes + 1))},
+		{name: "body length maximum plus one rejects", makeInput: replaceBodyLengthValueFixture(strconv.FormatUint(uint64(attest.CanonicalBodyMaximumBytes)+1, 10))},
 		{name: "body digest number rejects", makeInput: replaceBodyDigestValueFixture("1")},
 		{name: "body digest uppercase hexadecimal rejects", makeInput: uppercaseDigestFixture},
 		{name: "signature number rejects", makeInput: replaceSignatureValueFixture("1")},
@@ -180,13 +180,20 @@ func TestEnvelopeJSONCanonicalFieldOrderAndMaximumBound(t *testing.T) {
 	maximumEnvelope, gotSignErr := attest.Sign(attest.SignRequest[textDomain]{
 		Body: sizedTextDomainBody{
 			domain: maximumDomain,
-			size:   attest.CanonicalBodyMaximumBytes,
+			size:   canonicalBodyTestWindowBytes,
 		},
 		Signer: privateKey,
 	})
 	if gotSignErr != nil {
 		t.Fatalf("attest.Sign(maximum) error = %v, want nil", gotSignErr)
 	}
+	// Structural native-extent fixture; no native-maximum body transfer or
+	// signature authenticity is claimed by this JSON shape test.
+	maximumEnvelope.BodyLength, gotSignErr = core.NewByteCount(uint64(attest.CanonicalBodyMaximumBytes))
+	if gotSignErr != nil {
+		t.Fatal(gotSignErr)
+	}
+
 	gotMaximum, gotMaximumErr := maximumEnvelope.MarshalJSON()
 	if gotMaximumErr != nil {
 		t.Fatalf("Envelope.MarshalJSON(maximum) error = %v, want nil", gotMaximumErr)
@@ -222,13 +229,20 @@ func TestEnvelopeJSONCanonicalFieldOrderAndMaximumBound(t *testing.T) {
 	belowMaximumEnvelope, gotBelowSignErr := attest.Sign(attest.SignRequest[textDomain]{
 		Body: sizedTextDomainBody{
 			domain: belowMaximumDomain,
-			size:   attest.CanonicalBodyMaximumBytes,
+			size:   canonicalBodyTestWindowBytes,
 		},
 		Signer: privateKey,
 	})
 	if gotBelowSignErr != nil {
 		t.Fatalf("attest.Sign(maximum minus one JSON) error = %v, want nil", gotBelowSignErr)
 	}
+	// Structural native-extent fixture; no native-maximum body transfer or
+	// signature authenticity is claimed by this JSON shape test.
+	belowMaximumEnvelope.BodyLength, gotBelowSignErr = core.NewByteCount(uint64(attest.CanonicalBodyMaximumBytes))
+	if gotBelowSignErr != nil {
+		t.Fatal(gotBelowSignErr)
+	}
+
 	gotBelowMaximum, gotBelowMarshalErr := belowMaximumEnvelope.MarshalJSON()
 	if gotBelowMarshalErr != nil {
 		t.Fatalf("Envelope.MarshalJSON(maximum minus one) error = %v, want nil", gotBelowMarshalErr)
@@ -322,12 +336,17 @@ func maximumExtentEnvelopeFixture(t testing.TB) attest.Envelope[textDomain] {
 	envelope, err := attest.Sign(attest.SignRequest[textDomain]{
 		Body: sizedTextDomainBody{
 			domain: textDomain{text: strings.Repeat("a", attest.SigningDomainMaximumBytes)},
-			size:   attest.CanonicalBodyMaximumBytes,
+			size:   canonicalBodyTestWindowBytes,
 		},
 		Signer: deterministicPrivateKey(t, "maximum-extent-envelope"),
 	})
 	if err != nil {
 		t.Fatalf("attest.Sign(maximum extent) error = %v, want nil", err)
+	}
+	// This is a structural JSON boundary, not an authenticated native-maximum body.
+	envelope.BodyLength, err = core.NewByteCount(uint64(attest.CanonicalBodyMaximumBytes))
+	if err != nil {
+		t.Fatal(err)
 	}
 	return envelope
 }

@@ -69,8 +69,8 @@ func nestedBoundaryCases() []nestedBoundaryCase {
 		}
 		object.WriteByte('}')
 		cases = append(cases, nestedBoundaryCase{name: boundary.name + " nested object field maximum", input: object.String(), wantErr: boundary.wantErr})
-		room := attest.CanonicalBodyMaximumBytes - len(`{"nested":""}`) + boundary.delta
-		cases = append(cases, nestedBoundaryCase{name: boundary.name + " enclosing document byte maximum", input: `"` + strings.Repeat("x", room) + `"`, wantErr: boundary.wantErr})
+		room := canonicalBodyTestWindowBytes - len(`{"nested":""}`) + boundary.delta
+		cases = append(cases, nestedBoundaryCase{name: boundary.name + " former document quota", input: `"` + strings.Repeat("x", room) + `"`})
 	}
 	return cases
 }
