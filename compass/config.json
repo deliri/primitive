@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 501
+      "patch": 502
     },
     "release_notes": [
-      "Stream canonical attestation bodies without an arbitrary one-MiB quota while retaining native extent, exact digest and signature binding."
+      "Classify Firestore record headers from the same native document read while preserving the typed read failure."
     ]
   }
 }

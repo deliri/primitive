@@ -11,11 +11,14 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+type decodeFailureHeader func(*firestore.DocumentSnapshot) error
+
 // GetRequest selects one native document, optionally within an existing SDK
 // transaction. It does not perform a collection query or retain other documents.
 type GetRequest struct {
-	Reference   *firestore.DocumentRef
-	Transaction *firestore.Transaction
+	decodeFailureHeader *decodeFailureHeader
+	Reference           *firestore.DocumentRef
+	Transaction         *firestore.Transaction
 }
 
 func (r GetRequest) Validate() error {
@@ -23,6 +26,24 @@ func (r GetRequest) Validate() error {
 		return core.ErrFirestoreDocumentsContract
 	}
 	return nil
+}
+
+// WithDecodeFailureHeader lets a caller classify a record decode failure
+// using a header projected from the same native snapshot. A header failure
+// joins the record decode error and never releases a partial record.
+func WithDecodeFailureHeader[H core.Validatable](request GetRequest, unreadableHeader error) (GetRequest, error) {
+	if reflect.TypeFor[H]().Kind() != reflect.Struct || unreadableHeader == nil {
+		return GetRequest{}, core.ErrFirestoreDocumentsContract
+	}
+	decoder := decodeFailureHeader(func(snapshot *firestore.DocumentSnapshot) error {
+		var header H
+		if err := snapshot.DataTo(&header); err != nil {
+			return errors.Join(unreadableHeader, err)
+		}
+		return header.Validate()
+	})
+	request.decodeFailureHeader = &decoder
+	return request, nil
 }
 
 // Document contains one decoded and owner-validated record. Reference is the
@@ -68,6 +89,9 @@ func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[
 	}
 	result := Document[T]{Reference: snapshot.Ref}
 	if err := snapshot.DataTo(&result.Record); err != nil {
+		if request.decodeFailureHeader != nil {
+			err = errors.Join(err, (*request.decodeFailureHeader)(snapshot))
+		}
 		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
 	if err := result.Validate(); err != nil {

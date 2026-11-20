@@ -34,6 +34,8 @@ func (r nativeRecord) Validate() error {
 	return nil
 }
 
+var _ map[GetRequest]struct{}
+
 var (
 	_ func(context.Context, GetRequest) (Document[nativeRecord], error)    = Get[nativeRecord]
 	_ func(context.Context, CreateRequest[nativeRecord]) error             = Create[nativeRecord]
@@ -162,7 +164,7 @@ func nativeClient(t testing.TB, extra ...grpc.DialOption) (*firestore.Client, *n
 }
 func nativeRef(client *firestore.Client, t *testing.T) *firestore.DocumentRef {
 	t.Helper()
-	return client.Collection("documents").Doc(strings.ReplaceAll(t.Name(), "/", "-"))
+	return client.Collection("documents").NewDoc()
 }
 func reportNativeCosts(t *testing.T, c *nativeCosts) {
 	t.Helper()
