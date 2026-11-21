@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 502
+      "patch": 503
     },
     "release_notes": [
-      "Classify Firestore record headers from the same native document read while preserving the typed read failure."
+      "Validate borrowed Firestore client bindings inside the native document capability."
     ]
   }
 }

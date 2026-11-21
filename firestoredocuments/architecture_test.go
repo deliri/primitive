@@ -24,6 +24,7 @@ func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 	var _ sealedProjection = Document[nativeRecord]{}
 	var _ sealedProjection = JSONDocument[nativeRecord]{}
 	var _ sealedProjection = TransactionResult{}
+	var _ nativeCapability = ClientBinding{}
 	files, err := fs.Glob(sourceFiles, "*.go")
 	if err != nil {
 		t.Fatal(err)
@@ -54,7 +55,7 @@ func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 					continue
 				}
 				switch typed.Name.Name {
-				case "QueryRequest", "IncrementRequest", "GetRequest", "CreateRequest", "SetRequest", "TransactionRequest", "Document", "JSONDocument", "TransactionResult":
+				case "QueryRequest", "IncrementRequest", "GetRequest", "CreateRequest", "SetRequest", "TransactionRequest", "Document", "JSONDocument", "TransactionResult", "ClientBinding":
 				default:
 					t.Errorf("production struct %s has no compiler-bound data-flow role", typed.Name.Name)
 				}

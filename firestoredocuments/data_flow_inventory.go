@@ -6,6 +6,7 @@ var _ core.OffWireEnum = TransactionReadWrite
 
 type protocolFact interface{ firestoreDocumentsProtocolFact() }
 type sealedProjection interface{ firestoreDocumentsSealedProjection() }
+type nativeCapability interface{ firestoreDocumentsNativeCapability() }
 
 func (GetRequest) firestoreDocumentsProtocolFact()            {}
 func (CreateRequest[T]) firestoreDocumentsProtocolFact()      {}
@@ -15,5 +16,6 @@ func (TransactionResult) firestoreDocumentsSealedProjection() {}
 
 var _ core.OffWireEnum = QueryContinue
 
-func (QueryRequest[T]) firestoreDocumentsProtocolFact()  {}
-func (IncrementRequest) firestoreDocumentsProtocolFact() {}
+func (QueryRequest[T]) firestoreDocumentsProtocolFact()   {}
+func (IncrementRequest) firestoreDocumentsProtocolFact()  {}
+func (ClientBinding) firestoreDocumentsNativeCapability() {}
