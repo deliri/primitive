@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -51,7 +52,7 @@ func TestGoFuzzMetricRecordNativeProducerLayerTriad(t *testing.T) {
 			if _, err := output.Seek(0, io.SeekStart); err != nil {
 				t.Fatal(err)
 			}
-			var measured bool
+			var measured, corpusTotal bool
 			var priorEnd int64
 			for record, err := range runprotocol.GoFuzzMetricRecords(t.Context(), runprotocol.GoFuzzMetricSourceRequest{Source: output}) {
 				if err != nil || record.Validate() != nil {
@@ -73,9 +74,19 @@ func TestGoFuzzMetricRecordNativeProducerLayerTriad(t *testing.T) {
 				if value, ok := field.Value(); ok && value > 0 {
 					measured = true
 				}
+				total, err := record.Field(runprotocol.GoFuzzMetricTotal)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if value, ok := total.Value(); ok && value >= 1 {
+					corpusTotal = true
+				}
 			}
 			if measured != tc.wantWork {
 				t.Fatalf("native measured work = %t, want %t", measured, tc.wantWork)
+			}
+			if (runtime.GOOS == "linux" || runtime.GOOS == "darwin") && (runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") && corpusTotal != tc.wantWork {
+				t.Fatalf("native measured corpus total present = %t, want %t", corpusTotal, tc.wantWork)
 			}
 		})
 	}
@@ -115,6 +126,16 @@ func TestGoFuzzMetricRecordGrammarLayerTriad(t *testing.T) {
 		{name: "delta interesting counter", body: "7 new interesting inputs found", kind: runprotocol.GoFuzzMetricInteresting, presence: runprotocol.GoFuzzMetricPresent, value: 7},
 		{name: "coordinator cumulative counter", body: "fuzz: elapsed: 3s, new interesting: 7 (total: 9)", kind: runprotocol.GoFuzzMetricInteresting, presence: runprotocol.GoFuzzMetricPresent, value: 7, cumulative: true},
 		{name: "total spelling declares native running total", body: "7 new interesting (total: 9)", kind: runprotocol.GoFuzzMetricInteresting, presence: runprotocol.GoFuzzMetricPresent, value: 7, cumulative: true},
+		{name: "corpus total is distinct from interesting work", body: "fuzz: elapsed: 3s, execs: 37 (12/sec), new interesting: 7 (total: 9)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricPresent, value: 9, cumulative: true},
+		{name: "zero corpus total is observed", body: "fuzz: elapsed: 0s, execs: 0 (0/sec), new interesting: 0 (total: 0)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricPresent, cumulative: true},
+		{name: "maximum representable corpus total", body: "(total: 9223372036854775807)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricPresent, value: math.MaxInt64, cumulative: true},
+		{name: "overflow corpus total is refused", body: "(total: 9223372036854775808)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
+		{name: "negative corpus total remains a signed observation", body: "(total: -1)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricPresent, value: -1, cumulative: true},
+		{name: "empty corpus suffix is malformed", body: "(total: )", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
+		{name: "unclosed corpus suffix is malformed", body: "(total: 37", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
+		{name: "duplicate corpus suffix is malformed", body: "(total: 5) (total: 9)", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
+		{name: "extra terminal parenthesis is malformed", body: "(total: 5))", kind: runprotocol.GoFuzzMetricTotal, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
+		{name: "native progress without coverage has no total", body: "fuzz: elapsed: 3s, execs: 37 (12/sec)", kind: runprotocol.GoFuzzMetricTotal},
 		{name: "anchored malformed interesting count", body: "new interesting: garbage", kind: runprotocol.GoFuzzMetricInteresting, presence: runprotocol.GoFuzzMetricMalformed, cumulative: true},
 		{name: "unanchored interesting chatter has no count", body: "note says new interesting", kind: runprotocol.GoFuzzMetricInteresting},
 		{name: "crasher count is independent", body: "crashers: 2", kind: runprotocol.GoFuzzMetricCrashers, presence: runprotocol.GoFuzzMetricPresent, value: 2},
@@ -233,7 +254,7 @@ func TestGoFuzzMetricClosedDomainsAndSourceRefusal(t *testing.T) {
 			t.Parallel()
 			kind := runprotocol.GoFuzzMetricKind(value)
 			presence := runprotocol.GoFuzzMetricPresence(value)
-			if err := kind.Validate(); (err == nil) != (value >= int(runprotocol.GoFuzzMetricExecutions) && value <= int(runprotocol.GoFuzzMetricInteresting)) {
+			if err := kind.Validate(); (err == nil) != (value >= int(runprotocol.GoFuzzMetricExecutions) && value <= int(runprotocol.GoFuzzMetricTotal)) {
 				t.Fatalf("kind %d error = %v, want closed published domain", value, err)
 			}
 			if err := presence.Validate(); (err == nil) != (value <= int(runprotocol.GoFuzzMetricMalformed)) {
@@ -397,9 +418,9 @@ func fuzzMetricOraclePrefix(line []byte, prefix string) (int, bool) {
 	return 0, false
 }
 
-func fuzzMetricOracleRecord(line []byte) ([4]fuzzMetricOracleField, bool, bool) {
+func fuzzMetricOracleRecord(line []byte) ([5]fuzzMetricOracleField, bool, bool) {
 	line = bytes.TrimSpace(line)
-	var fields [4]fuzzMetricOracleField
+	var fields [5]fuzzMetricOracleField
 	for index, prefix := range [...]string{"executions:", "execs:", "crashers:", "new interesting:"} {
 		start, found := fuzzMetricOraclePrefix(line, prefix)
 		if !found {
@@ -424,6 +445,13 @@ func fuzzMetricOracleRecord(line []byte) ([4]fuzzMetricOracleField, bool, bool) 
 			if _, found := fuzzMetricOraclePrefix(line, "new interesting"); found {
 				fields[3] = fuzzMetricOracleField{presence: runprotocol.GoFuzzMetricMalformed}
 			}
+		}
+	}
+	if _, total, present := bytes.Cut(line, []byte("(total:")); present {
+		if amount, closed := bytes.CutSuffix(total, []byte(")")); closed {
+			fields[4] = fuzzMetricOracleInteger(bytes.TrimSpace(amount))
+		} else {
+			fields[4] = fuzzMetricOracleField{presence: runprotocol.GoFuzzMetricMalformed}
 		}
 	}
 	cumulative := bytes.Contains(line, []byte("new interesting:")) || bytes.Contains(line, []byte("(total:"))
@@ -451,6 +479,7 @@ func fuzzMetricOracleRecord(line []byte) ([4]fuzzMetricOracleField, bool, bool) 
 func FuzzGoFuzzMetricRecordsMatchIndependentByteOracle(f *testing.F) {
 	for _, body := range []string{
 		"fuzz: elapsed: 3s, execs: 37 (12/sec), new interesting: 7 (total: 8)\n",
+		"fuzz: elapsed: 3s, execs: 37 (12/sec), new interesting: 7 (total: 8) (total: 9)\n",
 		"executions: 1, execs: 37,crashers: 2\n",
 		"7 new interesting inputs found\n",
 		"new interesting: malformed\n",

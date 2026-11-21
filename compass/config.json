@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 503
+      "patch": 504
     },
     "release_notes": [
-      "Validate borrowed Firestore client bindings inside the native document capability."
+      "Expose the native Go fuzz corpus total as a typed metric."
     ]
   }
 }

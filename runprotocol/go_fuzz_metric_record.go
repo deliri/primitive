@@ -25,10 +25,11 @@ const (
 	GoFuzzMetricExecs
 	GoFuzzMetricCrashers
 	GoFuzzMetricInteresting
+	GoFuzzMetricTotal
 )
 
 func (k GoFuzzMetricKind) Validate() error {
-	if k < GoFuzzMetricExecutions || k > GoFuzzMetricInteresting {
+	if k < GoFuzzMetricExecutions || k > GoFuzzMetricTotal {
 		return core.ErrGoToolchainContract
 	}
 	return nil
@@ -89,7 +90,7 @@ func (f GoFuzzMetricField) Validate() error {
 // It never collects a physical line, field payload, record list or source handle.
 type GoFuzzMetricRecord struct {
 	record       lineio.RecordRange
-	fields       [4]GoFuzzMetricField
+	fields       [5]GoFuzzMetricField
 	cumulative   bool
 	failingInput bool
 }
@@ -167,6 +168,8 @@ type goFuzzMetricPatterns struct {
 	prefixes            [4][3]*regexp.Regexp
 	interestingPrefixes [3]*regexp.Regexp
 	space               *regexp.Regexp
+	totalStart          *regexp.Regexp
+	totalClose          *regexp.Regexp
 }
 
 func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
@@ -179,6 +182,8 @@ func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
 		},
 		interestingPrefixes: [3]*regexp.Regexp{regexp.MustCompile(`\Anew interesting`), regexp.MustCompile(`,new interesting`), regexp.MustCompile(`, new interesting`)},
 		space:               regexp.MustCompile(` `),
+		totalStart:          regexp.MustCompile(`\(total:`),
+		totalClose:          regexp.MustCompile(`\)\z`),
 	}
 }
 
@@ -315,6 +320,9 @@ func (patterns goFuzzMetricPatterns) readField(ctx context.Context, source linei
 	if err := kind.Validate(); err != nil {
 		return GoFuzzMetricField{}, err
 	}
+	if kind == GoFuzzMetricTotal {
+		return patterns.readTotal(ctx, source, span)
+	}
 	prefixes := patterns.prefixes[int(kind)-1]
 	var match []int
 	for _, pattern := range prefixes {
@@ -353,6 +361,28 @@ func (patterns goFuzzMetricPatterns) readField(ctx context.Context, source linei
 	return goFuzzMetricInteger(ctx, source, trimmed)
 }
 
+// The Go coverage progress record ends in one parenthesized corpus total.
+func (patterns goFuzzMetricPatterns) readTotal(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan) (GoFuzzMetricField, error) {
+	start, err := goFuzzMetricMatch(ctx, source, span, patterns.totalStart)
+	if err != nil || start == nil {
+		return GoFuzzMetricField{}, err
+	}
+	value := goFuzzMetricSpan{offset: span.offset + int64(start[1]), bytes: span.bytes - int64(start[1])}
+	closeAt, err := goFuzzMetricMatch(ctx, source, value, patterns.totalClose)
+	if err != nil {
+		return GoFuzzMetricField{}, err
+	}
+	if closeAt == nil {
+		return GoFuzzMetricField{presence: GoFuzzMetricMalformed, refusal: core.ErrGoToolchainOutput}, nil
+	}
+	value.bytes = int64(closeAt[0])
+	value, err = goFuzzMetricTrimmed(ctx, source, value, goFuzzMetricTrimWhitespace)
+	if err != nil {
+		return GoFuzzMetricField{}, err
+	}
+	return goFuzzMetricInteger(ctx, source, value)
+}
+
 func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange, patterns goFuzzMetricPatterns) (GoFuzzMetricRecord, error) {
 	length, err := record.Bytes.Int64()
 	if err != nil {
@@ -383,6 +413,13 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 			return GoFuzzMetricRecord{}, fieldErr
 		}
 		observed.fields[i] = field
+	}
+	if hints[goFuzzMetricHintTotal] {
+		total, totalErr := patterns.readField(ctx, source, span, GoFuzzMetricTotal)
+		if totalErr != nil {
+			return GoFuzzMetricRecord{}, totalErr
+		}
+		observed.fields[GoFuzzMetricTotal-1] = total
 	}
 	if observed.fields[3].presence != GoFuzzMetricPresent && hints[goFuzzMetricHintInteresting] {
 		cursorSource := &goBenchmarkSourceReader{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
@@ -449,6 +486,8 @@ func (k GoFuzzMetricKind) String() string {
 		return "crashers"
 	case GoFuzzMetricInteresting:
 		return "interesting"
+	case GoFuzzMetricTotal:
+		return "total"
 	default:
 		return "unknown"
 	}

@@ -300,7 +300,7 @@ func TestOffWireObservationEnumsHaveClosedMethodContracts(t *testing.T) {
 			{domain: "benchmark record presence", valid: GoBenchmarkRecordPresence(value).IsValid(), label: GoBenchmarkRecordPresence(value).String(), labels: []string{"unknown", "absent", "present", "refused"}},
 			{domain: "benchmark metric fields", valid: GoBenchmarkMetricFields(value).IsValid(), label: GoBenchmarkMetricFields(value).String(), labels: []string{"none", "time", "bytes", "time|bytes", "allocations", "time|allocations", "bytes|allocations", "time|bytes|allocations"}},
 			{domain: "fuzz completion", valid: GoFuzzCompletion(value).IsValid(), label: GoFuzzCompletion(value).String(), labels: []string{"unknown", "absent", "passed", "skipped", "failed"}},
-			{domain: "fuzz metric kind", valid: GoFuzzMetricKind(value).IsValid(), label: GoFuzzMetricKind(value).String(), labels: []string{"unknown", "executions", "execs", "crashers", "interesting"}},
+			{domain: "fuzz metric kind", valid: GoFuzzMetricKind(value).IsValid(), label: GoFuzzMetricKind(value).String(), labels: []string{"unknown", "executions", "execs", "crashers", "interesting", "total"}},
 			{domain: "fuzz metric presence", valid: GoFuzzMetricPresence(value).IsValid(), label: GoFuzzMetricPresence(value).String(), labels: []string{"absent", "present", "malformed"}},
 		} {
 			want := "unknown"

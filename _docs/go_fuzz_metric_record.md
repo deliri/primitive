@@ -1,9 +1,11 @@
 # Native Go fuzz metric records
 
 `runprotocol.GoFuzzMetricRecords` lends one completed physical record at a time.
-Its request borrows a native seekable/positional source. The record retains four
+Its request borrows a native seekable/positional source. The record retains five
 fixed signed counter fields, their closed presence dispositions, provider
 cumulative/failing-input observations and original physical coordinates.
+The total field observes Go's terminal parenthesized corpus count on the same
+physical record as its other progress counters. A missing total remains absent.
 
 Primitive owns framing, bounded native reads, integer normalization, Go regexp
 matching and stdlib strconv admission. Leading whitespace, leading zeroes,
