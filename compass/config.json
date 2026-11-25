@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 505
+      "patch": 506
     },
     "release_notes": [
-      "Bind signed GCS download capabilities to an exact object generation."
+      "Deliver a host-only signed object download through a no-store browser redirect."
     ]
   }
 }
