@@ -57,6 +57,31 @@ func TestHTTPStatusOKIsTheValidatedSuccessConstant(t *testing.T) {
 	}
 }
 
+// TestHTTPStatusSeeOtherIsTheValidatedRedirectConstant binds the named 303
+// constructor to the standard library oracle and the redirect class alone.
+func TestHTTPStatusSeeOtherIsTheValidatedRedirectConstant(t *testing.T) {
+	t.Parallel()
+
+	got := HTTPStatusSeeOther()
+	var want HTTPStatusCode
+	if err := want.AdmitInt(http.StatusSeeOther); err != nil {
+		t.Fatalf("AdmitInt(http.StatusSeeOther) oracle error = %v, want nil", err)
+	}
+	if err := got.Validate(); err != nil || got != want {
+		t.Fatalf("HTTPStatusSeeOther() = (%v, %v), want the admitted %v and nil", got, err, want)
+	}
+	gotInt, gotIntErr := got.Int()
+	if gotIntErr != nil || gotInt != http.StatusSeeOther {
+		t.Fatalf("HTTPStatusSeeOther().Int() = (%d, %v), want (%d, nil)", gotInt, gotIntErr, http.StatusSeeOther)
+	}
+	if !got.IsRedirect() || got.IsSuccess() || got.IsInformational() || got.IsClientError() || got.IsServerError() {
+		t.Fatalf("HTTPStatusSeeOther() classes = (redirect %t, success %t), want redirect alone", got.IsRedirect(), got.IsSuccess())
+	}
+	if got == HTTPStatusOK() {
+		t.Fatalf("HTTPStatusSeeOther() = HTTPStatusOK(), want distinct statuses")
+	}
+}
+
 func TestHTTPStatusCodeSemanticSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 

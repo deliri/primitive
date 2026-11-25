@@ -45,6 +45,7 @@ const (
 	// without making core depend on Exchange's transport implementation.
 	httpStatusOKValue                 = 200
 	httpStatusNoContentValue          = 204
+	httpStatusSeeOtherValue           = 303
 	httpStatusNotModifiedValue        = 304
 	httpStatusNotFoundValue           = 404
 	httpStatusConflictValue           = 409
@@ -168,6 +169,12 @@ func (s *HTTPStatusCode) UnmarshalJSON(data []byte) error {
 // status.
 func HTTPStatusOK() HTTPStatusCode {
 	return HTTPStatusCode{value: httpStatusOKValue}
+}
+
+// HTTPStatusSeeOther returns the validated 303 See Other redirect status,
+// which directs the client to retrieve another target with GET.
+func HTTPStatusSeeOther() HTTPStatusCode {
+	return HTTPStatusCode{value: httpStatusSeeOtherValue}
 }
 
 // HTTPHeaderName is a canonical MIME-style HTTP field name.
