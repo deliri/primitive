@@ -40,6 +40,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"GrantGCSBucketPublicRead",
 		"GrantGCSObjectPublicRead",
 		"IssueGCSDownloadCapability",
+		"IssueGCSGenerationDownloadCapability",
 		"IssueGCSUploadCapability",
 		"ListGCSObjects",
 		"LookupGCSObject",
@@ -131,7 +132,7 @@ func productionStructRole(name string) (string, bool) {
 	case "GCSMediaUpload", "GCSFileUpload", "GCSFileStreamUpload", "GCSReadRequest", "GCSListRequest", "GCSListRange", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
-		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest", "GCSObjectPublicReadRequest", "GCSPublicCopyRequest", "GCSUsageLogRequest":
+		"GCSDownloadCapabilityRequest", "GCSGenerationDownloadCapabilityRequest", "GCSObjectLookupRequest", "GCSObjectPublicReadRequest", "GCSPublicCopyRequest", "GCSUsageLogRequest":
 		return "authenticated provider execution ingress", true
 	case "GCSUsageRecord":
 		return "provisional provider usage row, terminal scan owns completion", true

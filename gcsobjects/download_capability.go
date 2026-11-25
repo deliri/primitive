@@ -3,6 +3,8 @@ package gcsobjects
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strconv"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
@@ -35,12 +37,63 @@ func (r GCSDownloadCapabilityRequest) Validate() error {
 	return nil
 }
 
+// gcsGenerationQuery is the XML API GET Object parameter that selects one
+// exact object generation. V4 signing places it in the canonical query.
+const gcsGenerationQuery = "generation"
+
+// GCSGenerationDownloadCapabilityRequest is one exact whole-object retrieval
+// capability issuance intent bound to one provider-issued generation.
+type GCSGenerationDownloadCapabilityRequest struct {
+	Download   GCSDownloadCapabilityRequest
+	Generation GCSGeneration
+}
+
+// Validate closes every fact before a provider signing request begins.
+func (r GCSGenerationDownloadCapabilityRequest) Validate() error {
+	if err := r.Download.Validate(); err != nil {
+		return err
+	}
+	if err := r.Generation.Validate(); err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return nil
+}
+
+// IssueGCSGenerationDownloadCapability binds one exact GCS object generation
+// into an official V4 signed GET URL whose signed canonical query carries that
+// generation, and returns only Objectstore's opaque receive-only projection.
+func IssueGCSGenerationDownloadCapability(
+	ctx context.Context,
+	issuer *GCSCapabilityIssuer,
+	request GCSGenerationDownloadCapabilityRequest,
+) (objectstore.DownloadCapabilityProjection, error) {
+	if err := request.Validate(); err != nil {
+		return objectstore.DownloadCapabilityProjection{}, err
+	}
+	generation, err := request.Generation.Int64()
+	if err != nil {
+		return objectstore.DownloadCapabilityProjection{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return issueGCSDownloadCapability(ctx, issuer, request.Download, url.Values{
+		gcsGenerationQuery: {strconv.FormatInt(generation, 10)},
+	})
+}
+
 // IssueGCSDownloadCapability binds one exact GCS object into an official V4
 // signed GET URL and returns only Objectstore's opaque receive-only projection.
 func IssueGCSDownloadCapability(
 	ctx context.Context,
 	issuer *GCSCapabilityIssuer,
 	request GCSDownloadCapabilityRequest,
+) (objectstore.DownloadCapabilityProjection, error) {
+	return issueGCSDownloadCapability(ctx, issuer, request, nil)
+}
+
+func issueGCSDownloadCapability(
+	ctx context.Context,
+	issuer *GCSCapabilityIssuer,
+	request GCSDownloadCapabilityRequest,
+	query url.Values,
 ) (objectstore.DownloadCapabilityProjection, error) {
 	if err := request.Validate(); err != nil {
 		return objectstore.DownloadCapabilityProjection{}, err
@@ -52,7 +105,7 @@ func IssueGCSDownloadCapability(
 	if err != nil {
 		return objectstore.DownloadCapabilityProjection{}, err
 	}
-	rawURL, err := issueGCSDownloadURL(ctx, issuer, request, expiresAt)
+	rawURL, err := issueGCSDownloadURL(ctx, issuer, request, query, expiresAt)
 	if err != nil {
 		return objectstore.DownloadCapabilityProjection{}, err
 	}
@@ -63,6 +116,7 @@ func issueGCSDownloadURL(
 	ctx context.Context,
 	issuer *GCSCapabilityIssuer,
 	request GCSDownloadCapabilityRequest,
+	query url.Values,
 	expiresAt temporal.Instant,
 ) (string, error) {
 	if err := errors.Join(request.Validate(), expiresAt.Validate()); err != nil {
@@ -81,9 +135,10 @@ func issueGCSDownloadURL(
 		SignBytes: func(payload []byte) ([]byte, error) {
 			return signGCSCapabilityBytes(ctx, issuer, request.ServiceAccount, payload)
 		},
-		Method:  spec.DownloadMethod.String(),
-		Expires: expiration,
-		Scheme:  storage.SigningSchemeV4,
+		Method:          spec.DownloadMethod.String(),
+		Expires:         expiration,
+		Scheme:          storage.SigningSchemeV4,
+		QueryParameters: query,
 	})
 	if err != nil {
 		return "", errors.Join(core.ErrObjectStoreDestination, err)
@@ -109,4 +164,7 @@ func projectGCSDownloadCapability(
 	)
 }
 
-var _ core.Validatable = GCSDownloadCapabilityRequest{}
+var (
+	_ core.Validatable = GCSDownloadCapabilityRequest{}
+	_ core.Validatable = GCSGenerationDownloadCapabilityRequest{}
+)

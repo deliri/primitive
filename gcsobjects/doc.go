@@ -15,6 +15,8 @@
 // Credentials client to sign Objectstore's exact typed raw-object operations.
 // They return only opaque Objectstore capability projections; product grants,
 // users, media roles, and workflows have no representation here.
+// IssueGCSGenerationDownloadCapability additionally signs one exact object
+// generation into the V4 canonical query.
 //
 // UploadMedia and UploadFile are two compiler-selected entry points, not one
 // call behind a mode flag. UploadMedia writes a served asset a browser or CDN
