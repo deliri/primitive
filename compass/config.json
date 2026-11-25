@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 504
+      "patch": 505
     },
     "release_notes": [
-      "Expose the native Go fuzz corpus total as a typed metric."
+      "Bind signed GCS download capabilities to an exact object generation."
     ]
   }
 }
