@@ -685,6 +685,15 @@ const (
 	ErrTimeMatchPhoneInvalid
 	// ErrTimeMatchPhoneUnavailable identifies provider required phone lookup unavailable.
 	ErrTimeMatchPhoneUnavailable
+	// ErrGmailContract identifies an invalid Gmail request or capability.
+	ErrGmailContract
+	// ErrGmailResponse identifies a refused or invalid Gmail provider response.
+	ErrGmailResponse
+	// ErrGmailBinding identifies a response for a different mailbox, thread or message.
+	ErrGmailBinding
+	// ErrGmailConsent identifies missing, expired or incorrectly scoped Gmail consent.
+	ErrGmailConsent
+
 	errorIdentityLimit
 )
 
@@ -993,6 +1002,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTimeMatchPhonePartial, text: "timematch provider returned an incomplete required phone"},
 		{identity: ErrTimeMatchPhoneInvalid, text: "timematch provider returned an invalid required phone"},
 		{identity: ErrTimeMatchPhoneUnavailable, text: "timematch provider required phone lookup unavailable"},
+		{identity: ErrGmailContract, text: "gmail contract violation"},
+		{identity: ErrGmailResponse, text: "gmail provider response invalid"},
+		{identity: ErrGmailBinding, text: "gmail response binding invalid"},
+		{identity: ErrGmailConsent, text: "gmail authorization unavailable"},
 	}
 }
 
@@ -1143,7 +1156,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrInstagramContract, ErrTimeMatchContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrGmailContract, ErrInstagramContract, ErrTimeMatchContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1261,6 +1274,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrGmailResponse, ErrGmailBinding, ErrGmailConsent) {
+		return ErrGmailContract
+	}
 	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
 		return ErrGoogleComputeContract
 	}
