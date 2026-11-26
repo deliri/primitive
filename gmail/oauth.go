@@ -98,6 +98,9 @@ func (Access) MarshalJSON() ([]byte, error) {
 	return nil, errors.Join(core.ErrGmailConsent, core.ErrJSONContract)
 }
 
+// Google’s refresh endpoint returns the access token, bearer type, lifetime
+// and granted scopes. Only the exact read scope is admitted here.
+// https://developers.google.com/identity/protocols/oauth2/web-server#offline
 type tokenWire struct {
 	Token   secretWire    `json:"access_token"`
 	Type    tokenTypeWire `json:"token_type"`

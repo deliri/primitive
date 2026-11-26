@@ -19,6 +19,9 @@ type threadReferenceWire struct {
 	ID ThreadID `json:"id"`
 }
 
+// threads.list omits message objects. An estimated result size is not a
+// count for the admitted page.
+// https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.threads/list
 type threadPageWire struct {
 	Threads []threadReferenceWire `json:"threads"`
 	Next    PageToken             `json:"nextPageToken"`
@@ -43,6 +46,9 @@ type threadWire struct {
 	Messages []messageHeaderWire `json:"messages"`
 }
 
+// internalDate is a decimal string representing epoch milliseconds. Gmail
+// supplies independent message and thread IDs and the requested MIME headers.
+// https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages#Message
 type messageHeaderWire struct {
 	ID      MessageID        `json:"id"`
 	Thread  ThreadID         `json:"threadId"`
@@ -172,6 +178,9 @@ type mimePartWire struct {
 	Parts    []mimePartWire `json:"parts"`
 }
 
+// Gmail body data uses base64url. Attachments may have a separate ID that
+// this projection does not request.
+// https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages.attachments#MessagePartBody
 type mimeBodyWire struct {
 	Data base64URLWire `json:"data"`
 }
