@@ -74,9 +74,10 @@ type headerValueWire string
 const (
 	labelDraft  labelWire = "DRAFT"
 	labelUnread labelWire = "UNREAD"
+	labelSent   labelWire = "SENT"
 )
 
-func (w threadWire) project(request ThreadID) (Thread, error) {
+func (w threadWire) project(request ThreadID, mailbox core.OAuthEmail) (Thread, error) {
 	if w.ID != request {
 		return Thread{}, core.ErrGmailBinding
 	}
@@ -91,7 +92,7 @@ func (w threadWire) project(request ThreadID) (Thread, error) {
 		if slices.Contains(row.Labels, labelDraft) {
 			continue
 		}
-		header, err := row.project()
+		header, err := row.project(mailbox)
 		if err != nil {
 			return Thread{}, err
 		}
@@ -103,7 +104,7 @@ func (w threadWire) project(request ThreadID) (Thread, error) {
 	return out, nil
 }
 
-func (w messageHeaderWire) project() (MessageHeader, error) {
+func (w messageHeaderWire) project(mailbox core.OAuthEmail) (MessageHeader, error) {
 	if len(w.Payload.Headers) > 32 || len(w.Labels) > 256 {
 		return MessageHeader{}, core.ErrGmailResponse
 	}
@@ -111,8 +112,9 @@ func (w messageHeaderWire) project() (MessageHeader, error) {
 	if err != nil {
 		return MessageHeader{}, err
 	}
-	out := MessageHeader{ID: w.ID, At: at, Unread: slices.Contains(w.Labels, labelUnread)}
-	var seenFrom, seenSubject bool
+	out := MessageHeader{ID: w.ID, At: at, Unread: slices.Contains(w.Labels, labelUnread), Sent: slices.Contains(w.Labels, labelSent)}
+	var seenFrom, seenSubject, seenTo, seenCc, seenBcc, repeatedBcc bool
+	var to, cc, bcc headerValueWire
 	for _, header := range w.Payload.Headers {
 		switch {
 		case strings.EqualFold(string(header.Name), "From"):
@@ -129,9 +131,47 @@ func (w messageHeaderWire) project() (MessageHeader, error) {
 			var subject string
 			subject, err = new(mime.WordDecoder).DecodeHeader(string(header.Value))
 			out.Subject = Subject(subject)
+		case strings.EqualFold(string(header.Name), "To"):
+			if seenTo {
+				return MessageHeader{}, core.ErrGmailResponse
+			}
+			seenTo, to = true, header.Value
+		case strings.EqualFold(string(header.Name), "Cc"):
+			if seenCc {
+				return MessageHeader{}, core.ErrGmailResponse
+			}
+			seenCc, cc = true, header.Value
+		case strings.EqualFold(string(header.Name), "Bcc"):
+			repeatedBcc, seenBcc, bcc = seenBcc, true, header.Value
 		}
 		if err != nil {
 			return MessageHeader{}, core.ErrGmailResponse
+		}
+	}
+	if seenTo {
+		out.Recipients.To, err = parseRecipientHeader(to, RecipientsMaximum, false)
+		if err != nil {
+			return MessageHeader{}, err
+		}
+	}
+	if seenCc {
+		out.Recipients.Cc, err = parseRecipientHeader(cc, RecipientsMaximum-len(out.Recipients.To), false)
+		if err != nil {
+			return MessageHeader{}, err
+		}
+	}
+	// Gmail applies SENT at the message level. Bcc is projected only for
+	// that label and an exact From match to the independently bound mailbox.
+	// https://developers.google.com/workspace/gmail/api/guides/labels
+	if seenBcc && out.Sent && mailbox != (core.OAuthEmail{}) &&
+		strings.EqualFold(out.Sender.String(), mailbox.String()) {
+		if repeatedBcc {
+			return MessageHeader{}, core.ErrGmailResponse
+		}
+		// RFC 5322 expressly permits an empty Bcc field.
+		out.Recipients.Bcc, err = parseRecipientHeader(bcc, RecipientsMaximum-len(out.Recipients.To)-len(out.Recipients.Cc), true)
+		if err != nil {
+			return MessageHeader{}, err
 		}
 	}
 	if err := out.Validate(); err != nil {

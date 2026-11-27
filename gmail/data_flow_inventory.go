@@ -13,6 +13,8 @@ func (RefreshRequest) gmailProtocolFact()     {}
 func (ThreadPage) gmailSealedProjection()    {}
 func (Thread) gmailSealedProjection()        {}
 func (MessageHeader) gmailSealedProjection() {}
+func (Recipient) gmailSealedProjection()     {}
+func (Recipients) gmailSealedProjection()    {}
 func (Message) gmailSealedProjection()       {}
 
 func (Client) gmailCapabilityWrapper()                       {}

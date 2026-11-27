@@ -66,7 +66,7 @@ func FuzzThreadMetadataIngress(f *testing.F) {
 			}
 			return
 		}
-		thread, err := wire.project(fixtureThread)
+		thread, err := wire.project(fixtureThread, core.OAuthEmail{})
 		if err != nil {
 			if !errors.Is(err, core.ErrGmailContract) || thread.ID != "" || thread.Messages != nil {
 				t.Fatalf("metadata refusal = (%+v,%v)", thread, err)

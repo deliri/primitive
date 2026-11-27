@@ -173,7 +173,7 @@ func TestGmailNativeReadThroughServer(t *testing.T) {
 			}
 			nativeFixtureWrite(t, w, http.StatusOK, page)
 		case "/gmail/v1/users/me/threads/thread_a":
-			if query.Get("format") != "metadata" || !slices.Equal(query["metadataHeaders"], []string{"From", "Subject"}) ||
+			if query.Get("format") != "metadata" || !slices.Equal(query["metadataHeaders"], []string{"From", "Subject", "To", "Cc", "Bcc"}) ||
 				query.Get("fields") != "id,messages(id,threadId,internalDate,labelIds,payload(headers(name,value)))" {
 				t.Errorf("thread metadata query = %q", r.URL.RawQuery)
 			}

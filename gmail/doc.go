@@ -20,7 +20,10 @@
 //   - ThreadReadRequest → Thread: threads.get in metadata format supplies
 //     message IDs, labels, dates and the requested headers. internalDate is
 //     a decimal string in milliseconds since the Unix epoch. The SDK checks
-//     the outer thread and every message's membership before projection.
+//     the outer thread and every message's membership before projection. To
+//     and Cc are bounded lists of typed mailboxes. Bcc is included only when
+//     Gmail supplies it on a SENT message from the bound mailbox. Reply-To
+//     indicates where replies should go, not the sender or original recipient.
 //   - MessageReadRequest → Message: messages.get in full format supplies a
 //     parsed MIME payload. Gmail's MessagePartBody carries base64url data or a
 //     separate attachment ID. The SDK admits inline UTF-8 text/plain only.
@@ -40,5 +43,9 @@
 // Thread metadata: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.threads/get
 // Message read: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/get
 // Message fields: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages#Message
+// System labels: https://developers.google.com/workspace/gmail/api/guides/labels
+// Address and destination headers: https://www.rfc-editor.org/rfc/rfc5322#section-3.6.3
+// Sender and reply address semantics: https://www.rfc-editor.org/rfc/rfc5322#section-3.6.2
+// Encoded display names: https://www.rfc-editor.org/rfc/rfc2047#section-5
 // MIME body: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages.attachments#MessagePartBody
 package gmail

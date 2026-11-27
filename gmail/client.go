@@ -69,12 +69,12 @@ func (c Client) ReadThread(ctx context.Context, r ThreadReadRequest) (Thread, er
 	if err := c.admit(ctx, r); err != nil {
 		return Thread{}, err
 	}
-	path := mailboxEndpoint + "/threads/" + string(r.Thread) + "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&fields=" + url.QueryEscape(threadMetadataFields)
+	path := mailboxEndpoint + "/threads/" + string(r.Thread) + "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Bcc&fields=" + url.QueryEscape(threadMetadataFields)
 	wire, err := readWithAccess[threadWire](ctx, r.Access, mailboxRead{client: c, policy: r.Policy, path: path})
 	if err != nil {
 		return Thread{}, err
 	}
-	return wire.project(r.Thread)
+	return wire.project(r.Thread, r.Access.Mailbox())
 }
 
 func (c Client) ReadMessage(ctx context.Context, r MessageReadRequest) (Message, error) {

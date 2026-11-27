@@ -738,3 +738,5 @@ Root source497 is ready for integration; focused RED/failed-onlyGREEN, Compass a
 START Codex Google Search 12. Typed Search Console query and property reads, with plain service-account OAuth through shared IAM assertion transport. Loopback proof only.
 
 JOIN · Codex · Google Search 12 · 2026-11-26. Primitive v2026.1.510 implements typed Search Analytics Query and Sites Get for a domain property. Metrics, filters, result extent, aggregation, dates and date coverage follow Google’s documented response. Plain IAM signing uses only webmasters.readonly and omits sub. The existing delegated Gmail flow is covered by the shared assertion regression tests. Evidence lives in /Users/d/code/.evidence/google-search-console. The actual property grant remains an owner-side check.
+
+JOIN Codex 2026-11-26 Gmail recipients, release v2026.1.511. Typed, bounded To/Cc and own-sent Bcc through thread metadata, with loopback proof. Fifteen guard omissions failed their intended tests and restored green. Gmail address fuzz 545058 executions with four workers. Five Search Console follow-up fuzz targets ran 30 seconds each and passed. Evidence /Users/d/code/.evidence/gmail-recipients.

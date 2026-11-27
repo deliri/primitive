@@ -162,11 +162,13 @@ type Thread struct {
 }
 
 type MessageHeader struct {
-	ID      MessageID
-	Sender  core.OAuthEmail
-	Subject Subject
-	At      temporal.Instant
-	Unread  bool
+	ID         MessageID
+	Sender     core.OAuthEmail
+	Subject    Subject
+	At         temporal.Instant
+	Unread     bool
+	Sent       bool
+	Recipients Recipients
 }
 
 func (m MessageHeader) Validate() error {
@@ -175,7 +177,7 @@ func (m MessageHeader) Validate() error {
 			return errors.Join(core.ErrGmailResponse, err)
 		}
 	}
-	return errors.Join(m.ID.Validate(), m.Subject.Validate(), m.At.Validate())
+	return errors.Join(m.ID.Validate(), m.Subject.Validate(), m.At.Validate(), m.Recipients.Validate())
 }
 
 func (t Thread) Validate() error {

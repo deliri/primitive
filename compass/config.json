@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 510
+      "patch": 511
     },
     "release_notes": [
-      "Add typed read-only Search Console analytics and property lookup with bounded results, explicit coverage, and keyless service-account access."
+      "Project bounded Gmail To and Cc recipients and disclose Bcc only on returned sent mail from the bound mailbox."
     ]
   }
 }
