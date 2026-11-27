@@ -54,7 +54,7 @@ func providerClaimsFixture(t testing.TB) delegationClaims {
 	at := temporal.InstantFromNanoseconds(wireFixtureTime)
 	request := DelegatedAccessRequest{Signer: signer, Subject: subject, Scope: DelegatedScopeGmailReadOnly, ObservedAt: at, Policy: policy}
 	claims, err := request.claims()
-	if err != nil || claims.Issuer != wireFixtureIssuer || claims.Subject != wireFixtureSubject ||
+	if err != nil || claims.Issuer != wireFixtureIssuer || claims.Subject != (optionalDelegationText{value: wireFixtureSubject, present: true}) ||
 		claims.IssuedAtSeconds != 1795708800 || claims.ExpiresAtSeconds != 1795709100 {
 		t.Fatalf("claims = %v/%v, want the configured identities and five-minute assertion", claims, err)
 	}
@@ -148,11 +148,11 @@ func TestDelegatedAssertionRejectsIndependentSubstitutions(t *testing.T) {
 			return providerAssertionFixture(t, c, wireFixtureKey)
 		}, wantErr: core.ErrGoogleDelegationBinding},
 		{name: "foreign subject", edit: func(_ signReplyFixture, c delegationClaims) signReplyFixture {
-			c.Subject = "stranger@example.invalid"
+			c.Subject = optionalDelegationText{value: "stranger@example.invalid", present: true}
 			return providerAssertionFixture(t, c, wireFixtureKey)
 		}, wantErr: core.ErrGoogleDelegationBinding},
 		{name: "plain account assertion without subject", edit: func(_ signReplyFixture, c delegationClaims) signReplyFixture {
-			c.Subject = ""
+			c.Subject = optionalDelegationText{}
 			return providerAssertionFixture(t, c, wireFixtureKey)
 		}, wantErr: core.ErrGoogleDelegationBinding},
 		{name: "wrong token audience", edit: func(_ signReplyFixture, c delegationClaims) signReplyFixture {
@@ -233,17 +233,31 @@ func TestDelegatedRequestRefusesWrongScopeAndClock(t *testing.T) {
 }
 
 func FuzzDelegatedProviderDocuments(f *testing.F) {
-	want := providerClaimsFixture(f)
-	seed := providerAssertionFixture(f, want, wireFixtureKey)
+	gmail := providerClaimsFixture(f)
+	signer, err := ParseServiceAccountEmail(wireFixtureIssuer)
+	if err != nil {
+		f.Fatal(err)
+	}
+	search, err := makeAssertionClaims(assertionScope{Signer: signer, At: temporal.InstantFromNanoseconds(wireFixtureTime), Scope: SearchConsoleReadOnlyScope})
+	if err != nil {
+		f.Fatal(err)
+	}
+	seed := providerAssertionFixture(f, gmail, wireFixtureKey)
 	f.Add(uint8(0), providerFixtureJSON(f, seed))
 	f.Add(uint8(1), providerFixtureJSON(f, tokenReplyFixture{Token: wireFixtureToken, Type: "Bearer", Expires: 3600, Scope: GmailReadOnlyScope}))
 	f.Add(uint8(2), providerFixtureJSON(f, delegatedFaultReply{Code: delegationFaultUnauthorizedClient}))
+	f.Add(uint8(3), providerFixtureJSON(f, providerAssertionFixture(f, search, wireFixtureKey)))
+	f.Add(uint8(4), providerFixtureJSON(f, tokenReplyFixture{Token: wireFixtureToken, Type: "Bearer", Expires: 3600, Scope: SearchConsoleReadOnlyScope}))
 	f.Add(uint8(0), []byte(`{"keyId":"x","signedJwt":"bad"}`))
 	f.Add(uint8(1), []byte(`{"access_token":"x","access_token":"y"}`))
 	f.Add(uint8(2), []byte(`{"error":null}`))
 	f.Fuzz(func(t *testing.T, selector uint8, data []byte) {
-		switch selector % 3 {
-		case 0:
+		want := gmail
+		if selector%5 > 2 {
+			want = search
+		}
+		switch selector % 5 {
+		case 0, 3:
 			got, err := decodeDelegatedAssertion(data, want)
 			defer clear(got.bytes)
 			if err != nil {
@@ -265,8 +279,8 @@ func FuzzDelegatedProviderDocuments(f *testing.F) {
 			if json.Unmarshal(data, &wire) != nil || !bytes.Equal(got.bytes, []byte(wire.JWT)) {
 				t.Fatalf("provider assertion equality = %t, want true", bytes.Equal(got.bytes, []byte(wire.JWT)))
 			}
-		case 1:
-			got, err := decodeDelegatedToken(data, temporal.InstantFromNanoseconds(wireFixtureTime), GmailReadOnlyScope)
+		case 1, 4:
+			got, err := decodeDelegatedToken(data, temporal.InstantFromNanoseconds(wireFixtureTime), want.Scope)
 			if err != nil {
 				if got != (DelegatedAccessToken{}) || !errors.Is(err, core.ErrGoogleDelegationResponse) && !errors.Is(err, core.ErrGoogleDelegationBinding) {
 					t.Fatalf("token refusal = %v/%v", got, err)
@@ -275,7 +289,7 @@ func FuzzDelegatedProviderDocuments(f *testing.F) {
 			}
 			defer got.Close()
 			var raw tokenReplyFixture
-			if json.Unmarshal(data, &raw) != nil || raw.Type != "Bearer" || raw.Expires < 1 || raw.Expires > 3600 || raw.Scope != "" && raw.Scope != GmailReadOnlyScope || got.Validate() != nil {
+			if json.Unmarshal(data, &raw) != nil || raw.Type != "Bearer" || raw.Expires < 1 || raw.Expires > 3600 || raw.Scope != "" && raw.Scope != want.Scope || got.Validate() != nil {
 				t.Fatalf("provider expiry = %d, type %q, want bounded bearer bound to the request", raw.Expires, raw.Type)
 			}
 			bearer, copyErr := got.CopyBearer()

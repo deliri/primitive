@@ -734,3 +734,7 @@ ROOT owner-directed checkout retirement2026-11-08: completed response-forwarder 
 ## Peachfuzz compiler admission proof — 2026-11-14
 
 Root source497 is ready for integration; focused RED/failed-onlyGREEN, Compass and release Vet/Staticcheck originals are verified in `_docs/release_v2026.1.497.md`. Publication and consumer adoption remain pending. No unrelated checkout or evidence was removed.
+
+START Codex Google Search 12. Typed Search Console query and property reads, with plain service-account OAuth through shared IAM assertion transport. Loopback proof only.
+
+JOIN · Codex · Google Search 12 · 2026-11-26. Primitive v2026.1.510 implements typed Search Analytics Query and Sites Get for a domain property. Metrics, filters, result extent, aggregation, dates and date coverage follow Google’s documented response. Plain IAM signing uses only webmasters.readonly and omits sub. The existing delegated Gmail flow is covered by the shared assertion regression tests. Evidence lives in /Users/d/code/.evidence/google-search-console. The actual property grant remains an owner-side check.

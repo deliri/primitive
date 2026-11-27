@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 509
+      "patch": 510
     },
     "release_notes": [
-      "Add keyless Google Workspace Gmail delegation with bounded IAM signing, verified mailbox binding, and automatic in-memory access renewal."
+      "Add typed read-only Search Console analytics and property lookup with bounded results, explicit coverage, and keyless service-account access."
     ]
   }
 }

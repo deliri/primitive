@@ -701,6 +701,13 @@ const (
 	// ErrGoogleDelegationResponse identifies an invalid or refused keyless delegation response.
 	ErrGoogleDelegationResponse
 
+	ErrSearchConsoleContract
+	ErrSearchConsoleResponse
+	ErrSearchConsoleProperty
+	ErrSearchConsoleQuota
+	ErrSearchConsoleNotReady
+	ErrSearchConsoleCoverageUnknown
+
 	errorIdentityLimit
 )
 
@@ -1016,6 +1023,12 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGoogleDelegationDenied, text: "google delegation access not configured"},
 		{identity: ErrGoogleDelegationBinding, text: "google delegation response does not match the request"},
 		{identity: ErrGoogleDelegationResponse, text: "google delegation response invalid"},
+		{identity: ErrSearchConsoleContract, text: "search console contract violation"},
+		{identity: ErrSearchConsoleResponse, text: "search console provider response invalid"},
+		{identity: ErrSearchConsoleProperty, text: "search console property is unavailable to this reader"},
+		{identity: ErrSearchConsoleQuota, text: "search console quota reached"},
+		{identity: ErrSearchConsoleNotReady, text: "search console date is still being collected"},
+		{identity: ErrSearchConsoleCoverageUnknown, text: "search console has no final data evidence for this date"},
 	}
 }
 
@@ -1284,6 +1297,12 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrSearchConsoleResponse, ErrSearchConsoleProperty, ErrSearchConsoleQuota, ErrSearchConsoleNotReady, ErrSearchConsoleCoverageUnknown) {
+		return ErrSearchConsoleContract
+	}
+	if identity == ErrSearchConsoleContract {
+		return ErrPrimitiveContract
+	}
 	if errorIdentityIn(identity, ErrGoogleDelegationDenied, ErrGoogleDelegationBinding, ErrGoogleDelegationResponse) {
 		return ErrGoogleIdentityContract
 	}

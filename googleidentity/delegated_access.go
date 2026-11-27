@@ -124,7 +124,11 @@ type DelegatedAccessRequest struct {
 }
 
 func (r DelegatedAccessRequest) Validate() error {
-	nanos, err := r.ObservedAt.Nanoseconds()
+	return errors.Join(validateAssertionTime(r.ObservedAt), r.Signer.Validate(), r.Subject.Validate(), r.Scope.Validate(), r.Policy.Validate())
+}
+
+func validateAssertionTime(at temporal.Instant) error {
+	nanos, err := at.Nanoseconds()
 	if err != nil || nanos < int64(temporal.NanosecondsPerSecond) {
 		return core.ErrGoogleIdentityContract
 	}
@@ -132,13 +136,14 @@ func (r DelegatedAccessRequest) Validate() error {
 	if err != nil {
 		return contractError(err)
 	}
-	if _, err := r.ObservedAt.Add(margin); err != nil {
+	if _, err := at.Add(margin); err != nil {
 		return contractError(err)
 	}
-	return errors.Join(r.Signer.Validate(), r.Subject.Validate(), r.Scope.Validate(), r.Policy.Validate())
+	return nil
 }
 
-// DelegatedAccessToken holds one short-lived OAuth bearer in memory. Copies
+// DelegatedAccessToken holds one short-lived OAuth bearer minted through IAM
+// signing, for either a delegated subject or the signing account itself. Copies
 // share destruction. CopyBearer gives one independent transient copy.
 type DelegatedAccessToken struct {
 	secret   core.OAuthClientSecret
@@ -201,6 +206,51 @@ func AcquireDelegatedAccess(ctx context.Context, client Client, request Delegate
 	if err := errors.Join(validateAcquisition(client, request), contextstate.Validate(ctx)); err != nil {
 		return DelegatedAccessToken{}, contractError(err)
 	}
+	claims, err := request.claims()
+	if err != nil {
+		return DelegatedAccessToken{}, err
+	}
+	return acquireAssertion(ctx, client, assertionRequest{Signer: request.Signer, At: request.ObservedAt, Policy: request.Policy, Claims: claims})
+}
+
+// SearchConsoleReadOnlyScope is the only scope of the plain Search reader.
+const SearchConsoleReadOnlyScope = "https://www.googleapis.com/auth/webmasters.readonly"
+
+// SearchConsoleAccessRequest requests a bearer for the signing service
+// account itself. Google omits sub for this non-Workspace OAuth flow.
+// https://docs.cloud.google.com/docs/authentication/token-types#service-account-jwt
+// https://developers.google.com/webmaster-tools/v1/how-tos/authorizing
+type SearchConsoleAccessRequest struct {
+	Signer     ServiceAccountEmail
+	ObservedAt temporal.Instant
+	Policy     Policy
+}
+
+func (r SearchConsoleAccessRequest) Validate() error {
+	return errors.Join(validateAssertionTime(r.ObservedAt), r.Signer.Validate(), r.Policy.Validate())
+}
+
+func AcquireSearchConsoleAccess(ctx context.Context, client Client, request SearchConsoleAccessRequest) (DelegatedAccessToken, error) {
+	if err := errors.Join(validateAcquisition(client, request), contextstate.Validate(ctx)); err != nil {
+		return DelegatedAccessToken{}, contractError(err)
+	}
+	claims, err := makeAssertionClaims(assertionScope{
+		Signer: request.Signer, At: request.ObservedAt, Scope: SearchConsoleReadOnlyScope,
+	})
+	if err != nil {
+		return DelegatedAccessToken{}, err
+	}
+	return acquireAssertion(ctx, client, assertionRequest{Signer: request.Signer, At: request.ObservedAt, Policy: request.Policy, Claims: claims})
+}
+
+type assertionRequest struct {
+	Signer ServiceAccountEmail
+	At     temporal.Instant
+	Policy Policy
+	Claims delegationClaims
+}
+
+func acquireAssertion(ctx context.Context, client Client, request assertionRequest) (DelegatedAccessToken, error) {
 	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: ctx, Duration: request.Policy.OperationTimeout})
 	if err != nil {
 		return DelegatedAccessToken{}, contractError(err)
@@ -217,6 +267,9 @@ func AcquireDelegatedAccess(ctx context.Context, client Client, request Delegate
 	defer clear(assertion.bytes)
 	return exchangeDelegatedAssertion(ctx, client.exchange, request, assertion)
 }
+
+func (SearchConsoleAccessRequest) googleIdentityProtocolFact() {}
+func (assertionRequest) googleIdentityInternalFlow()           {}
 
 func (ServiceAccountEmail) googleIdentityProtocolFact()       {}
 func (WorkspaceSubject) googleIdentityProtocolFact()          {}

@@ -107,27 +107,33 @@ func (c *delegationFaultCode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type optionalDelegationScope struct {
+type optionalDelegationText struct {
 	value   string
 	present bool
 }
 
-func (s *optionalDelegationScope) UnmarshalJSON(data []byte) error {
+func (s optionalDelegationText) IsZero() bool { return !s.present }
+
+func (s optionalDelegationText) MarshalJSON() ([]byte, error) {
+	return core.MarshalCanonicalJSONString(s.value)
+}
+
+func (s *optionalDelegationText) UnmarshalJSON(data []byte) error {
 	text, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return core.ErrGoogleDelegationResponse
 	}
-	*s = optionalDelegationScope{value: text, present: true}
+	*s = optionalDelegationText{value: text, present: true}
 	return nil
 }
 
 type delegationClaims struct {
-	Issuer           string `json:"iss"`
-	Subject          string `json:"sub,omitempty"`
-	Audience         string `json:"aud"`
-	Scope            string `json:"scope"`
-	IssuedAtSeconds  int64  `json:"iat"`
-	ExpiresAtSeconds int64  `json:"exp"`
+	Issuer           string                 `json:"iss"`
+	Subject          optionalDelegationText `json:"sub,omitzero"`
+	Audience         string                 `json:"aud"`
+	Scope            string                 `json:"scope"`
+	IssuedAtSeconds  int64                  `json:"iat"`
+	ExpiresAtSeconds int64                  `json:"exp"`
 }
 
 type delegatedSignRequest struct {
@@ -144,10 +150,10 @@ type delegatedSignReply struct {
 type signedDelegationAssertion struct{ bytes []byte }
 
 type delegatedTokenReply struct {
-	Token            delegationBearerText    `json:"access_token"`
-	Type             delegationTokenType     `json:"token_type"`
-	ExpiresInSeconds uint64                  `json:"expires_in"`
-	Scope            optionalDelegationScope `json:"scope,omitempty"`
+	Token            delegationBearerText   `json:"access_token"`
+	Type             delegationTokenType    `json:"token_type"`
+	ExpiresInSeconds uint64                 `json:"expires_in"`
+	Scope            optionalDelegationText `json:"scope,omitempty"`
 }
 
 type delegatedFaultReply struct {
@@ -195,27 +201,36 @@ func (r DelegatedAccessRequest) claims() (delegationClaims, error) {
 	if err := r.Validate(); err != nil {
 		return delegationClaims{}, err
 	}
-	nanos, err := r.ObservedAt.Nanoseconds()
-	if err != nil {
-		return delegationClaims{}, err
-	}
-	scope, err := r.Scope.wire()
+	return makeAssertionClaims(assertionScope{Signer: r.Signer, Subject: r.Subject, At: r.ObservedAt, Scope: r.Scope.String()})
+}
+
+type assertionScope struct {
+	Signer  ServiceAccountEmail
+	Subject WorkspaceSubject
+	At      temporal.Instant
+	Scope   string
+}
+
+func (assertionScope) googleIdentityInternalFlow() {}
+
+func makeAssertionClaims(input assertionScope) (delegationClaims, error) {
+	nanos, err := input.At.Nanoseconds()
 	if err != nil {
 		return delegationClaims{}, err
 	}
 	issued := nanos / int64(temporal.NanosecondsPerSecond)
+	var subject optionalDelegationText
+	if input.Subject != (WorkspaceSubject{}) {
+		subject = optionalDelegationText{value: input.Subject.Email().String(), present: true}
+	}
 	return delegationClaims{
-		Issuer: r.Signer.String(), Subject: r.Subject.Email().String(), Audience: googleServiceAccountTokenURL,
-		Scope: scope, IssuedAtSeconds: issued, ExpiresAtSeconds: issued + delegationAssertionSeconds,
+		Issuer: input.Signer.String(), Subject: subject, Audience: googleServiceAccountTokenURL,
+		Scope: input.Scope, IssuedAtSeconds: issued, ExpiresAtSeconds: issued + delegationAssertionSeconds,
 	}, nil
 }
 
-func signDelegatedAssertion(ctx context.Context, network exchange.Client, request DelegatedAccessRequest, runtime AccessToken) (signedDelegationAssertion, error) {
-	claims, err := request.claims()
-	if err != nil {
-		return signedDelegationAssertion{}, err
-	}
-	raw, err := core.MarshalCanonicalJSONDocument(claims)
+func signDelegatedAssertion(ctx context.Context, network exchange.Client, request assertionRequest, runtime AccessToken) (signedDelegationAssertion, error) {
+	raw, err := core.MarshalCanonicalJSONDocument(request.Claims)
 	if err != nil {
 		return signedDelegationAssertion{}, contractError(err)
 	}
@@ -240,7 +255,7 @@ func signDelegatedAssertion(ctx context.Context, network exchange.Client, reques
 		}
 		return signedDelegationAssertion{}, errors.Join(core.ErrGoogleDelegationResponse, err)
 	}
-	return decodeDelegatedAssertion(reply, claims)
+	return decodeDelegatedAssertion(reply, request.Claims)
 }
 
 func decodeDelegatedAssertion(data []byte, want delegationClaims) (signedDelegationAssertion, error) {
@@ -308,7 +323,7 @@ func decodeJWTPart(part []byte) ([]byte, error) {
 	return decoded, nil
 }
 
-func exchangeDelegatedAssertion(ctx context.Context, network exchange.Client, request DelegatedAccessRequest, assertion signedDelegationAssertion) (DelegatedAccessToken, error) {
+func exchangeDelegatedAssertion(ctx context.Context, network exchange.Client, request assertionRequest, assertion signedDelegationAssertion) (DelegatedAccessToken, error) {
 	// Valid compact JWS contains only base64url and dot, which are form-safe.
 	body := make([]byte, 0, len(assertion.bytes)+96)
 	body = append(body, "grant_type="+url.QueryEscape(delegationGrant)+"&assertion="...)
@@ -321,11 +336,7 @@ func exchangeDelegatedAssertion(ctx context.Context, network exchange.Client, re
 	if err != nil {
 		return DelegatedAccessToken{}, classifyDelegationFault(reply, err)
 	}
-	scope, err := request.Scope.wire()
-	if err != nil {
-		return DelegatedAccessToken{}, err
-	}
-	return decodeDelegatedToken(reply, request.ObservedAt, scope)
+	return decodeDelegatedToken(reply, request.At, request.Claims.Scope)
 }
 
 func decodeDelegatedToken(data []byte, start temporal.Instant, scope string) (DelegatedAccessToken, error) {
@@ -429,4 +440,4 @@ func (delegatedFaultReply) googleIdentityInternalFlow()            {}
 func (delegationPOST) googleIdentityInternalFlow()                 {}
 func (delegationBuffer) googleIdentityInternalFlow()               {}
 
-func (optionalDelegationScope) googleIdentityInternalFlow() {}
+func (optionalDelegationText) googleIdentityInternalFlow() {}

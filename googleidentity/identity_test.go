@@ -339,6 +339,7 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
+	AcquireSearchConsoleAccess              func(context.Context, Client, SearchConsoleAccessRequest) (DelegatedAccessToken, error)
 	AcquireDelegatedAccess                  func(context.Context, Client, DelegatedAccessRequest) (DelegatedAccessToken, error)
 	ParseServiceAccountEmail                func(string) (ServiceAccountEmail, error)
 	ParseWorkspaceSubject                   func(string) (WorkspaceSubject, error)
@@ -361,6 +362,7 @@ type googleExternalDoorInventory struct {
 }
 
 var googleExternalDoors = googleExternalDoorInventory{
+	AcquireSearchConsoleAccess:        AcquireSearchConsoleAccess,
 	AcquireDelegatedAccess:            AcquireDelegatedAccess,
 	ParseServiceAccountEmail:          ParseServiceAccountEmail,
 	ParseWorkspaceSubject:             ParseWorkspaceSubject,
