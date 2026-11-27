@@ -79,15 +79,16 @@ func (g R2Grant) Headers() (exchange.Headers, error) {
 	if err := g.Validate(); err != nil {
 		return exchange.Headers{}, err
 	}
-	return r2WriteHeaders(g.conditions, g.cacheControl), nil
+	return r2WriteHeaders(g.conditions, g.cacheControl, g.metadataSHA256)
 }
 
 // R2ObjectMetadata contains only facts independently returned by HEAD. ETag is
 // opaque: multipart ETags must never be reinterpreted as a content checksum.
 type R2ObjectMetadata struct {
-	ContentType core.HTTPMediaType
-	ETag        string
-	Bytes       core.ByteLength
+	MetadataSHA256 core.SHA256Digest
+	ContentType    core.HTTPMediaType
+	ETag           string
+	Bytes          core.ByteLength
 }
 
 func (m R2ObjectMetadata) Validate() error {
@@ -103,6 +104,19 @@ func (m R2ObjectMetadata) Validate() error {
 // Head verifies one exact object using a HEAD grant. No media bytes traverse
 // the application server and no listing or history query is performed.
 func (c R2Client) Head(ctx context.Context, grant R2Grant, policy exchange.StreamPolicy) (R2ObjectMetadata, error) {
+	return c.head(ctx, grant, policy, false)
+}
+
+// HeadWithMetadataSHA256 requires the exact canonical value returned by
+// R2 for x-amz-meta-sha256. Use a verified read to establish the object bytes
+// independently of this stored metadata field.
+// https://developers.cloudflare.com/r2/api/s3/conditional-operations/#identify-your-write
+// https://developers.cloudflare.com/r2/api/workers/workers-api-reference/#r2object-definition
+func (c R2Client) HeadWithMetadataSHA256(ctx context.Context, grant R2Grant, policy exchange.StreamPolicy) (R2ObjectMetadata, error) {
+	return c.head(ctx, grant, policy, true)
+}
+
+func (c R2Client) head(ctx context.Context, grant R2Grant, policy exchange.StreamPolicy, includeSHA256 bool) (R2ObjectMetadata, error) {
 	if err := errors.Join(c.Validate(), grant.Validate(), validatePolicy(policy)); err != nil {
 		return R2ObjectMetadata{}, err
 	}
@@ -110,15 +124,22 @@ func (c R2Client) Head(ctx context.Context, grant R2Grant, policy exchange.Strea
 		return R2ObjectMetadata{}, core.ErrCloudflareBinding
 	}
 	selection := exchange.HeaderSelection{Names: []core.HTTPHeaderName{core.HTTPHeaderContentType(), core.HTTPHeaderContentLength(), cloudflareHeader(core.CloudflareR2ETagHeader)}}
+	if includeSHA256 {
+		selection.Names = append(selection.Names, cloudflareHeader(core.CloudflareR2MetadataSHA256Header))
+	}
 	response, err := exchange.Download(exchange.DownloadCall{Context: ctx, Client: c.client, Policy: policy, Request: exchange.DownloadRequest{Target: grant.endpoint, Destination: io.Discard, CaptureHeaders: selection, ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodHead, Replay: exchange.ReplaySingleAttempt}}})
 	if err != nil {
 		return R2ObjectMetadata{}, err
 	}
-	return r2Metadata(response.Metadata.Headers)
+	return r2Metadata(response.Metadata.Headers, includeSHA256)
 }
 
-func r2Metadata(headers exchange.CapturedHeaders) (R2ObjectMetadata, error) {
-	if err := headers.Validate(); err != nil || len(headers.Values) != 3 {
+func r2Metadata(headers exchange.CapturedHeaders, includeSHA256 bool) (R2ObjectMetadata, error) {
+	fields := 3
+	if includeSHA256 {
+		fields++
+	}
+	if err := headers.Validate(); err != nil || len(headers.Values) != fields {
 		return R2ObjectMetadata{}, responseError(err)
 	}
 	var result R2ObjectMetadata
@@ -142,6 +163,11 @@ func r2Metadata(headers exchange.CapturedHeaders) (R2ObjectMetadata, error) {
 			}
 		case cloudflareHeader(core.CloudflareR2ETagHeader):
 			result.ETag = value
+		case cloudflareHeader(core.CloudflareR2MetadataSHA256Header):
+			if !includeSHA256 {
+				return R2ObjectMetadata{}, core.ErrCloudflareResponse
+			}
+			err = result.MetadataSHA256.UnmarshalText([]byte(value))
 		default:
 			return R2ObjectMetadata{}, core.ErrCloudflareResponse
 		}
@@ -153,6 +179,16 @@ func r2Metadata(headers exchange.CapturedHeaders) (R2ObjectMetadata, error) {
 		return R2ObjectMetadata{}, err
 	}
 	return result, nil
+}
+
+func validateR2MetadataSHA256(digest core.SHA256Digest, method exchange.Method) error {
+	if digest == (core.SHA256Digest{}) {
+		return nil
+	}
+	if method != exchange.MethodPut || digest.Validate() != nil {
+		return core.ErrCloudflareBinding
+	}
+	return nil
 }
 
 func (R2WriteConditions) cloudflareProtocolFact() {}

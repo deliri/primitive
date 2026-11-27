@@ -151,6 +151,9 @@ type R2PresignRequest struct {
 	Method       exchange.Method
 	Conditions   R2WriteConditions
 	CacheControl R2CacheControl
+	// MetadataSHA256 is optional x-amz-meta-sha256 on an exact PUT. The
+	// Workers binding reads it as customMetadata.sha256.
+	MetadataSHA256 core.SHA256Digest
 	// ContentLength, when present, signs the exact PUT body extent.
 	ContentLength exchange.SignedContentLength
 }
@@ -173,6 +176,9 @@ func (r R2PresignRequest) Validate() error {
 		return err
 	}
 	if err := r.CacheControl.validateWrite(r.Method == exchange.MethodPut); err != nil {
+		return err
+	}
+	if err := validateR2MetadataSHA256(r.MetadataSHA256, r.Method); err != nil {
 		return err
 	}
 	if err := validateR2ContentLength(r.ContentLength, r.Method == exchange.MethodPut, core.CloudflareR2SingleUploadMaximumBytes); err != nil {
@@ -204,12 +210,13 @@ func validateR2Method(method exchange.Method) error {
 // R2Grant binds a presigned endpoint to its exact HTTP method and signed media
 // type. Possession is authority; diagnostic formatting never reveals the URL.
 type R2Grant struct {
-	contentType   core.HTTPMediaType
-	endpoint      core.HTTPEndpoint
-	method        exchange.Method
-	conditions    R2WriteConditions
-	cacheControl  R2CacheControl
-	contentLength exchange.SignedContentLength
+	contentType    core.HTTPMediaType
+	endpoint       core.HTTPEndpoint
+	method         exchange.Method
+	conditions     R2WriteConditions
+	metadataSHA256 core.SHA256Digest
+	cacheControl   R2CacheControl
+	contentLength  exchange.SignedContentLength
 }
 
 func (g R2Grant) Validate() error {
@@ -217,6 +224,7 @@ func (g R2Grant) Validate() error {
 		return err
 	}
 	return errors.Join(g.conditions.validateMethod(g.method), g.cacheControl.validateWrite(g.method == exchange.MethodPut),
+		validateR2MetadataSHA256(g.metadataSHA256, g.method),
 		validateR2ContentLength(g.contentLength, g.method == exchange.MethodPut, core.CloudflareR2SingleUploadMaximumBytes))
 }
 func (g R2Grant) Endpoint() (core.HTTPEndpoint, error) { return g.endpoint, g.Validate() }
@@ -238,16 +246,20 @@ func (s R2Server) Presign(ctx context.Context, intent R2PresignRequest) (R2Grant
 	if err != nil {
 		return R2Grant{}, contractError(err)
 	}
+	headers, err := r2WriteHeaders(intent.Conditions, intent.CacheControl, intent.MetadataSHA256)
+	if err != nil {
+		return R2Grant{}, err
+	}
 	parsed, err := exchange.PresignV4(ctx, exchange.V4PresignRequest{
 		AccessKey: s.credentials.accessKey, SecretKey: s.credentials.secretKey,
 		Region: core.CloudflareR2SigningRegion, Service: core.CloudflareR2SigningService,
 		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: intent.Method,
-		SignedAt: intent.SignedAt, ContentType: intent.ContentType, ContentLength: intent.ContentLength, Headers: r2WriteHeaders(intent.Conditions, intent.CacheControl), DisableURIPathEscaping: true,
+		SignedAt: intent.SignedAt, ContentType: intent.ContentType, ContentLength: intent.ContentLength, Headers: headers, DisableURIPathEscaping: true,
 	})
 	if err != nil {
 		return R2Grant{}, authenticationError(err)
 	}
-	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions, cacheControl: intent.CacheControl, contentLength: intent.ContentLength}, nil
+	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions, cacheControl: intent.CacheControl, metadataSHA256: intent.MetadataSHA256, contentLength: intent.ContentLength}, nil
 }
 
 type R2Client struct{ client exchange.Client }
@@ -303,8 +315,12 @@ func (c R2Client) Put(ctx context.Context, request R2WriteRequest, policy exchan
 	if media.IsZero() {
 		media = core.HTTPMediaTypeOctetStream()
 	}
+	headers, err := r2WriteHeaders(grant.conditions, grant.cacheControl, grant.metadataSHA256)
+	if err != nil {
+		return exchange.StreamResponse{}, err
+	}
 	return exchange.Upload(exchange.UploadCall{Context: ctx, Client: c.client, Policy: policy,
-		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media, Headers: r2WriteHeaders(grant.conditions, grant.cacheControl),
+		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media, Headers: headers,
 			ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt}}})
 }
 

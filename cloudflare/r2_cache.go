@@ -72,10 +72,18 @@ func (c R2CacheControl) headers() exchange.Headers {
 	return exchange.Headers{Values: []exchange.Header{cloudflareRequestHeader(exchange.StandardHeaderCacheControl.String(), value)}}
 }
 
-func r2WriteHeaders(conditions R2WriteConditions, cache R2CacheControl) exchange.Headers {
+func r2WriteHeaders(conditions R2WriteConditions, cache R2CacheControl, digest core.SHA256Digest) (exchange.Headers, error) {
 	headers := cache.headers()
 	headers.Values = append(headers.Values, conditions.headers().Values...)
-	return headers
+	if digest == (core.SHA256Digest{}) {
+		return headers, nil
+	}
+	value, err := digest.Hex()
+	if err != nil {
+		return exchange.Headers{}, contractError(err)
+	}
+	headers.Values = append(headers.Values, cloudflareRequestHeader(core.CloudflareR2MetadataSHA256Header, value))
+	return headers, nil
 }
 
 func (R2CacheControl) cloudflareProtocolFact() {}

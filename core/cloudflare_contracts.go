@@ -164,6 +164,7 @@ const (
 	CloudflareR2ContentMD5Header       = "Content-MD5"
 	CloudflareR2IfNoneMatchHeader      = "If-None-Match"
 	CloudflareR2ETagHeader             = "ETag"
+	CloudflareR2MetadataSHA256Header   = "X-Amz-Meta-Sha256"
 	CloudflareR2CreateOnlyValue        = "*"
 	CloudflareR2CacheMaxAgePrefix      = "max-age="
 	CloudflareR2CacheNoStore           = "no-store"
