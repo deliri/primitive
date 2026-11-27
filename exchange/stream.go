@@ -103,6 +103,10 @@ func Upload(call UploadCall) (StreamResponse, error) {
 // Download receives one response into the caller-owned destination exactly
 // once, continuing until EOF or an execution failure without an extent quota.
 func Download(call DownloadCall) (StreamResponse, error) {
+	return download(call, nil)
+}
+
+func download(call DownloadCall, sign func(*http.Request) error) (StreamResponse, error) {
 	var zero StreamResponse
 	if err := call.Validate(); err != nil {
 		return zero, err
@@ -137,6 +141,11 @@ func Download(call DownloadCall) (StreamResponse, error) {
 	)
 	if err != nil {
 		return zero, err
+	}
+	if sign != nil {
+		if err := sign(request); err != nil {
+			return zero, requestError(err)
+		}
 	}
 	client := clientForPolicy(
 		call.Client.http,

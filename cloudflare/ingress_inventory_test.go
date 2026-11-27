@@ -44,6 +44,9 @@ func cloudflareIngressProofs() []ingressProof {
 		bindIngress(ParseR2Credentials, FuzzCloudflareSecretCustody),
 		bindIngress(ParseR2Bucket, FuzzR2ObjectRepresentationClosure),
 		bindIngress(ParseR2Key, FuzzR2ObjectRepresentationClosure),
+		bindIngress(ParseR2ListPrefix, FuzzR2ListRepresentations),
+		bindIngress(ParseR2ListContinuation, FuzzR2ListRepresentations),
+		bindIngress(R2Client.ListObjectsV2, FuzzR2ListProviderPage),
 		bindIngress(ParseR2Grant, FuzzR2GrantRepresentationAndProviderVerification),
 		bindIngress(ParseImageUpload, FuzzCloudflareUploadAuthorityClosure),
 		bindIngress(ParseStreamUpload, FuzzCloudflareUploadAuthorityClosure),
@@ -112,7 +115,7 @@ func cloudflareDecoderDoors(file *ast.File) []string {
 			continue
 		}
 		name := fn.Name.Name
-		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "ReadImageInfo" || name == "InspectResize" || name == "PurgeFile" || name == "PurgePrefix" || name == "NewCachePurgePrefix" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "DownloadOriginal" || name == "Head" || name == "ReadHTTP" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
+		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "ReadImageInfo" || name == "InspectResize" || name == "PurgeFile" || name == "PurgePrefix" || name == "NewCachePurgePrefix" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "ListObjectsV2" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "DownloadOriginal" || name == "Head" || name == "ReadHTTP" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
 			continue
 		}
 		if fn.Recv != nil {

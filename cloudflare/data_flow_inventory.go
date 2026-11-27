@@ -131,3 +131,9 @@ var (
 	_ cloudflareCapabilityWrapperRole = R2VerifiedObject{}
 	_ cloudflareCapabilityWrapperRole = R2Client{}
 )
+
+func (R2ListPrefix) cloudflareCapabilityWrapper()       {}
+func (R2ListContinuation) cloudflareCapabilityWrapper() {}
+func (R2ListRequest) cloudflareProtocolFact()           {}
+func (R2ListedObject) cloudflareProtocolFact()          {}
+func (R2ListPage) cloudflareProtocolFact()              {}
