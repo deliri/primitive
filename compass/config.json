@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 513
+      "patch": 514
     },
     "release_notes": [
-      "List one bucket-scoped R2 page with a header signature, bounded XML, exact object metadata, and opaque continuation."
+      "Sign one exact R2 object SHA-256 custom metadata field and expose strict HEAD readback for sealed preview custody."
     ]
   }
 }
