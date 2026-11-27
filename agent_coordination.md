@@ -779,12 +779,19 @@ Evidence: `/data/evidence/primitive/2026-11-27/r2-list-513`. Kernel adopts
 the exact module release for the Deliri Files lane. Product adoption uses
 the subsequent Kernel Forge release.
 
-## START · Deliri Preview R2 SHA-256 metadata · 2026-11-27
+## RELEASE · Deliri Preview R2 SHA-256 metadata · 2026-11-27
 
-Own `cloudflare/r2{,_cache,_metadata}.go`, the focused real TLS test and
-`core/cloudflare_contracts.go`. The current Deliri Worker compares
-`R2Object.customMetadata.sha256`, and its private custody writer already
-validates, writes and reads back exact object bytes. Cloudflare documents
-the S3 `x-amz-meta-*` mapping to Worker custom metadata. Bind one typed
-optional digest to an exact signed PUT and expose opt-in strict HEAD
-readback. Preserve existing grants and routine HEAD behavior. No live call.
+Primitive `v2026.1.514` is published at
+`2f2b466c29c32c8c6451b9b3e994bc9d5ef4a8c0`. Set
+`R2PresignRequest.MetadataSHA256` on an exact PUT. The signed
+`x-amz-meta-sha256` custom metadata maps to the Worker object's
+`customMetadata.sha256`. `R2Client.HeadWithMetadataSHA256` requires
+one canonical digest. It returns the stored metadata, which must be
+compared independently with the verified exact object bytes.
+
+Furnace passed 42 race nodes and scoped vet. Fuzzing admitted and
+rejected canonical/noncanonical native metadata in 32,813 executions.
+The independent provider fixture rejected a changed signed digest.
+Proof: `/data/evidence/primitive/2026-11-27/r2-sha256-514`.
+Kernel adopts the released pin. Deliri owns the private credentials
+and real Worker readback when authorized.
