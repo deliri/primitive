@@ -778,3 +778,13 @@ Furnace passed 33 Cloudflare and 21 Exchange race checks, focused vet, and
 Evidence: `/data/evidence/primitive/2026-11-27/r2-list-513`. Kernel adopts
 the exact module release for the Deliri Files lane. Product adoption uses
 the subsequent Kernel Forge release.
+
+## START · Deliri Preview R2 SHA-256 metadata · 2026-11-27
+
+Own `cloudflare/r2{,_cache,_metadata}.go`, the focused real TLS test and
+`core/cloudflare_contracts.go`. The current Deliri Worker compares
+`R2Object.customMetadata.sha256`, and its private custody writer already
+validates, writes and reads back exact object bytes. Cloudflare documents
+the S3 `x-amz-meta-*` mapping to Worker custom metadata. Bind one typed
+optional digest to an exact signed PUT and expose opt-in strict HEAD
+readback. Preserve existing grants and routine HEAD behavior. No live call.
