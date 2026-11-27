@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 512
+      "patch": 513
     },
     "release_notes": [
-      "Add typed Workspace Gmail send, exact Sent evidence, bounded reply and history reads, and narrow OAuth reconnect with confidential Secret Manager version custody."
+      "List one bucket-scoped R2 page with a header signature, bounded XML, exact object metadata, and opaque continuation."
     ]
   }
 }
