@@ -763,12 +763,18 @@ JOIN · Codex · Google Search 12 · 2026-11-26. Primitive v2026.1.510 implement
 
 JOIN Codex 2026-11-26 Gmail recipients, release v2026.1.511. Typed, bounded To/Cc and own-sent Bcc through thread metadata, with loopback proof. Fifteen guard omissions failed their intended tests and restored green. Gmail address fuzz 545058 executions with four workers. Five Search Console follow-up fuzz targets ran 30 seconds each and passed. Evidence /Users/d/code/.evidence/gmail-recipients.
 
-## START · R2 ListObjectsV2 page · 2026-11-27
+## RELEASE · R2 ListObjectsV2 page · 2026-11-27
 
-Own `cloudflare/r2_list*.go`, its data-flow and ingress inventories,
-`exchange/v4_download*.go`, the narrow Exchange download signing hook in
-`exchange/stream.go`, and release coordinates in `compass/config.json`.
-Deliri's Files handoff is `6f11cfce8`. Cloudflare documents that bucket-scoped
-Object Read & Write can list objects through the S3 API. The signed request
-selects one bucket, optional prefix, one opaque cursor and at most 1,000 keys.
-The requesting lane needs at most 50. Live bucket grants remain unverified.
+Primitive `v2026.1.513` is published at
+`be3cf9de80cc0f30b6ed0e8a772f30a8ffbf692e`. The public module download
+resolved that exact annotated release. One SigV4 page takes a typed bucket,
+optional prefix and opaque continuation, and at most 1,000 keys. Cloudflare
+documents bucket-scoped Object Read & Write listing. Evidence is local and
+uses the real client and TLS fixture. Deliri's actual bucket permissions
+remain for the product lane to observe.
+
+Furnace passed 33 Cloudflare and 21 Exchange race checks, focused vet, and
+6-second page and representation fuzz runs with 5,954 and 1,311 executions.
+Evidence: `/data/evidence/primitive/2026-11-27/r2-list-513`. Kernel adopts
+the exact module release for the Deliri Files lane. Product adoption uses
+the subsequent Kernel Forge release.
