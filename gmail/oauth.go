@@ -23,7 +23,34 @@ const (
 	credentialMaximumBytes = 4096
 	tokenResponseMaximum   = 16 * 1024
 	ReadOnlyScope          = "https://www.googleapis.com/auth/gmail.readonly"
+	SendScope              = "https://www.googleapis.com/auth/gmail.send"
 )
+
+// GrantScope is the exact Gmail scope set accepted from the OAuth token endpoint.
+type GrantScope uint8
+
+const (
+	GrantReadOnly GrantScope = iota
+	GrantReadAndSend
+)
+
+func (s GrantScope) Validate() error {
+	if s != GrantReadOnly && s != GrantReadAndSend {
+		return core.ErrGmailContract
+	}
+	return nil
+}
+
+func (s GrantScope) matches(raw scopeWire) bool {
+	switch s {
+	case GrantReadOnly:
+		return raw == ReadOnlyScope
+	case GrantReadAndSend:
+		return raw == ReadOnlyScope+" "+SendScope || raw == SendScope+" "+ReadOnlyScope
+	default:
+		return false
+	}
+}
 
 // RefreshToken is distinct from a bearer access credential. Copies share
 // destruction. The caller owns closing the token supplied to Refresh.
@@ -41,6 +68,10 @@ func NewRefreshToken(value []byte) (RefreshToken, error) {
 }
 
 func (t RefreshToken) Validate() error { return t.value.Validate() }
+
+// CopyBytes provides one owned copy to the caller's confidential storage
+// operation. The caller must clear the copy and close the handle.
+func (t RefreshToken) CopyBytes() ([]byte, error) { return t.value.CopyBytes() }
 func (t *RefreshToken) Close() error {
 	if t == nil {
 		return core.ErrGmailContract
@@ -60,11 +91,12 @@ type RefreshRequest struct {
 	ClientID     core.OAuthClientID
 	ClientSecret core.OAuthClientSecret
 	RefreshToken RefreshToken
+	Scope        GrantScope
 	Policy       exchange.OperationPolicy
 }
 
 func (r RefreshRequest) Validate() error {
-	return errors.Join(r.Mailbox.Validate(), r.ClientID.Validate(), r.ClientSecret.Validate(), r.RefreshToken.Validate(), validatePolicy(r.Policy))
+	return errors.Join(r.Mailbox.Validate(), r.ClientID.Validate(), r.ClientSecret.Validate(), r.RefreshToken.Validate(), r.Scope.Validate(), validatePolicy(r.Policy))
 }
 
 // Access is an account-bound Gmail bearer. Refresh and Delegate are its issuing capabilities.
@@ -74,6 +106,7 @@ type Access struct {
 	token     core.OAuthClientSecret
 	lifetime  temporal.Duration
 	delegated *delegatedMailbox
+	scope     GrantScope
 }
 
 func (a Access) Mailbox() core.OAuthEmail { return a.mailbox }
@@ -95,7 +128,7 @@ func (a Access) Validate() error {
 	if a.lifetime.IsZero() {
 		return core.ErrGmailConsent
 	}
-	return errors.Join(a.mailbox.Validate(), a.token.Validate(), a.lifetime.Validate())
+	return errors.Join(a.mailbox.Validate(), a.token.Validate(), a.lifetime.Validate(), a.scope.Validate())
 }
 
 func (a *Access) Close() error {
@@ -116,13 +149,15 @@ func (Access) MarshalJSON() ([]byte, error) {
 }
 
 // Google’s refresh endpoint returns the access token, bearer type, lifetime
-// and granted scopes. Only the exact read scope is admitted here.
+// and granted scopes. The response must match the exact requested scope set.
 // https://developers.google.com/identity/protocols/oauth2/web-server#offline
 type tokenWire struct {
-	Token   secretWire    `json:"access_token"`
-	Type    tokenTypeWire `json:"token_type"`
-	Expires uint64        `json:"expires_in"`
-	Scope   scopeWire     `json:"scope"`
+	Token          secretWire    `json:"access_token"`
+	Refresh        secretWire    `json:"refresh_token"`
+	Type           tokenTypeWire `json:"token_type"`
+	Expires        uint64        `json:"expires_in"`
+	Scope          scopeWire     `json:"scope"`
+	RefreshExpires uint64        `json:"refresh_token_expires_in"`
 }
 
 type oauthErrorWire struct {
@@ -193,21 +228,29 @@ func (c Client) refreshToken(ctx context.Context, r RefreshRequest) (Access, err
 	if err != nil {
 		return Access{}, err
 	}
+	wire, err := c.exchangeGrant(ctx, r.Policy, form)
+	if err != nil {
+		return Access{}, err
+	}
+	defer clear(wire)
+	return admitAccess(wire, r.Mailbox, r.Scope)
+}
+
+func (c Client) exchangeGrant(ctx context.Context, policy exchange.OperationPolicy, form []byte) ([]byte, error) {
 	defer clear(form)
 	target, err := core.ParseHTTPEndpoint(tokenEndpoint)
 	if err != nil {
-		return Access{}, errors.Join(core.ErrGmailContract, err)
+		return nil, errors.Join(core.ErrGmailContract, err)
 	}
-	body := responseBuffer{data: make([]byte, 0, tokenResponseMaximum), limit: tokenResponseMaximum}
-	faultBody := responseBuffer{data: make([]byte, 0, tokenResponseMaximum), limit: tokenResponseMaximum}
-	defer body.clear()
+	body := responseBuffer{limit: tokenResponseMaximum}
+	faultBody := responseBuffer{limit: tokenResponseMaximum}
 	defer faultBody.clear()
 	length, err := core.NewByteLength(uint64(len(form)))
 	if err != nil {
-		return Access{}, errors.Join(core.ErrGmailContract, err)
+		return nil, errors.Join(core.ErrGmailContract, err)
 	}
 	response, err := exchange.RoundTripStream(exchange.StreamRoundTripCall{
-		Context: ctx, Client: c.network, Policy: streamPolicy(r.Policy),
+		Context: ctx, Client: c.network, Policy: streamPolicy(policy),
 		Request: exchange.StreamRoundTripRequest{
 			Target: target, Semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 			Source: bytes.NewReader(form), RequestContentLength: &length, Destination: &body, FailureDestination: &faultBody,
@@ -216,34 +259,56 @@ func (c Client) refreshToken(ctx context.Context, r RefreshRequest) (Access, err
 		},
 	})
 	if err != nil {
+		body.clear()
 		status, _ := response.Metadata.Status.Int()
-		if status == http.StatusBadRequest {
-			fault, decodeErr := decodeProvider[oauthErrorWire](faultBody.data)
-			if decodeErr == nil && fault.Code == "invalid_grant" {
-				return Access{}, errors.Join(core.ErrGmailConsent, err)
+		if status == http.StatusBadRequest || status == http.StatusUnauthorized || status == http.StatusForbidden {
+			fault, _ := decodeProvider[oauthErrorWire](faultBody.data)
+			switch fault.Code {
+			case "invalid_grant":
+				return nil, core.ErrGmailConsent
+			case "admin_policy_enforced":
+				return nil, core.ErrGmailPolicy
+			case "invalid_client", "deleted_client", "unauthorized_client":
+				return nil, core.ErrGmailOAuthClient
 			}
 		}
-		return Access{}, responseFailure(response.Metadata, err)
+		return nil, responseFailure(response.Metadata, err)
 	}
-	return admitAccess(body.data, r.Mailbox)
+	return body.data, nil
 }
 
-func admitAccess(data []byte, mailbox core.OAuthEmail) (Access, error) {
-	if len(data) > tokenResponseMaximum {
-		return Access{}, errors.Join(core.ErrGmailResponse, core.ErrExchangeBodyLimit)
+func admitAccess(data []byte, mailbox core.OAuthEmail, scope GrantScope) (Access, error) {
+	var doc tokenWire
+	defer doc.clear()
+	if err := decodeTokenWire(data, &doc); err != nil {
+		return Access{}, err
 	}
+	return doc.access(mailbox, scope)
+}
+
+func (w *tokenWire) clear() {
+	clear(w.Token)
+	clear(w.Refresh)
+}
+
+func decodeTokenWire(data []byte, doc *tokenWire) error {
+	if len(data) > tokenResponseMaximum {
+		return errors.Join(core.ErrGmailResponse, core.ErrExchangeBodyLimit)
+	}
+	if err := jsonio.ValidateBytes(data); err != nil {
+		return errors.Join(core.ErrGmailResponse, core.ErrJSONContract)
+	}
+	if err := jsonv2.Unmarshal(data, doc); err != nil {
+		return errors.Join(core.ErrGmailResponse, core.ErrJSONContract)
+	}
+	return nil
+}
+
+func (doc tokenWire) access(mailbox core.OAuthEmail, scope GrantScope) (Access, error) {
 	if err := mailbox.Validate(); err != nil {
 		return Access{}, errors.Join(core.ErrGmailBinding, err)
 	}
-	var doc tokenWire
-	defer func() { clear(doc.Token) }()
-	if err := jsonio.ValidateBytes(data); err != nil {
-		return Access{}, errors.Join(core.ErrGmailResponse, core.ErrJSONContract)
-	}
-	if err := jsonv2.Unmarshal(data, &doc); err != nil {
-		return Access{}, errors.Join(core.ErrGmailResponse, core.ErrJSONContract)
-	}
-	if doc.Scope != ReadOnlyScope {
+	if !scope.matches(doc.Scope) {
 		return Access{}, core.ErrGmailConsent
 	}
 	if len(doc.Token) == 0 || len(doc.Token) > credentialMaximumBytes {
@@ -263,7 +328,7 @@ func admitAccess(data []byte, mailbox core.OAuthEmail) (Access, error) {
 	if err != nil {
 		return Access{}, errors.Join(core.ErrGmailResponse, err)
 	}
-	return Access{mailbox: mailbox, token: token, lifetime: lifetime}, nil
+	return Access{mailbox: mailbox, token: token, lifetime: lifetime, scope: scope}, nil
 }
 
 func refreshForm(r RefreshRequest) ([]byte, error) {

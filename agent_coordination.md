@@ -1,3 +1,25 @@
+## Primitive 512 · typed Workspace Gmail send and reconnect · 2026-11-27
+
+Deliri owner mail provider source is exact `4d46b149` under Core, Gmail and
+Secret Store. The fixed OAuth access requires Gmail read-only plus send
+scopes, verified by mailbox profile. The typed operations cover bounded MIME
+with one verified PDF, one Gmail send attempt, exact Sent evidence, reply
+metadata, recent contact observation, mailbox history and Web grant exchange.
+The Secret Manager SDK accepts one checksummed add-version call and returns
+only the exact enabled version. Domain delegation remains read-only.
+
+Furnace evidence `/data/evidence/primitive/2026-11-27/deliri-workspace-mail-provider`
+is SHA-256 verified (manifest `355ce5255906dd0a52a35ab4a64a0a8ee00928975d4cb8d5c481a75549cfdf97`).
+The focused race suite passed 112 test nodes with zero skips before three
+affected delegated-read leaves failed on the missing 401 status. Those exact
+leaves and their parent passed after the redaction fix. Scoped vet passed.
+Both intentional controls failed for the expected wrong MIME bytes and
+missing digest binding. The ten current external fuzz doors completed
+214,534 executions, with the Sent and recent-reply metadata runs thin at
+five and six executions. Keep their separate native proof. The earlier
+modify-only OAuth trial is superseded. No real provider operations or
+deployment. Kernel Bridge and product rollout are separate phases.
+
 ## Published · Primitive v2026.1.481 · Synchronous dependency compiler loan · 2026-11-05T00:58:17.731764+00:00
 
 Witness Root completed the explicitly transferred existing publication lane. Atomic main/tag push bound source fa9778ddb42a4d3b500bf86235a3dba0da8a2599 and release aa32e7cfcfcc94f7bc58b33adc1f511881e4697f; annotated tag object f23963bc91cbf5fc8ab1da71ba130b4baca25d88. Fresh remote refs and official Go module Origin match that exact tag/commit. All4597 ZIP members independently h1-bound and byte-compared to release Git AND extracted module; exact three proved files ce645733/7c1c9276/bb456566 equal. Module Sum h1:M48ERatYZXN/D0grqvxs2vc979VQuIfTEX5aUkOvUfY=; GoModSum h1:Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=. Verification /Users/d/.codex/ops/witness-source-selfrun-20261102/codex-primitive-dependency-analysis-scope/publication481/VERIFIED.json SHA 84ef99a1af19a7e377a08e17a4568cd386d68873dafe1ff1640dc33c85602417. No new native passing replay or duplicate evidence retrieval. Metadata Go download68741 and Git object reader alljoined0.

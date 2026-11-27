@@ -42,14 +42,38 @@ func (s Server) Validate() error { return s.client.Validate() }
 func (s Server) Refresh() Operation[RefreshRequest, Access] {
 	return bindOperation(s, s.client.Refresh)
 }
+func (s Server) EnrollWorkspaceGrant() Operation[ConsentRequest, RefreshToken] {
+	return bindOperation(s, s.client.EnrollWorkspaceGrant)
+}
 func (s Server) Delegate() Operation[DelegatedRequest, Access] {
 	return bindOperation(s, s.client.Delegate)
+}
+func (s Server) PrepareMessage() Operation[MessagePrepareRequest, PreparedMessage] {
+	return bindOperation(s, s.client.PrepareMessage)
+}
+func (s Server) SendMessage() Operation[MessageSendRequest, SendAcceptance] {
+	return bindOperation(s, s.client.SendMessage)
+}
+func (s Server) SearchRecentReply() Operation[RecentReplyRequest, RecentReply] {
+	return bindOperation(s, s.client.SearchRecentReply)
+}
+func (s Server) ReadSentEvidence() Operation[SentEvidenceRequest, SentEvidence] {
+	return bindOperation(s, s.client.ReadSentEvidence)
+}
+func (s Server) ReadHistoryCursor() Operation[HistoryCursorRequest, HistoryID] {
+	return bindOperation(s, s.client.ReadHistoryCursor)
+}
+func (s Server) ListHistory() Operation[HistoryListRequest, HistoryPage] {
+	return bindOperation(s, s.client.ListHistory)
 }
 func (s Server) ListThreads() Operation[ThreadListRequest, ThreadPage] {
 	return bindOperation(s, s.client.ListThreads)
 }
 func (s Server) ReadThread() Operation[ThreadReadRequest, Thread] {
 	return bindOperation(s, s.client.ReadThread)
+}
+func (s Server) ReadMessageMetadata() Operation[MessageReadRequest, MessageMetadata] {
+	return bindOperation(s, s.client.ReadMessageMetadata)
 }
 func (s Server) ReadMessage() Operation[MessageReadRequest, Message] {
 	return bindOperation(s, s.client.ReadMessage)

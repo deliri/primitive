@@ -708,6 +708,19 @@ const (
 	ErrSearchConsoleNotReady
 	ErrSearchConsoleCoverageUnknown
 
+	// ErrGmailRecipient identifies a recipient address outside the send contract.
+	ErrGmailRecipient
+	// ErrGmailSendRefused reports a definitive provider send refusal.
+	ErrGmailSendRefused
+	// ErrGmailSendUnconfirmed means sent evidence is needed to settle a send.
+	ErrGmailSendUnconfirmed
+	// ErrGmailHistoryResetRequired means the caller must establish a new baseline.
+	ErrGmailHistoryResetRequired
+	// ErrGmailPolicy identifies a confirmed Google Workspace policy refusal.
+	ErrGmailPolicy
+	// ErrGmailOAuthClient identifies a provider refusal of the OAuth client.
+	ErrGmailOAuthClient
+
 	errorIdentityLimit
 )
 
@@ -1029,6 +1042,12 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrSearchConsoleQuota, text: "search console quota reached"},
 		{identity: ErrSearchConsoleNotReady, text: "search console date is still being collected"},
 		{identity: ErrSearchConsoleCoverageUnknown, text: "search console has no final data evidence for this date"},
+		{identity: ErrGmailRecipient, text: "gmail recipient is invalid"},
+		{identity: ErrGmailSendRefused, text: "gmail refused the send request"},
+		{identity: ErrGmailSendUnconfirmed, text: "gmail send outcome could not be confirmed"},
+		{identity: ErrGmailHistoryResetRequired, text: "gmail history cursor requires a fresh baseline"},
+		{identity: ErrGmailPolicy, text: "workspace policy refuses Gmail authorization"},
+		{identity: ErrGmailOAuthClient, text: "gmail OAuth client configuration refused"},
 	}
 }
 
@@ -1306,7 +1325,7 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	if errorIdentityIn(identity, ErrGoogleDelegationDenied, ErrGoogleDelegationBinding, ErrGoogleDelegationResponse) {
 		return ErrGoogleIdentityContract
 	}
-	if errorIdentityIn(identity, ErrGmailResponse, ErrGmailBinding, ErrGmailConsent) {
+	if errorIdentityIn(identity, ErrGmailResponse, ErrGmailBinding, ErrGmailConsent, ErrGmailRecipient, ErrGmailSendRefused, ErrGmailSendUnconfirmed, ErrGmailHistoryResetRequired, ErrGmailPolicy, ErrGmailOAuthClient) {
 		return ErrGmailContract
 	}
 	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {

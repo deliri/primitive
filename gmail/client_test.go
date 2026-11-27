@@ -228,7 +228,7 @@ func fixtureAccess(t testing.TB) Access {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a, err := admitAccess(encodeFixture(t, grantedTokenFixture()), email)
+	a, err := admitAccess(encodeFixture(t, grantedTokenFixture()), email, GrantReadOnly)
 	if err != nil {
 		t.Fatal(err)
 	}

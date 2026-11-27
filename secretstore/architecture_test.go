@@ -51,7 +51,7 @@ func productionStructRole(name string) (string, bool) {
 	switch name {
 	case "GoogleProjectID", "GoogleSecretID":
 		return "opaque validated provider identifier", true
-	case "AccessRequest":
+	case "AccessRequest", "AddVersionRequest":
 		return "authenticated provider execution ingress", true
 	case "GoogleConnectionRequest":
 		return "caller-configured native transport ownership transfer", true
@@ -63,7 +63,7 @@ func productionStructRole(name string) (string, bool) {
 		return "internal shared destroyable custody", true
 	case "Value":
 		return "bounded redacted secret capability", true
-	case "GoogleReader":
+	case "GoogleReader", "GoogleVersionWriter":
 		return "official provider SDK capability wrapper", true
 	default:
 		return "", false

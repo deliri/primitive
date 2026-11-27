@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 511
+      "patch": 512
     },
     "release_notes": [
-      "Project bounded Gmail To and Cc recipients and disclose Bcc only on returned sent mail from the bound mailbox."
+      "Add typed Workspace Gmail send, exact Sent evidence, bounded reply and history reads, and narrow OAuth reconnect with confidential Secret Manager version custody."
     ]
   }
 }

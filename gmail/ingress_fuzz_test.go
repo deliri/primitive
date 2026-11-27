@@ -134,16 +134,23 @@ func FuzzMessageBodyIngress(f *testing.F) {
 }
 
 func FuzzRefreshResponseIngress(f *testing.F) {
-	f.Add(encodeFixture(f, grantedTokenFixture()))
-	f.Add([]byte(`{"access_token":null,"expires_in":3600,"token_type":"Bearer"}`))
-	f.Add([]byte(`{"access_token":"x","access_token":"y","expires_in":3600}`))
-	f.Add([]byte("null"))
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Add(encodeFixture(f, grantedTokenFixture()), false)
+	both := grantedTokenFixture()
+	both.Scope = SendScope + " " + ReadOnlyScope
+	f.Add(encodeFixture(f, both), true)
+	f.Add([]byte(`{"access_token":null,"expires_in":3600,"token_type":"Bearer"}`), false)
+	f.Add([]byte(`{"access_token":"x","access_token":"y","expires_in":3600}`), false)
+	f.Add([]byte("null"), true)
+	f.Fuzz(func(t *testing.T, data []byte, send bool) {
+		scope := GrantReadOnly
+		if send {
+			scope = GrantReadAndSend
+		}
 		mailbox, err := core.ParseOAuthEmail(fixtureMailbox)
 		if err != nil {
 			t.Fatal(err)
 		}
-		got, err := admitAccess(data, mailbox)
+		got, err := admitAccess(data, mailbox, scope)
 		if err != nil {
 			if !errors.Is(err, core.ErrGmailContract) || got != (Access{}) {
 				t.Fatalf("access refusal = (%v,%v)", got, err)
@@ -156,8 +163,8 @@ func FuzzRefreshResponseIngress(f *testing.F) {
 			}
 		}()
 		wire, err := decodeProvider[tokenFixture](data)
-		if err != nil || wire.Scope != ReadOnlyScope {
-			t.Fatalf("admitted grant without exact read-only scope")
+		if err != nil || !scope.matches(wire.Scope) {
+			t.Fatalf("admitted grant without the exact requested scopes")
 		}
 		token, err := got.token.CopyBytes()
 		defer clear(token)

@@ -162,9 +162,28 @@ func decodeProvider[T any](data []byte) (T, error) {
 }
 
 func responseFailure(metadata exchange.ResponseMetadata, err error) error {
+	// Native HTTP errors may contain the complete private lookup URL. Preserve
+	// typed causes and safe status metadata only.
+	var status exchange.StatusError
+	statusKnown := errors.As(err, &status)
 	code, _ := metadata.Status.Int()
 	if code == http.StatusUnauthorized {
-		return errors.Join(core.ErrGmailConsent, err)
+		if statusKnown {
+			return errors.Join(core.ErrGmailConsent, status)
+		}
+		return core.ErrGmailConsent
 	}
-	return errors.Join(core.ErrGmailResponse, err)
+	for _, cause := range [...]error{context.Canceled, context.DeadlineExceeded, core.ErrExchangeBodyLimit,
+		core.ErrExchangeTransport, core.ErrExchangeResponseHeaders, core.ErrExchangeRedirect} {
+		if errors.Is(err, cause) {
+			if statusKnown {
+				return errors.Join(core.ErrGmailResponse, cause, status)
+			}
+			return errors.Join(core.ErrGmailResponse, cause)
+		}
+	}
+	if statusKnown {
+		return errors.Join(core.ErrGmailResponse, status)
+	}
+	return core.ErrGmailResponse
 }

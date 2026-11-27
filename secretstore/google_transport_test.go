@@ -21,19 +21,29 @@ import (
 type localSecretServer struct {
 	secretmanagerpb.UnimplementedSecretManagerServiceServer
 	access func(context.Context, *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	add    func(context.Context, *secretmanagerpb.AddSecretVersionRequest) (*secretmanagerpb.SecretVersion, error)
 }
 
 func (s *localSecretServer) AccessSecretVersion(ctx context.Context, request *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	return s.access(ctx, request)
 }
 
+func (s *localSecretServer) AddSecretVersion(ctx context.Context, request *secretmanagerpb.AddSecretVersionRequest) (*secretmanagerpb.SecretVersion, error) {
+	return s.add(ctx, request)
+}
+
 // localGoogleConnection supplies a native SDK transport without any provider
 // authentication or network access. Its connection is caller-owned until admitted.
 func localGoogleConnection(t *testing.T, access func(context.Context, *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error)) *grpc.ClientConn {
 	t.Helper()
+	return localSecretConnection(t, &localSecretServer{access: access})
+}
+
+func localSecretConnection(t *testing.T, service *localSecretServer) *grpc.ClientConn {
+	t.Helper()
 	listener := bufconn.Listen(64 * 1024)
 	server := grpc.NewServer()
-	secretmanagerpb.RegisterSecretManagerServiceServer(server, &localSecretServer{access: access})
+	secretmanagerpb.RegisterSecretManagerServiceServer(server, service)
 	done := make(chan error, 1)
 	go func() { done <- server.Serve(listener) }()
 	t.Cleanup(func() {
