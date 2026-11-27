@@ -694,6 +694,13 @@ const (
 	// ErrGmailConsent identifies missing, expired or incorrectly scoped Gmail consent.
 	ErrGmailConsent
 
+	// ErrGoogleDelegationDenied identifies a missing or refused keyless delegation grant.
+	ErrGoogleDelegationDenied
+	// ErrGoogleDelegationBinding identifies a signer, claim or scope substitution.
+	ErrGoogleDelegationBinding
+	// ErrGoogleDelegationResponse identifies an invalid or refused keyless delegation response.
+	ErrGoogleDelegationResponse
+
 	errorIdentityLimit
 )
 
@@ -1006,6 +1013,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGmailResponse, text: "gmail provider response invalid"},
 		{identity: ErrGmailBinding, text: "gmail response binding invalid"},
 		{identity: ErrGmailConsent, text: "gmail authorization unavailable"},
+		{identity: ErrGoogleDelegationDenied, text: "google delegation access not configured"},
+		{identity: ErrGoogleDelegationBinding, text: "google delegation response does not match the request"},
+		{identity: ErrGoogleDelegationResponse, text: "google delegation response invalid"},
 	}
 }
 
@@ -1274,6 +1284,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrGoogleDelegationDenied, ErrGoogleDelegationBinding, ErrGoogleDelegationResponse) {
+		return ErrGoogleIdentityContract
+	}
 	if errorIdentityIn(identity, ErrGmailResponse, ErrGmailBinding, ErrGmailConsent) {
 		return ErrGmailContract
 	}

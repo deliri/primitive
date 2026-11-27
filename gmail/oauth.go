@@ -67,17 +67,31 @@ func (r RefreshRequest) Validate() error {
 	return errors.Join(r.Mailbox.Validate(), r.ClientID.Validate(), r.ClientSecret.Validate(), r.RefreshToken.Validate(), validatePolicy(r.Policy))
 }
 
-// Access is an account-bound Gmail bearer. Only Refresh can admit one.
+// Access is an account-bound Gmail bearer. Refresh and Delegate are its issuing capabilities.
 // A copied handle shares its secret lifetime, and formatting always redacts it.
 type Access struct {
-	mailbox  core.OAuthEmail
-	token    core.OAuthClientSecret
-	lifetime temporal.Duration
+	mailbox   core.OAuthEmail
+	token     core.OAuthClientSecret
+	lifetime  temporal.Duration
+	delegated *delegatedMailbox
 }
 
-func (a Access) Mailbox() core.OAuthEmail    { return a.mailbox }
-func (a Access) Lifetime() temporal.Duration { return a.lifetime }
+func (a Access) Mailbox() core.OAuthEmail { return a.mailbox }
+
+// Lifetime is the acquired bearer lifetime. A fresh delegated handle has not
+// acquired a bearer and reports zero until its first successful renewal.
+func (a Access) Lifetime() temporal.Duration {
+	if a.delegated != nil {
+		a.delegated.mu.Lock()
+		defer a.delegated.mu.Unlock()
+		return a.delegated.current.Lifetime()
+	}
+	return a.lifetime
+}
 func (a Access) Validate() error {
+	if a.delegated != nil {
+		return errors.Join(a.mailbox.Validate(), a.delegated.validate())
+	}
 	if a.lifetime.IsZero() {
 		return core.ErrGmailConsent
 	}
@@ -87,6 +101,9 @@ func (a Access) Validate() error {
 func (a *Access) Close() error {
 	if a == nil {
 		return core.ErrGmailConsent
+	}
+	if a.delegated != nil {
+		return a.delegated.close()
 	}
 	return a.token.Close()
 }
@@ -146,17 +163,29 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Access, error) {
 	if err != nil {
 		return Access{}, err
 	}
-	profile, err := readJSON[mailboxWire](ctx, c, access.token, r.Policy, mailboxEndpoint+"/profile?fields=emailAddress")
-	if err == nil {
-		got, parseErr := core.ParseOAuthEmail(string(profile.Email))
-		if parseErr != nil || !strings.EqualFold(got.String(), r.Mailbox.String()) {
-			err = core.ErrGmailBinding
-		}
-	}
-	if err != nil {
+	if err := c.verifyMailbox(ctx, access.token, mailboxVerification{policy: r.Policy, mailbox: r.Mailbox}); err != nil {
 		return Access{}, errors.Join(err, access.Close())
 	}
 	return access, nil
+}
+
+type mailboxVerification struct {
+	policy  exchange.OperationPolicy
+	mailbox core.OAuthEmail
+}
+
+func (mailboxVerification) gmailInternalFlow() {}
+
+func (c Client) verifyMailbox(ctx context.Context, token core.OAuthClientSecret, request mailboxVerification) error {
+	profile, err := readJSON[mailboxWire](ctx, token, mailboxRead{client: c, policy: request.policy, path: mailboxEndpoint + "/profile?fields=emailAddress"})
+	if err != nil {
+		return err
+	}
+	got, err := core.ParseOAuthEmail(string(profile.Email))
+	if err != nil || !strings.EqualFold(got.String(), request.mailbox.String()) {
+		return core.ErrGmailBinding
+	}
+	return nil
 }
 
 func (c Client) refreshToken(ctx context.Context, r RefreshRequest) (Access, error) {

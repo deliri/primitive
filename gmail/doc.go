@@ -3,6 +3,13 @@
 //
 // Google publishes the provider contracts for each projection:
 //
+//   - DelegatedRequest → Access: the attached runtime authorizes Google IAM
+//     Credentials signJwt for one configured signer. A short-lived assertion
+//     binds the signer, Workspace subject and Gmail read-only scope. OAuth
+//     returns a bearer and expires_in, and Gmail profile binds that bearer to
+//     the configured mailbox. The in-memory source shares one renewal across
+//     concurrent callers, renews early, and repeats a read once after HTTP 401.
+//     A missing IAM or Workspace grant returns core.ErrGoogleDelegationDenied.
 //   - RefreshRequest → Access: Google's server-side OAuth guide defines the
 //     form fields, bearer token, scope and lifetime. Gmail profile supplies
 //     emailAddress, which the SDK binds to the configured mailbox before an
@@ -22,7 +29,11 @@
 // also confines consent to gmail.readonly, refuses redirects, and withholds
 // drafts, remote HTML and attachment data.
 //
-// OAuth: https://developers.google.com/identity/protocols/oauth2/web-server#offline
+// OAuth refresh: https://developers.google.com/identity/protocols/oauth2/web-server#offline
+// OAuth service accounts: https://developers.google.com/identity/protocols/oauth2/service-account
+// Keyless domain delegation: https://docs.cloud.google.com/iam/docs/best-practices-for-managing-service-account-keys#domain-wide-delegation
+// Signer: https://docs.cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/signJwt
+// Workspace grants: https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation
 // Scope: https://developers.google.com/workspace/gmail/api/auth/scopes
 // Profile: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users/getProfile
 // Thread list: https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.threads/list

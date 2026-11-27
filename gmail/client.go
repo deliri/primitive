@@ -58,7 +58,7 @@ func (c Client) ListThreads(ctx context.Context, r ThreadListRequest) (ThreadPag
 	if r.After != "" {
 		path += "&pageToken=" + url.QueryEscape(string(r.After))
 	}
-	wire, err := readJSON[threadPageWire](ctx, c, r.Access.token, r.Policy, path)
+	wire, err := readWithAccess[threadPageWire](ctx, r.Access, mailboxRead{client: c, policy: r.Policy, path: path})
 	if err != nil {
 		return ThreadPage{}, err
 	}
@@ -70,7 +70,7 @@ func (c Client) ReadThread(ctx context.Context, r ThreadReadRequest) (Thread, er
 		return Thread{}, err
 	}
 	path := mailboxEndpoint + "/threads/" + string(r.Thread) + "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&fields=" + url.QueryEscape(threadMetadataFields)
-	wire, err := readJSON[threadWire](ctx, c, r.Access.token, r.Policy, path)
+	wire, err := readWithAccess[threadWire](ctx, r.Access, mailboxRead{client: c, policy: r.Policy, path: path})
 	if err != nil {
 		return Thread{}, err
 	}
@@ -82,16 +82,24 @@ func (c Client) ReadMessage(ctx context.Context, r MessageReadRequest) (Message,
 		return Message{}, err
 	}
 	path := mailboxEndpoint + "/messages/" + string(r.Message) + "?format=full&fields=" + url.QueryEscape(messageFields)
-	wire, err := readJSON[messageWire](ctx, c, r.Access.token, r.Policy, path)
+	wire, err := readWithAccess[messageWire](ctx, r.Access, mailboxRead{client: c, policy: r.Policy, path: path})
 	if err != nil {
 		return Message{}, err
 	}
 	return wire.project(r)
 }
 
-func readJSON[T any](ctx context.Context, c Client, token core.OAuthClientSecret, policy exchange.OperationPolicy, path string) (T, error) {
+type mailboxRead struct {
+	client Client
+	policy exchange.OperationPolicy
+	path   string
+}
+
+func (mailboxRead) gmailInternalFlow() {}
+
+func readJSON[T any](ctx context.Context, token core.OAuthClientSecret, request mailboxRead) (T, error) {
 	var zero T
-	target, err := core.ParseHTTPEndpoint(path)
+	target, err := core.ParseHTTPEndpoint(request.path)
 	if err != nil {
 		return zero, errors.Join(core.ErrGmailContract, err)
 	}
@@ -107,7 +115,7 @@ func readJSON[T any](ctx context.Context, c Client, token core.OAuthClientSecret
 	body := responseBuffer{limit: responseMaximumBytes}
 	defer body.clear()
 	response, err := exchange.Download(exchange.DownloadCall{
-		Context: ctx, Client: c.network, Policy: streamPolicy(policy),
+		Context: ctx, Client: request.client.network, Policy: streamPolicy(request.policy),
 		Request: exchange.DownloadRequest{
 			Target: target, Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
 			SecretHeaders:  []exchange.SecretHeader{{Name: name, Value: bearer, Scheme: exchange.SecretHeaderBearer}},

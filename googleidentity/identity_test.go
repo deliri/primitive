@@ -339,6 +339,9 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
+	AcquireDelegatedAccess                  func(context.Context, Client, DelegatedAccessRequest) (DelegatedAccessToken, error)
+	ParseServiceAccountEmail                func(string) (ServiceAccountEmail, error)
+	ParseWorkspaceSubject                   func(string) (WorkspaceSubject, error)
 	NewGoogleCloudVerificationRequest       func(string) (GoogleCloudVerificationRequest, error)
 	GoogleCloudVerificationRequest_Validate func(GoogleCloudVerificationRequest) error
 	ParsePhoneE164                          func(string) (PhoneE164, error)
@@ -357,7 +360,11 @@ type googleExternalDoorInventory struct {
 	ParseGoogleCloudCommandOutput           func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{NewGoogleCloudVerificationRequest: NewGoogleCloudVerificationRequest, GoogleCloudVerificationRequest_Validate: GoogleCloudVerificationRequest.Validate, ParsePhoneE164: ParsePhoneE164, ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{
+	AcquireDelegatedAccess:            AcquireDelegatedAccess,
+	ParseServiceAccountEmail:          ParseServiceAccountEmail,
+	ParseWorkspaceSubject:             ParseWorkspaceSubject,
+	NewGoogleCloudVerificationRequest: NewGoogleCloudVerificationRequest, GoogleCloudVerificationRequest_Validate: GoogleCloudVerificationRequest.Validate, ParsePhoneE164: ParsePhoneE164, ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()

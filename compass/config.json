@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 508
+      "patch": 509
     },
     "release_notes": [
-      "Document the official Google wire contracts behind the typed Gmail projections and distinguish SDK limits from provider requirements."
+      "Add keyless Google Workspace Gmail delegation with bounded IAM signing, verified mailbox binding, and automatic in-memory access renewal."
     ]
   }
 }

@@ -42,6 +42,9 @@ func (s Server) Validate() error { return s.client.Validate() }
 func (s Server) Refresh() Operation[RefreshRequest, Access] {
 	return bindOperation(s, s.client.Refresh)
 }
+func (s Server) Delegate() Operation[DelegatedRequest, Access] {
+	return bindOperation(s, s.client.Delegate)
+}
 func (s Server) ListThreads() Operation[ThreadListRequest, ThreadPage] {
 	return bindOperation(s, s.client.ListThreads)
 }
