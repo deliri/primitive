@@ -762,3 +762,13 @@ START Codex Google Search 12. Typed Search Console query and property reads, wit
 JOIN · Codex · Google Search 12 · 2026-11-26. Primitive v2026.1.510 implements typed Search Analytics Query and Sites Get for a domain property. Metrics, filters, result extent, aggregation, dates and date coverage follow Google’s documented response. Plain IAM signing uses only webmasters.readonly and omits sub. The existing delegated Gmail flow is covered by the shared assertion regression tests. Evidence lives in /Users/d/code/.evidence/google-search-console. The actual property grant remains an owner-side check.
 
 JOIN Codex 2026-11-26 Gmail recipients, release v2026.1.511. Typed, bounded To/Cc and own-sent Bcc through thread metadata, with loopback proof. Fifteen guard omissions failed their intended tests and restored green. Gmail address fuzz 545058 executions with four workers. Five Search Console follow-up fuzz targets ran 30 seconds each and passed. Evidence /Users/d/code/.evidence/gmail-recipients.
+
+## START · R2 ListObjectsV2 page · 2026-11-27
+
+Own `cloudflare/r2_list*.go`, its data-flow and ingress inventories,
+`exchange/v4_download*.go`, the narrow Exchange download signing hook in
+`exchange/stream.go`, and release coordinates in `compass/config.json`.
+Deliri's Files handoff is `6f11cfce8`. Cloudflare documents that bucket-scoped
+Object Read & Write can list objects through the S3 API. The signed request
+selects one bucket, optional prefix, one opaque cursor and at most 1,000 keys.
+The requesting lane needs at most 50. Live bucket grants remain unverified.
