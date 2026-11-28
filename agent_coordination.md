@@ -831,3 +831,16 @@ and read back `manifest: application/json` and `bundle: application/zip`.
 The original probe and 40 hash-verified files are at
 `/data/evidence/primitive/2026-11-27/multipart-media-515`.
 Lightbeam owns the mounted upload proof and command installation.
+
+### START Gmail Sent evidence after live receipt refusal
+
+Mail owns `gmail/sent.go`, the Sent evidence tests, and the closed failure
+classes in Core. A Gmail send and exact metadata lookup both answered 200
+in the first product pilot. No retained provider response identifies the
+rejected field. Anchor accepted evidence to the exact provider message and
+thread, SENT, bound mailbox and exact recipients. Accept absent custom
+headers as reported facts and record a recognizable Gmail-issued RFC ID
+on the exact accepted coordinate. A legacy attempt lookup still requires
+its own unique RFC ID. Protect exact observed header mismatches. No live
+mailbox calls. Coordinate Primitive 516 and Kernel adoption before product
+activation.
