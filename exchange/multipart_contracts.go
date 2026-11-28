@@ -138,18 +138,29 @@ func (MultipartPartKind) OffWireEnum() {}
 // Source.Close must unblock its Read and return; uncooperative custom closers
 // cannot be made interruptible by a caller-independent timeout. Fields have no
 // Source or FileName; files have no Text. Repeated names preserve input order.
+// An unset ContentType retains the native field or file default.
 type MultipartPart struct {
-	Source   io.ReadCloser
-	Name     MultipartName
-	FileName MultipartFileName
-	Text     MultipartText
-	Kind     MultipartPartKind
+	Source      io.ReadCloser
+	Name        MultipartName
+	FileName    MultipartFileName
+	Text        MultipartText
+	ContentType core.HTTPMediaType
+	Kind        MultipartPartKind
 }
 
 // Validate refuses contradictory field/file agreements before custody transfer.
 func (p MultipartPart) Validate() error {
 	if err := p.Name.Validate(); err != nil {
 		return err
+	}
+	if !p.ContentType.IsZero() {
+		base, err := p.ContentType.Base()
+		if err != nil {
+			return err
+		}
+		if strings.HasPrefix(base, "*/") || strings.HasSuffix(base, "/*") {
+			return core.ErrExchangeContract
+		}
 	}
 	switch p.Kind {
 	case MultipartPartField:

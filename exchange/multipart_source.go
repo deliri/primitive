@@ -5,7 +5,9 @@ import (
 	"errors"
 	"io"
 	"iter"
+	"mime"
 	"mime/multipart"
+	"net/textproto"
 	"strings"
 	"sync"
 
@@ -92,7 +94,8 @@ type multipartSourceReader struct{ reader *io.PipeReader }
 func (r multipartSourceReader) Read(data []byte) (int, error) { return r.reader.Read(data) }
 
 // WithMultipartSource produces native multipart framing through one unbuffered
-// io.Pipe. Go owns quoting, boundaries and file headers (application/octet-stream).
+// io.Pipe. Go owns header quoting, boundaries and default part headers. A part
+// can supply its own validated Content-Type.
 // Exchange holds one TransferBufferBytes window and one admitted source. Cancel
 // closes that source and both endpoints, then joins producer and cancellation
 // callback before returning. The consumer must finish reading to EOF for complete
@@ -196,7 +199,7 @@ func (owner *multipartLifetime) writePart(ctx context.Context, form *multipart.W
 	switch part.Kind {
 	case MultipartPartField:
 		var err error
-		destination, err = form.CreateFormField(part.Name.String())
+		destination, err = createMultipartPart(form, part)
 		if err != nil {
 			return err
 		}
@@ -207,7 +210,7 @@ func (owner *multipartLifetime) writePart(ctx context.Context, form *multipart.W
 			return err
 		}
 		defer func() { resultErr = errors.Join(resultErr, owner.release(owned)) }()
-		destination, err = form.CreateFormFile(part.Name.String(), part.FileName.String())
+		destination, err = createMultipartPart(form, part)
 		if err != nil {
 			return err
 		}
@@ -217,4 +220,26 @@ func (owner *multipartLifetime) writePart(ctx context.Context, form *multipart.W
 	}
 	_, err := copyDownload(downloadCopyRequest{context: ctx, source: source, destination: destination, buffer: buffer})
 	return err
+}
+
+// createMultipartPart preserves the native wire bytes for omitted media. Explicit
+// media changes only the selected part's header.
+func createMultipartPart(form *multipart.Writer, part MultipartPart) (io.Writer, error) {
+	name := part.Name.String()
+	if part.ContentType.IsZero() {
+		if part.Kind == MultipartPartFile {
+			return form.CreateFormFile(name, part.FileName.String())
+		}
+		return form.CreateFormField(name)
+	}
+	var disposition string
+	if part.Kind == MultipartPartFile {
+		disposition = multipart.FileContentDisposition(name, part.FileName.String())
+	} else {
+		disposition = mime.FormatMediaType("form-data", map[string]string{"name": name})
+	}
+	header := make(textproto.MIMEHeader, 2)
+	header.Set("Content-Disposition", disposition)
+	header.Set(core.HTTPHeaderContentType().String(), part.ContentType.String())
+	return form.CreatePart(header)
 }
