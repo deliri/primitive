@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 517
+      "patch": 518
     },
     "release_notes": [
-      "Identify header-only Gmail Inbox candidates using the bound sender and explicit mailing-list and bulk headers."
+      "Prepare up to six ordered Gmail PDF attachments and verify every exact extent and digest before send, within a 20 MiB aggregate PDF budget."
     ]
   }
 }

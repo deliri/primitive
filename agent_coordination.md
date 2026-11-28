@@ -857,13 +857,18 @@ the existing metadata response fuzz door. Evidence:
 `/data/evidence/primitive/2026-11-27/gmail-inbox-candidate-517`.
 Kernel release owner has reserved adoption after 452.
 
-### START Ordered Gmail PDF attachments · November 27, 2026
+### RELEASE Gmail ordered PDF attachments · November 27, 2026
 
-Mail owns `gmail/send_contracts.go`, `gmail/send_mime.go` and focused
-`gmail/send_test.go` cases. Add an ordered, validated collection of up to
-six PDFs to the existing preparation boundary. Keep the same aggregate
-20 MiB of raw PDF and existing encoded MIME extent bound. Verify each
-part's declared extent, SHA-256, PDF prefix and EOF before returning a
-prepared message. Preserve the released singular caller through the
-Kernel/Deliri adoption. Prove exact MIME order at the synthetic provider
-and a corrupted middle part that prevents dispatch.
+Primitive v2026.1.518 takes `MessagePrepareRequest.PDFs []SendPDF` as
+the single typed attachment inlet. Existing nil and one PDF messages
+match v2026.1.517 exactly. Up to six ordered PDFs, 20 MiB aggregate raw
+extent, and the existing encoded MIME cap. Oversize is refused before
+a file is read. Each part is checked for its declared extent, SHA-256,
+PDF prefix and EOF before a send is possible. Kernel and Deliri adopt
+the ordered inlet together.
+
+Focused native race passed 35 nodes with zero skips, with scoped vet
+clean. Native synthetic provider saw three exact files in order. Removing
+only the digest predicate fails the corrupt-middle-file control before
+the third file should be opened. Original wire controls and evidence:
+`/Users/d/code/.evidence/deliri-workspace-mail-adoption/primitive-ordered-pdfs`.
