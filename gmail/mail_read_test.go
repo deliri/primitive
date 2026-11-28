@@ -19,10 +19,24 @@ func TestGmailSentEvidenceThroughServer(t *testing.T) {
 		editPage func(*messageListWire)
 		editHead func(*messageHeaderWire)
 		want     error
+		failure  SentEvidenceFailure
+		headers  SentHeaders
 		exact    bool
 		empty    bool
 	}{
 		{name: "exact acceptance read", exact: true},
+		{name: "Gmail rewrites RFC ID on the accepted coordinate", exact: true, headers: SentHeaders{MessageID: SentHeaderGmailRewritten, ContentDigest: SentHeaderMatched}, editHead: func(w *messageHeaderWire) {
+			w.Payload.Headers[2].Name, w.Payload.Headers[2].Value = "Message-Id", "<CA-fixture+rewrite@mail.gmail.com>"
+		}},
+		{name: "Gmail omits the digest on the accepted coordinate", exact: true, headers: SentHeaders{MessageID: SentHeaderMatched, ContentDigest: SentHeaderAbsent}, editHead: func(w *messageHeaderWire) {
+			w.Payload.Headers = w.Payload.Headers[:3]
+		}},
+		{name: "legacy exact ID search when Gmail omits the digest", headers: SentHeaders{MessageID: SentHeaderMatched, ContentDigest: SentHeaderAbsent}, editHead: func(w *messageHeaderWire) {
+			w.Payload.Headers = w.Payload.Headers[:3]
+		}},
+		{name: "rewritten RFC ID never proves a legacy search result", editHead: func(w *messageHeaderWire) {
+			w.Payload.Headers[2].Value = "<CA-fixture+rewrite@mail.gmail.com>"
+		}, want: core.ErrGmailBinding},
 		{name: "one exact RFC ID match"},
 		{name: "empty visible result", empty: true, editPage: func(p *messageListWire) { p.Messages = nil }},
 		{name: "multiple matches", editPage: func(p *messageListWire) {
@@ -30,16 +44,19 @@ func TestGmailSentEvidenceThroughServer(t *testing.T) {
 		}, want: core.ErrGmailSendUnconfirmed},
 		{name: "more results", editPage: func(p *messageListWire) { p.Next = "other" }, want: core.ErrGmailSendUnconfirmed},
 		{name: "wrong list thread", editPage: func(p *messageListWire) { p.Messages[0].Thread = "foreign_thread" }, want: core.ErrGmailBinding},
-		{name: "wrong metadata thread", editHead: func(w *messageHeaderWire) { w.Thread = "foreign_thread" }, want: core.ErrGmailBinding},
-		{name: "wrong metadata ID", editHead: func(w *messageHeaderWire) { w.ID = "other_id" }, want: core.ErrGmailBinding},
-		{name: "not Sent", editHead: func(w *messageHeaderWire) { w.Labels = []labelWire{"INBOX"} }, want: core.ErrGmailBinding},
-		{name: "draft", editHead: func(w *messageHeaderWire) { w.Labels = append(w.Labels, labelDraft) }, want: core.ErrGmailBinding},
-		{name: "unexpected From", editHead: func(w *messageHeaderWire) { w.Payload.Headers[0].Value = "other@example.invalid" }, want: core.ErrGmailBinding},
-		{name: "unexpected recipient", editHead: func(w *messageHeaderWire) { w.Payload.Headers[1].Value = "other@example.invalid" }, want: core.ErrGmailBinding},
-		{name: "unexpected RFC ID", editHead: func(w *messageHeaderWire) { w.Payload.Headers[2].Value = "<other@example.invalid>" }, want: core.ErrGmailBinding},
-		{name: "unexpected content hash", editHead: func(w *messageHeaderWire) { w.Payload.Headers[3].Value = "different" }, want: core.ErrGmailBinding},
-		{name: "duplicate digest", editHead: func(w *messageHeaderWire) { w.Payload.Headers = append(w.Payload.Headers, w.Payload.Headers[3]) }, want: core.ErrGmailResponse},
-		{name: "invalid provider date", editHead: func(w *messageHeaderWire) { w.Date = "not-milliseconds" }, want: core.ErrGmailResponse},
+		{name: "wrong metadata thread", failure: SentEvidenceThread, editHead: func(w *messageHeaderWire) { w.Thread = "foreign_thread" }, want: core.ErrGmailBinding},
+		{name: "wrong metadata ID", failure: SentEvidenceMessage, editHead: func(w *messageHeaderWire) { w.ID = "other_id" }, want: core.ErrGmailBinding},
+		{name: "not Sent", failure: SentEvidenceSentLabel, editHead: func(w *messageHeaderWire) { w.Labels = []labelWire{"INBOX"} }, want: core.ErrGmailBinding},
+		{name: "draft", failure: SentEvidenceSentLabel, editHead: func(w *messageHeaderWire) { w.Labels = append(w.Labels, labelDraft) }, want: core.ErrGmailBinding},
+		{name: "unexpected From", failure: SentEvidenceFrom, editHead: func(w *messageHeaderWire) { w.Payload.Headers[0].Value = "other@example.invalid" }, want: core.ErrGmailBinding},
+		{name: "unexpected recipient", failure: SentEvidenceRecipients, editHead: func(w *messageHeaderWire) { w.Payload.Headers[1].Value = "other@example.invalid" }, want: core.ErrGmailBinding},
+		{name: "foreign RFC ID on an accepted coordinate", exact: true, failure: SentEvidenceMessageIDHeader, editHead: func(w *messageHeaderWire) {
+			w.Payload.Headers[2].Value = "<foreign@example.invalid>"
+		}, want: core.ErrGmailBinding},
+		{name: "unexpected RFC ID", failure: SentEvidenceMessageIDHeader, editHead: func(w *messageHeaderWire) { w.Payload.Headers[2].Value = "<other@example.invalid>" }, want: core.ErrGmailBinding},
+		{name: "unexpected content hash", failure: SentEvidenceDigestHeader, editHead: func(w *messageHeaderWire) { w.Payload.Headers[3].Value = "different" }, want: core.ErrGmailBinding},
+		{name: "duplicate digest", failure: SentEvidenceDigestHeader, editHead: func(w *messageHeaderWire) { w.Payload.Headers = append(w.Payload.Headers, w.Payload.Headers[3]) }, want: core.ErrGmailResponse},
+		{name: "invalid provider date", failure: SentEvidenceMetadata, editHead: func(w *messageHeaderWire) { w.Date = "not-milliseconds" }, want: core.ErrGmailResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -89,6 +106,9 @@ func TestGmailSentEvidenceThroughServer(t *testing.T) {
 			if !errors.Is(err, tc.want) {
 				t.Fatalf("evidence error = %v, want %v", err, tc.want)
 			}
+			if tc.failure.IsValid() && SentFailureOf(err) != tc.failure {
+				t.Fatalf("evidence classification = %v, want %v", err, tc.failure)
+			}
 			wantLists, wantMetadata := int32(1), int32(1)
 			switch {
 			case tc.exact:
@@ -104,6 +124,13 @@ func TestGmailSentEvidenceThroughServer(t *testing.T) {
 					t.Fatal("unconfirmed attempt leaked partial proof")
 				}
 				return
+			}
+			wantHeaders := tc.headers
+			if wantHeaders == (SentHeaders{}) {
+				wantHeaders = SentHeaders{MessageID: SentHeaderMatched, ContentDigest: SentHeaderMatched}
+			}
+			if got.Headers != wantHeaders {
+				t.Fatalf("header facts = %v, want %v", got.Headers, wantHeaders)
 			}
 			wantAt := temporal.InstantFromNanoseconds(1795708800000000000)
 			if got.Match.Message != fixtureMessage || got.Match.Thread != fixtureThread || got.Match.At != wantAt {

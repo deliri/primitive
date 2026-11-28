@@ -31,7 +31,7 @@ type SentEvidenceRequest struct {
 }
 
 func (r SentEvidenceRequest) Validate() error {
-	if r.Message != "" && r.Message.Validate() != nil || r.Thread != "" && r.Thread.Validate() != nil {
+	if r.Message != "" && (r.Message.Validate() != nil || r.Thread == "") || r.Thread != "" && r.Thread.Validate() != nil {
 		return core.ErrGmailContract
 	}
 	if len(r.Recipients.To)+len(r.Recipients.Cc)+len(r.Recipients.Bcc) == 0 {
@@ -43,14 +43,40 @@ func (r SentEvidenceRequest) Validate() error {
 // SentEvidence distinguishes a positive match from no visible match in Sent.
 // A missing match is not evidence that Gmail did not accept the send.
 type SentEvidence struct {
-	Match SendAcceptance
+	Match   SendAcceptance
+	Headers SentHeaders
+}
+
+// SentHeaderFact reports the provider's corroboration independently of the
+// exact sent message coordinate. A rewritten RFC ID is usable only with the
+// ID and thread returned by the send call.
+type SentHeaderFact uint8
+
+const (
+	SentHeaderUnknown SentHeaderFact = iota
+	SentHeaderMatched
+	SentHeaderAbsent
+	SentHeaderGmailRewritten
+)
+
+type SentHeaders struct {
+	MessageID     SentHeaderFact `json:"message_id"`
+	ContentDigest SentHeaderFact `json:"content_digest"`
+}
+
+func (h SentHeaders) Validate() error {
+	if h.MessageID < SentHeaderMatched || h.MessageID > SentHeaderGmailRewritten ||
+		h.ContentDigest < SentHeaderMatched || h.ContentDigest > SentHeaderAbsent {
+		return core.ErrGmailResponse
+	}
+	return nil
 }
 
 func (e SentEvidence) Validate() error {
-	if e.Match == (SendAcceptance{}) {
+	if e.Match == (SendAcceptance{}) && e.Headers == (SentHeaders{}) {
 		return nil
 	}
-	return errors.Join(e.Match.Validate(), e.Match.At.Validate())
+	return errors.Join(e.Match.Validate(), e.Match.At.Validate(), e.Headers.Validate())
 }
 
 type messageReferenceWire struct {
@@ -75,14 +101,23 @@ func (c Client) ReadSentEvidence(ctx context.Context, r SentEvidenceRequest) (Se
 	ref := messageReferenceWire{ID: r.Message, Thread: r.Thread}
 	if ref.ID == "" {
 		ref, err = c.findSent(ctx, r)
-		if err != nil || ref.ID == "" {
-			return SentEvidence{}, err
+		if err != nil {
+			return SentEvidence{}, sentEvidenceError{class: SentEvidenceSearch, cause: err}
+		}
+		if ref.ID == "" {
+			return SentEvidence{}, nil
 		}
 	}
 	path := mailboxEndpoint + "/messages/" + string(ref.ID) + sentMetadataQuery
 	wire, err := readWithAccess[messageHeaderWire](ctx, r.Access, mailboxRead{client: c, policy: r.Policy, path: path})
 	if err != nil {
-		return SentEvidence{}, err
+		if errors.Is(err, core.ErrGmailConsent) {
+			return SentEvidence{}, sentEvidenceError{class: SentEvidenceAccess, cause: err}
+		}
+		if errors.Is(err, core.ErrJSONContract) {
+			return SentEvidence{}, sentEvidenceError{class: SentEvidenceMetadata, cause: err}
+		}
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceFetch, cause: err}
 	}
 	return wire.sentEvidence(r, ref)
 }
@@ -120,31 +155,85 @@ func (w messageListWire) project(expected ThreadID) (messageReferenceWire, error
 }
 
 func (w messageHeaderWire) sentEvidence(r SentEvidenceRequest, ref messageReferenceWire) (SentEvidence, error) {
-	if w.ID != ref.ID || ref.Thread != "" && w.Thread != ref.Thread || slices.Contains(w.Labels, labelDraft) {
-		return SentEvidence{}, core.ErrGmailBinding
+	if w.ID != ref.ID {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceMessage, cause: core.ErrGmailBinding}
+	}
+	if w.Thread != ref.Thread {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceThread, cause: core.ErrGmailBinding}
+	}
+	if !slices.Contains(w.Labels, labelSent) || slices.Contains(w.Labels, labelDraft) {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceSentLabel, cause: core.ErrGmailBinding}
 	}
 	header, err := w.project(r.Access.Mailbox())
 	if err != nil {
-		return SentEvidence{}, err
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceMetadata, cause: err}
 	}
-	rfc, rfcErr := w.oneHeader("Message-ID")
-	digest, digestErr := w.oneHeader(sendDigestHeader)
-	wantDigest, _ := r.ContentSHA.Hex()
-	if err := errors.Join(rfcErr, digestErr); err != nil {
-		return SentEvidence{}, err
+	if !strings.EqualFold(header.Sender.String(), r.Access.Mailbox().String()) {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceFrom, cause: core.ErrGmailBinding}
 	}
-	if !header.Sent || !strings.EqualFold(header.Sender.String(), r.Access.Mailbox().String()) ||
-		rfc != headerValueWire(r.RFCID) || digest != headerValueWire(wantDigest) || !equalDestinations(header.Recipients, r.Recipients) {
-		return SentEvidence{}, core.ErrGmailBinding
+	if !equalDestinations(header.Recipients, r.Recipients) {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceRecipients, cause: core.ErrGmailBinding}
 	}
-	out := SentEvidence{Match: SendAcceptance{Message: w.ID, Thread: w.Thread, At: header.At}}
+	messageID, err := w.sentMessageID(r)
+	if err != nil {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceMessageIDHeader, cause: err}
+	}
+	digest, err := w.sentContentDigest(r)
+	if err != nil {
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceDigestHeader, cause: err}
+	}
+	out := SentEvidence{Match: SendAcceptance{Message: w.ID, Thread: w.Thread, At: header.At},
+		Headers: SentHeaders{MessageID: messageID, ContentDigest: digest}}
 	if err := out.Validate(); err != nil {
-		return SentEvidence{}, errors.Join(core.ErrGmailResponse, err)
+		return SentEvidence{}, sentEvidenceError{class: SentEvidenceMetadata, cause: errors.Join(core.ErrGmailResponse, err)}
 	}
 	return out, nil
 }
 
+func (w messageHeaderWire) sentMessageID(r SentEvidenceRequest) (SentHeaderFact, error) {
+	value, present, err := w.findHeader("Message-ID")
+	if err != nil {
+		return SentHeaderUnknown, err
+	}
+	id := InternetMessageID(strings.TrimSpace(string(value)))
+	if present && id == InternetMessageID(r.RFCID) {
+		return SentHeaderMatched, nil
+	}
+	if r.Message != "" {
+		if !present {
+			return SentHeaderAbsent, nil
+		}
+		// The exact accepted provider coordinate already fixes identity. Only
+		// recognize the known Gmail-generated form as a rewrite. An unrelated
+		// RFC ID is a mismatch even on that coordinate.
+		if id.Validate() == nil && strings.HasSuffix(strings.ToLower(string(id)), "@mail.gmail.com>") {
+			return SentHeaderGmailRewritten, nil
+		}
+	}
+	return SentHeaderUnknown, core.ErrGmailBinding
+}
+
+func (w messageHeaderWire) sentContentDigest(r SentEvidenceRequest) (SentHeaderFact, error) {
+	value, present, err := w.findHeader(sendDigestHeader)
+	if err != nil {
+		return SentHeaderUnknown, err
+	}
+	if !present {
+		return SentHeaderAbsent, nil
+	}
+	want, err := r.ContentSHA.Hex()
+	if err != nil || strings.TrimSpace(string(value)) != want {
+		return SentHeaderUnknown, core.ErrGmailBinding
+	}
+	return SentHeaderMatched, nil
+}
+
 func (w messageHeaderWire) oneHeader(name headerNameWire) (headerValueWire, error) {
+	value, _, err := w.findHeader(name)
+	return value, err
+}
+
+func (w messageHeaderWire) findHeader(name headerNameWire) (headerValueWire, bool, error) {
 	var value headerValueWire
 	found := false
 	for _, kv := range w.Payload.Headers {
@@ -152,11 +241,11 @@ func (w messageHeaderWire) oneHeader(name headerNameWire) (headerValueWire, erro
 			continue
 		}
 		if found {
-			return "", core.ErrGmailResponse
+			return "", false, core.ErrGmailResponse
 		}
 		found, value = true, kv.Value
 	}
-	return value, nil
+	return value, found, nil
 }
 
 func equalDestinations(got, want Recipients) bool {
@@ -177,3 +266,5 @@ func (SentEvidenceRequest) gmailProtocolFact()  {}
 func (SentEvidence) gmailSealedProjection()     {}
 func (messageReferenceWire) gmailInternalFlow() {}
 func (messageListWire) gmailInternalFlow()      {}
+
+func (SentHeaders) gmailSealedProjection() {}

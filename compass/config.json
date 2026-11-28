@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 515
+      "patch": 516
     },
     "release_notes": [
-      "Honor validated media types on streamed multipart parts while preserving the default wire bytes."
+      "Bind Gmail Sent evidence to the accepted provider coordinate and report exact header corroboration and failure classes."
     ]
   }
 }
