@@ -51,10 +51,30 @@ func sendFixtureRequest(t testing.TB, pdf bool) MessagePrepareRequest {
 		if err != nil {
 			t.Fatal(err)
 		}
-		request.PDF = &SendPDF{Name: "proposal.pdf", Size: size,
-			SHA256: core.SHA256Of([]byte(fixtureLetterPDF)), Source: strings.NewReader(fixtureLetterPDF)}
+		request.PDFs = []SendPDF{{Name: "proposal.pdf", Size: size,
+			SHA256: core.SHA256Of([]byte(fixtureLetterPDF)), Source: strings.NewReader(fixtureLetterPDF)}}
 	}
 	return request
+}
+
+type sendFixturePDF struct {
+	Name PDFName
+	Body string
+}
+
+func (p sendFixturePDF) source(t testing.TB) SendPDF {
+	t.Helper()
+	size, err := core.NewByteLength(uint64(len(p.Body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return SendPDF{Name: p.Name, Size: size, SHA256: core.SHA256Of([]byte(p.Body)), Source: strings.NewReader(p.Body)}
+}
+
+var orderedSendPDFs = [...]sendFixturePDF{
+	{Name: "response.pdf", Body: "%PDF-1.7\nResponse\n%%EOF\n"},
+	{Name: "pricing.pdf", Body: "%PDF-1.7\nPricing\n%%EOF\n"},
+	{Name: "forms.pdf", Body: "%PDF-1.7\nForms\n%%EOF\n"},
 }
 
 func workspaceOAuthFixture(t testing.TB, r *http.Request, w http.ResponseWriter, token tokenFixture) bool {
@@ -80,13 +100,15 @@ func workspaceOAuthFixture(t testing.TB, r *http.Request, w http.ResponseWriter,
 func TestGmailWorkspaceSendThroughServer(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name   string
-		status int
-		body   string
-		want   error
-		pdf    bool
+		name    string
+		status  int
+		body    string
+		want    error
+		pdf     bool
+		ordered bool
 	}{
 		{name: "reply with pinned PDF", status: 200, body: `{"id":"sent_1","threadId":"thread_a","internalDate":"1795782600000"}`, pdf: true},
+		{name: "ordered bid PDFs", status: 200, body: `{"id":"sent_1","threadId":"thread_a"}`, ordered: true},
 		{name: "link only", status: 200, body: `{"id":"sent_1","threadId":"thread_a"}`},
 		{name: "other thread", status: 200, body: `{"id":"sent_1","threadId":"other"}`, want: core.ErrGmailSendUnconfirmed},
 		{name: "malformed acceptance", status: 200, body: `{"id":"sent_1"`, want: core.ErrGmailSendUnconfirmed},
@@ -106,6 +128,17 @@ func TestGmailWorkspaceSendThroughServer(t *testing.T) {
 			refresh.Scope = GrantReadAndSend
 			token := grantedTokenFixture()
 			token.Scope = ReadOnlyScope + " " + SendScope
+			request := sendFixtureRequest(t, tc.pdf)
+			var files []sendFixturePDF
+			if tc.ordered {
+				files = orderedSendPDFs[:]
+				for _, file := range files {
+					request.PDFs = append(request.PDFs, file.source(t))
+				}
+			}
+			if tc.pdf {
+				files = []sendFixturePDF{{Name: "proposal.pdf", Body: fixtureLetterPDF}}
+			}
 			var posts atomic.Int32
 			received := make(chan core.SHA256Digest, 1)
 			server := fixtureServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +155,7 @@ func TestGmailWorkspaceSendThroughServer(t *testing.T) {
 					default:
 						t.Error("send repeated a completed POST")
 					}
-					checkSendMIME(t, raw, tc.pdf)
+					checkSendMIME(t, raw, files)
 				}
 				if tc.status == 0 {
 					panic(http.ErrAbortHandler)
@@ -142,7 +175,7 @@ func TestGmailWorkspaceSendThroughServer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			prepared, err := server.PrepareMessage().Execute(t.Context(), sendFixtureRequest(t, tc.pdf))
+			prepared, err := server.PrepareMessage().Execute(t.Context(), request)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -204,7 +237,7 @@ func receiveSendFixture(r *http.Request) ([]byte, error) {
 	return raw, nil
 }
 
-func checkSendMIME(t *testing.T, raw []byte, pdf bool) {
+func checkSendMIME(t *testing.T, raw []byte, files []sendFixturePDF) {
 	t.Helper()
 	message, err := mail.ReadMessage(bytes.NewReader(raw))
 	if err != nil {
@@ -225,7 +258,7 @@ func checkSendMIME(t *testing.T, raw []byte, pdf bool) {
 		return
 	}
 	body := multipart.NewReader(message.Body, params["boundary"])
-	if pdf {
+	if len(files) != 0 {
 		if kind != "multipart/mixed" {
 			t.Error("expected multipart mixed for PDF")
 			return
@@ -241,17 +274,19 @@ func checkSendMIME(t *testing.T, raw []byte, pdf bool) {
 			return
 		}
 		checkAlternative(t, kind, multipart.NewReader(part, params["boundary"]))
-		file, err := body.NextPart()
-		if err != nil {
-			t.Error(err)
-			return
+		for _, expected := range files {
+			file, err := body.NextPart()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if file.FileName() != string(expected.Name) {
+				t.Error("incorrect PDF filename or order")
+			}
+			checkMIMEPart(t, file, "application/pdf", expected.Body)
 		}
-		if file.FileName() != "proposal.pdf" {
-			t.Error("incorrect PDF filename")
-		}
-		checkMIMEPart(t, file, "application/pdf", fixtureLetterPDF)
 		if _, err := body.NextPart(); err != io.EOF {
-			t.Error("expected exactly one attachment")
+			t.Error("unexpected extra attachment")
 		}
 		return
 	}
@@ -366,11 +401,11 @@ func TestGmailPrepareRejectsHostileParts(t *testing.T) {
 		{name: "combined rendered extent", edit: func(r *MessagePrepareRequest) { r.HTML = HTMLText(strings.Repeat("x", SendPartsMaximumBytes)) }, want: core.ErrExchangeBodyLimit},
 		{name: "duplicate recipient", edit: func(r *MessagePrepareRequest) { r.Recipients.Bcc = r.Recipients.To }, want: core.ErrGmailRecipient},
 		{name: "too many recipients", edit: func(r *MessagePrepareRequest) { r.Recipients.To = make([]Recipient, SendRecipientsMaximum+1) }, want: core.ErrGmailRecipient},
-		{name: "PDF digest mismatch", edit: func(r *MessagePrepareRequest) { r.PDF.SHA256 = core.SHA256Of([]byte("other")) }, want: core.ErrGmailBinding},
-		{name: "PDF short read", edit: func(r *MessagePrepareRequest) { r.PDF.Source = strings.NewReader("%PDF-") }, want: core.ErrGmailBinding},
-		{name: "PDF trailing bytes", edit: func(r *MessagePrepareRequest) { r.PDF.Source = strings.NewReader(fixtureLetterPDF + "extra") }, want: core.ErrGmailBinding},
-		{name: "non PDF header", edit: func(r *MessagePrepareRequest) { r.PDF.Source = strings.NewReader("other" + fixtureLetterPDF[5:]) }, want: core.ErrGmailContract},
-		{name: "PDF outside bound", edit: func(r *MessagePrepareRequest) { r.PDF.Size, _ = core.NewByteLength(SendPDFMaximumBytes + 1) }, want: core.ErrExchangeBodyLimit},
+		{name: "PDF digest mismatch", edit: func(r *MessagePrepareRequest) { r.PDFs[0].SHA256 = core.SHA256Of([]byte("other")) }, want: core.ErrGmailBinding},
+		{name: "PDF short read", edit: func(r *MessagePrepareRequest) { r.PDFs[0].Source = strings.NewReader("%PDF-") }, want: core.ErrGmailBinding},
+		{name: "PDF trailing bytes", edit: func(r *MessagePrepareRequest) { r.PDFs[0].Source = strings.NewReader(fixtureLetterPDF + "extra") }, want: core.ErrGmailBinding},
+		{name: "non PDF header", edit: func(r *MessagePrepareRequest) { r.PDFs[0].Source = strings.NewReader("other" + fixtureLetterPDF[5:]) }, want: core.ErrGmailContract},
+		{name: "PDF outside bound", edit: func(r *MessagePrepareRequest) { r.PDFs[0].Size, _ = core.NewByteLength(SendPDFMaximumBytes + 1) }, want: core.ErrExchangeBodyLimit},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -383,6 +418,88 @@ func TestGmailPrepareRejectsHostileParts(t *testing.T) {
 			got, err := server.PrepareMessage().Execute(t.Context(), req)
 			if !errors.Is(err, tc.want) || got.Validate() == nil || got.Extent() != 0 {
 				t.Fatalf("preparation = (%v, %v), want typed refusal %v", got, err, tc.want)
+			}
+		})
+	}
+}
+
+type sendUnreadPDF struct{ t *testing.T }
+
+func (r sendUnreadPDF) Read([]byte) (int, error) {
+	r.t.Fatal("oversized attachment list started reading file bytes")
+	return 0, io.EOF
+}
+
+func TestGmailPrepareRejectsInvalidPDFList(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		edit func(*testing.T, *MessagePrepareRequest)
+		want error
+	}{
+		{name: "too many before reading", want: core.ErrExchangeBodyLimit, edit: func(t *testing.T, r *MessagePrepareRequest) {
+			r.PDFs = make([]SendPDF, SendPDFMaximumCount+1)
+			for index := range r.PDFs {
+				r.PDFs[index].Source = sendUnreadPDF{t: t}
+			}
+		}},
+		{name: "combined extent before reading", want: core.ErrExchangeBodyLimit, edit: func(t *testing.T, r *MessagePrepareRequest) {
+			r.PDFs[0].Size, _ = core.NewByteLength(SendPDFMaximumBytes - 20)
+			r.PDFs[1].Size, _ = core.NewByteLength(21)
+			r.PDFs[0].Source = sendUnreadPDF{t: t}
+		}},
+		{name: "duplicate name", want: core.ErrGmailContract, edit: func(t *testing.T, r *MessagePrepareRequest) {
+			r.PDFs[1].Name = "RESPONSE.PDF"
+			r.PDFs[0].Source = sendUnreadPDF{t: t}
+		}},
+		{name: "corrupt second file", want: core.ErrGmailBinding, edit: func(t *testing.T, r *MessagePrepareRequest) {
+			r.PDFs[1].SHA256 = r.PDFs[0].SHA256
+			r.PDFs[2].Source = sendUnreadPDF{t: t}
+		}},
+		{name: "trailing bytes on last file", want: core.ErrGmailBinding, edit: func(t *testing.T, r *MessagePrepareRequest) {
+			r.PDFs[2].Source = strings.NewReader(orderedSendPDFs[2].Body + "extra bytes")
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := sendFixtureRequest(t, false)
+			for _, pdf := range orderedSendPDFs {
+				request.PDFs = append(request.PDFs, pdf.source(t))
+			}
+			tc.edit(t, &request)
+			server := fixtureServer(t, func(w http.ResponseWriter, _ *http.Request) {
+				t.Error("invalid attachment list contacted Gmail")
+				w.WriteHeader(http.StatusNotFound)
+			})
+			prepared, err := server.PrepareMessage().Execute(t.Context(), request)
+			if !errors.Is(err, tc.want) || prepared.Validate() == nil || prepared.Extent() != 0 {
+				t.Fatalf("preparation = (%v, %v), want blank value and %v", prepared, err, tc.want)
+			}
+		})
+	}
+}
+
+func TestGmailPreparePreservesReleasedMIME(t *testing.T) {
+	t.Parallel()
+	// Captured by encoding these fixtures with Primitive v2026.1.517.
+	for _, tc := range []struct {
+		name   string
+		pdf    bool
+		bytes  int
+		digest string
+	}{
+		{name: "without attachments", bytes: 848, digest: "16479ffa85a29e53b21d53d4d86cdb59a64624ceec1b73fc9cf64c735592c226"},
+		{name: "one attachment", pdf: true, bytes: 1232, digest: "c5df8b066469592ec8fb877fcf2db0354bdab6ef271d0f1619496df12176ccc7"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw, err := encodeMessage(sendFixtureRequest(t, tc.pdf))
+			if err != nil {
+				t.Fatal(err)
+			}
+			digest, err := core.SHA256Of(raw).Hex()
+			if err != nil || len(raw) != tc.bytes || digest != tc.digest {
+				t.Fatalf("prepared MIME changed: extent %d, digest %s, error %v", len(raw), digest, err)
 			}
 		})
 	}

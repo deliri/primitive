@@ -38,9 +38,10 @@ func (c Client) PrepareMessage(ctx context.Context, r MessagePrepareRequest) (Pr
 
 func encodeMessage(r MessagePrepareRequest) ([]byte, error) {
 	var body bytes.Buffer
+	pdfs := r.PDFs
 	extent := len(r.Text) + len(r.HTML)
-	if r.PDF != nil {
-		extent += int(r.PDF.Size.Uint64())
+	for _, pdf := range pdfs {
+		extent += int(pdf.Size.Uint64())
 	}
 	body.Grow(base64.StdEncoding.EncodedLen(extent) + extent/28 + 2048)
 	if err := writeMessageHeaders(&body, r); err != nil {
@@ -51,7 +52,7 @@ func encodeMessage(r MessagePrepareRequest) ([]byte, error) {
 		return nil, err
 	}
 	altBoundary := "alt-" + boundary[:32]
-	if r.PDF == nil {
+	if len(pdfs) == 0 {
 		alternative := multipart.NewWriter(&body)
 		if err := startMIME(&body, alternative, "alternative", altBoundary); err != nil {
 			return nil, err
@@ -73,8 +74,10 @@ func encodeMessage(r MessagePrepareRequest) ([]byte, error) {
 	if err := writeAlternative(alternative, r); err != nil {
 		return nil, err
 	}
-	if err := writePDF(mixed, *r.PDF); err != nil {
-		return nil, err
+	for _, pdf := range pdfs {
+		if err := writePDF(mixed, pdf); err != nil {
+			return nil, err
+		}
 	}
 	return bodyResult(&body, mixed.Close())
 }

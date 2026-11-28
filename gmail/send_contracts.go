@@ -18,6 +18,7 @@ const (
 	SendRecipientsMaximum    = 500
 	SendPartsMaximumBytes    = 128 << 10
 	SendPDFMaximumBytes      = 20 << 20
+	SendPDFMaximumCount      = 6
 	SendMediaMaximumBytes    = 36_700_160
 	replyReferencesMaximum   = 32
 	internetMessageIDMaximum = 254
@@ -128,7 +129,7 @@ type MessagePrepareRequest struct {
 	At         temporal.Instant
 	ContentSHA core.SHA256Digest
 	Reply      *ReplyReference
-	PDF        *SendPDF
+	PDFs       []SendPDF
 }
 
 func (r MessagePrepareRequest) Validate() error {
@@ -146,8 +147,28 @@ func (r MessagePrepareRequest) Validate() error {
 	if r.Reply != nil && (r.Reply.Validate() != nil || r.Subject != r.Reply.ParentSubject) {
 		return core.ErrGmailBinding
 	}
-	if r.PDF != nil {
-		return r.PDF.Validate()
+	return r.validatePDFs()
+}
+
+func (r MessagePrepareRequest) validatePDFs() error {
+	pdfs := r.PDFs
+	if len(pdfs) > SendPDFMaximumCount {
+		return core.ErrExchangeBodyLimit
+	}
+	var total uint64
+	for index, pdf := range pdfs {
+		if err := pdf.Validate(); err != nil {
+			return err
+		}
+		total += pdf.Size.Uint64()
+		if total > SendPDFMaximumBytes {
+			return core.ErrExchangeBodyLimit
+		}
+		for _, previous := range pdfs[:index] {
+			if strings.EqualFold(string(previous.Name), string(pdf.Name)) {
+				return core.ErrGmailContract
+			}
+		}
 	}
 	return nil
 }
