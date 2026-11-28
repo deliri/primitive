@@ -215,6 +215,11 @@ func FuzzGmailReplyMetadataResponse(f *testing.F) {
 		message.Payload.Headers = append(message.Payload.Headers, h)
 	}
 	f.Add(encodeFixture(f, message))
+	message.Labels = []labelWire{labelInbox}
+	message.Payload.Headers[0] = headerWire{Name: "From", Value: "Buyer <buyer@example.invalid>"}
+	f.Add(encodeFixture(f, message))
+	message.Payload.Headers = append(message.Payload.Headers, headerWire{Name: "List-ID", Value: "<digest.example.invalid>"})
+	f.Add(encodeFixture(f, message))
 	message.Payload.Headers = nil
 	f.Add(encodeFixture(f, message))
 	f.Add([]byte(`{}`))
@@ -228,13 +233,32 @@ func FuzzGmailReplyMetadataResponse(f *testing.F) {
 			Access: Access{mailbox: request.From.Address}, Thread: fixtureThread, Message: fixtureMessage,
 		})
 		if err != nil {
-			if got.Thread != "" || got.Header.ID != "" || got.Reply != nil {
+			if got.Thread != "" || got.Header.ID != "" || got.Reply != nil || got.InboxCandidate != nil {
 				t.Fatal("rejected reply contained partial metadata")
 			}
 			return
 		}
 		if got.Thread != fixtureThread || got.Header.ID != fixtureMessage || got.Validate() != nil || slices.Contains(wire.Labels, labelDraft) {
 			t.Fatal("message metadata lost its exact parent binding")
+		}
+		if got.InboxCandidate != nil {
+			if got.Header.Sent || !slices.Contains(wire.Labels, labelInbox) ||
+				slices.Contains(wire.Labels, labelSpam) || slices.Contains(wire.Labels, labelTrash) ||
+				strings.EqualFold(got.Header.Sender.String(), request.From.Address.String()) {
+				t.Fatal("candidate did not come from another Inbox sender")
+			}
+			for _, h := range wire.Payload.Headers {
+				switch strings.ToLower(string(h.Name)) {
+				case "list-id", "list-unsubscribe", "list-post":
+					if strings.TrimSpace(string(h.Value)) != "" {
+						t.Fatal("marked list mail became a candidate")
+					}
+				case "precedence":
+					if slices.Contains([]string{"list", "bulk", "junk"}, strings.ToLower(strings.TrimSpace(string(h.Value)))) {
+						t.Fatal("marked bulk mail became a candidate")
+					}
+				}
+			}
 		}
 		if got.Reply != nil {
 			id, err := wire.oneHeader("Message-ID")

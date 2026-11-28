@@ -847,7 +847,8 @@ activation.
 
 ### START Gmail Unlinked Inbox metadata · November 27, 2026
 
-Deliri Inbox owns `gmail/message_metadata.go` and new
+Deliri Inbox owns `gmail/message_metadata.go` the metadata door in
+`gmail/mail_ingress_fuzz_test.go`, and new
 `gmail/message_metadata_inbox_test.go`. Mail released 516 and handed
 off these files. Extend the existing exact no-body metadata door with
 an optional typed display name for an incoming possible-business

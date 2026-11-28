@@ -9,17 +9,30 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const replyMetadataQuery = "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Bcc&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=In-Reply-To&fields=id,threadId,internalDate,labelIds,payload(headers(name,value))"
+const replyMetadataQuery = "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Bcc&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=In-Reply-To&metadataHeaders=List-ID&metadataHeaders=List-Unsubscribe&metadataHeaders=List-Post&metadataHeaders=Precedence&fields=id,threadId,internalDate,labelIds,payload(headers(name,value))"
 
 // MessageMetadata supplies the exact message header and, when supported by
 // the parent's headers, a typed reply reference. No body is fetched.
 type MessageMetadata struct {
-	Thread ThreadID
-	Header MessageHeader
-	Reply  *ReplyReference
+	Thread         ThreadID
+	Header         MessageHeader
+	Reply          *ReplyReference
+	InboxCandidate *InboxCandidateMetadata
+}
+
+// InboxCandidateMetadata is present for incoming Inbox mail without an
+// explicit bulk marker. The address, time and IDs remain on MessageMetadata.
+type InboxCandidateMetadata struct {
+	SenderName RecipientName
 }
 
 func (m MessageMetadata) Validate() error {
+	if m.InboxCandidate != nil {
+		sender := Recipient{Address: m.Header.Sender, Name: m.InboxCandidate.SenderName}
+		if m.Header.Sent || sender.Validate() != nil {
+			return core.ErrGmailBinding
+		}
+	}
 	if m.Reply != nil {
 		if m.Reply.Thread != m.Thread || m.Reply.Parent != m.Header.ID || m.Reply.ParentSubject != m.Header.Subject {
 			return core.ErrGmailBinding
@@ -52,11 +65,56 @@ func (w messageHeaderWire) messageMetadata(r MessageReadRequest) (MessageMetadat
 	if err != nil {
 		return MessageMetadata{}, err
 	}
-	out := MessageMetadata{Thread: w.Thread, Header: header}
+	out := MessageMetadata{Thread: w.Thread, Header: header, InboxCandidate: w.inboxCandidate(header, r.Access.Mailbox())}
 	if reply, ok := w.parentReference(header.Subject); ok {
 		out.Reply = &reply
 	}
-	return out, out.Validate()
+	if err := out.Validate(); err != nil {
+		return MessageMetadata{}, err
+	}
+	return out, nil
+}
+
+const (
+	labelInbox labelWire = "INBOX"
+	labelSpam  labelWire = "SPAM"
+	labelTrash labelWire = "TRASH"
+)
+
+func (w messageHeaderWire) inboxCandidate(header MessageHeader, mailbox core.OAuthEmail) *InboxCandidateMetadata {
+	sender := Recipient{Address: header.Sender}
+	if header.Sent || sender.Validate() != nil || strings.EqualFold(header.Sender.String(), mailbox.String()) ||
+		!slices.Contains(w.Labels, labelInbox) || slices.Contains(w.Labels, labelSpam) || slices.Contains(w.Labels, labelTrash) {
+		return nil
+	}
+	for _, h := range w.Payload.Headers {
+		if bulkInboxHeader(h) {
+			return nil
+		}
+	}
+	candidate := &InboxCandidateMetadata{}
+	from, err := w.oneHeader("From")
+	if err == nil {
+		recipients, err := parseRecipientHeader(from, 1, false)
+		if err == nil && len(recipients) == 1 && recipients[0].Address == header.Sender {
+			candidate.SenderName = recipients[0].Name
+		}
+	}
+	return candidate
+}
+
+func bulkInboxHeader(h headerWire) bool {
+	value := strings.TrimSpace(string(h.Value))
+	switch strings.ToLower(string(h.Name)) {
+	case "list-id", "list-unsubscribe", "list-post":
+		return value != ""
+	case "precedence":
+		switch strings.ToLower(value) {
+		case "bulk", "list", "junk":
+			return true
+		}
+	}
+	return false
 }
 
 // RFC 5322 derives References from the parent's References, or from a single
