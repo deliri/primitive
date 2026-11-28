@@ -856,3 +856,14 @@ Furnace passed the bounded race and vet runs and 66,509 executions at
 the existing metadata response fuzz door. Evidence:
 `/data/evidence/primitive/2026-11-27/gmail-inbox-candidate-517`.
 Kernel release owner has reserved adoption after 452.
+
+### START Ordered Gmail PDF attachments · November 27, 2026
+
+Mail owns `gmail/send_contracts.go`, `gmail/send_mime.go` and focused
+`gmail/send_test.go` cases. Add an ordered, validated collection of up to
+six PDFs to the existing preparation boundary. Keep the same aggregate
+20 MiB of raw PDF and existing encoded MIME extent bound. Verify each
+part's declared extent, SHA-256, PDF prefix and EOF before returning a
+prepared message. Preserve the released singular caller through the
+Kernel/Deliri adoption. Prove exact MIME order at the synthetic provider
+and a corrupted middle part that prevents dispatch.
