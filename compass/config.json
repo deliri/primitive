@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 514
+      "patch": 515
     },
     "release_notes": [
-      "Sign one exact R2 object SHA-256 custom metadata field and expose strict HEAD readback for sealed preview custody."
+      "Honor validated media types on streamed multipart parts while preserving the default wire bytes."
     ]
   }
 }
