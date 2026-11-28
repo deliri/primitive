@@ -804,3 +804,30 @@ focused tests. Lightbeam's native probe saw both parts as
 `application/json` for the manifest and `application/zip` for the bundle.
 Reuse the existing validated HTTP media type and native multipart framing.
 Keep the omitted-media wire bytes and source ownership behavior.
+
+## RELEASE · Primitive multipart media for Lightbeam demo upload · 2026-11-27
+
+Primitive `v2026.1.515` is published at
+`f67ab6c92e8defdfbb2793bdf3f679327b2d7ca7`. The Lightbeam owner can adopt it with:
+
+```sh
+GOWORK=off GOPROXY=direct go get github.com/deliri/primitive/v2026@v2026.1.515
+```
+
+Set `exchange.MultipartPart.ContentType` to the existing typed
+`core.HTTPMediaType`. Use `core.HTTPMediaTypeJSON()` for the manifest and
+the successful result of `core.ParseHTTPMediaType("application/zip")`
+for the bundle. Leave it unset where the native defaults are intended.
+The writer refuses wildcard media before touching or owning the source.
+The typed label declares the media. The receiving product still verifies
+the manifest and ZIP bytes.
+
+Furnace passed 38 focused race nodes with zero skips, 4,667 fuzz
+executions and scoped vet. The omitted-media fixture reproduced the old
+field and file wire bytes against the same native boundary. A control
+that restored the octet-stream header failed the exact-media test.
+A clean module consumer confirmed the direct download's remote origin
+and read back `manifest: application/json` and `bundle: application/zip`.
+The original probe and 40 hash-verified files are at
+`/data/evidence/primitive/2026-11-27/multipart-media-515`.
+Lightbeam owns the mounted upload proof and command installation.
