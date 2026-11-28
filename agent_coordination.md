@@ -873,11 +873,12 @@ only the digest predicate fails the corrupt-middle-file control before
 the third file should be opened. Original wire controls and evidence:
 `/Users/d/code/.evidence/deliri-workspace-mail-adoption/primitive-ordered-pdfs`.
 
-### START Exact Gmail grant health · November 27, 2026
+### RELEASE Exact Gmail grant health · November 27, 2026
 
-Mail owns the Core Gmail error definition, `gmail/oauth.go` and the
-existing exact OAuth server fixture. Add `ErrGmailGrantRejected` for
-the documented OAuth invalid_grant refusal only. Preserve the existing
-consent error as a compatible cause. Leave malformed successful tokens,
-scopes and transport failure distinguishable from a rejected user grant.
-Tag after the focused native proof and coordinate the next Kernel pin.
+Primitive v2026.1.519 adds `core.ErrGmailGrantRejected` for the
+provider's OAuth invalid_grant response only. It retains the existing
+consent parent and stable existing enum values. Incomplete scope,
+malformed successful tokens, policy and network have their original
+error classes. The exact native OAuth fixture and closed Core error
+tests passed 27 race nodes, with zero skips. Scoped Go vet passed.
+Evidence: `/Users/d/code/.evidence/deliri-workspace-mail-adoption/readable-contact-stops/primitive-grant-rejected.jsonl`.

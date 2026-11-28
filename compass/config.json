@@ -6,10 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 518
+      "patch": 519
     },
     "release_notes": [
-      "Prepare up to six ordered Gmail PDF attachments and verify every exact extent and digest before send, within a 20 MiB aggregate PDF budget."
+      "Identify Gmail OAuth invalid_grant as a closed grant rejection while preserving the Gmail consent error family."
     ]
   }
 }
