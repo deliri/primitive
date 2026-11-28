@@ -337,7 +337,8 @@ func TestGmailRefreshRefusesWrongScopeMailboxAndRevokedGrant(t *testing.T) {
 				nativeFixtureWrite(t, w, 200, profile)
 			})
 			got, err := server.Refresh().Execute(t.Context(), r)
-			if got != (Access{}) || !errors.Is(err, tc.want) || calls.Load() != tc.calls {
+			if got != (Access{}) || !errors.Is(err, tc.want) || calls.Load() != tc.calls ||
+				errors.Is(err, core.ErrGmailGrantRejected) != (tc.status == 400) {
 				t.Fatalf("grant, error, calls = (%v,%v,%d), want zero, %v, %d", got, err, calls.Load(), tc.want, tc.calls)
 			}
 		})

@@ -265,7 +265,7 @@ func (c Client) exchangeGrant(ctx context.Context, policy exchange.OperationPoli
 			fault, _ := decodeProvider[oauthErrorWire](faultBody.data)
 			switch fault.Code {
 			case "invalid_grant":
-				return nil, core.ErrGmailConsent
+				return nil, core.ErrGmailGrantRejected
 			case "admin_policy_enforced":
 				return nil, core.ErrGmailPolicy
 			case "invalid_client", "deleted_client", "unauthorized_client":

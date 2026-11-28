@@ -721,6 +721,9 @@ const (
 	// ErrGmailOAuthClient identifies a provider refusal of the OAuth client.
 	ErrGmailOAuthClient
 
+	// ErrGmailGrantRejected is an explicit OAuth invalid_grant refusal.
+	ErrGmailGrantRejected
+
 	errorIdentityLimit
 )
 
@@ -1048,6 +1051,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGmailHistoryResetRequired, text: "gmail history cursor requires a fresh baseline"},
 		{identity: ErrGmailPolicy, text: "workspace policy refuses Gmail authorization"},
 		{identity: ErrGmailOAuthClient, text: "gmail OAuth client configuration refused"},
+		{identity: ErrGmailGrantRejected, text: "gmail OAuth grant refused"},
 	}
 }
 
@@ -1324,6 +1328,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrGoogleDelegationDenied, ErrGoogleDelegationBinding, ErrGoogleDelegationResponse) {
 		return ErrGoogleIdentityContract
+	}
+	if identity == ErrGmailGrantRejected {
+		return ErrGmailConsent
 	}
 	if errorIdentityIn(identity, ErrGmailResponse, ErrGmailBinding, ErrGmailConsent, ErrGmailRecipient, ErrGmailSendRefused, ErrGmailSendUnconfirmed, ErrGmailHistoryResetRequired, ErrGmailPolicy, ErrGmailOAuthClient) {
 		return ErrGmailContract
