@@ -844,3 +844,15 @@ on the exact accepted coordinate. A legacy attempt lookup still requires
 its own unique RFC ID. Protect exact observed header mismatches. No live
 mailbox calls. Coordinate Primitive 516 and Kernel adoption before product
 activation.
+
+### START Gmail Unlinked Inbox metadata · November 27, 2026
+
+Deliri Inbox owns `gmail/message_metadata.go` and new
+`gmail/message_metadata_inbox_test.go`. Mail released 516 and handed
+off these files. Extend the existing exact no-body metadata door with
+an optional typed display name for an incoming possible-business
+candidate. Request only the additional List-ID, List-Unsubscribe,
+List-Post and Precedence headers. Do not return their raw values.
+Proposed tag is v2026.1.517, pending release-owner coordination.
+Kernel adopts the Primitive pin. Mail owns the bounded History caller.
+No live provider calls.
