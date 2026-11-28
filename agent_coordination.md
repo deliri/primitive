@@ -872,3 +872,12 @@ clean. Native synthetic provider saw three exact files in order. Removing
 only the digest predicate fails the corrupt-middle-file control before
 the third file should be opened. Original wire controls and evidence:
 `/Users/d/code/.evidence/deliri-workspace-mail-adoption/primitive-ordered-pdfs`.
+
+### START Exact Gmail grant health · November 27, 2026
+
+Mail owns the Core Gmail error definition, `gmail/oauth.go` and the
+existing exact OAuth server fixture. Add `ErrGmailGrantRejected` for
+the documented OAuth invalid_grant refusal only. Preserve the existing
+consent error as a compatible cause. Leave malformed successful tokens,
+scopes and transport failure distinguishable from a rejected user grant.
+Tag after the focused native proof and coordinate the next Kernel pin.
