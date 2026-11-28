@@ -795,3 +795,12 @@ The independent provider fixture rejected a changed signed digest.
 Proof: `/data/evidence/primitive/2026-11-27/r2-sha256-514`.
 Kernel adopts the released pin. Deliri owns the private credentials
 and real Worker readback when authorized.
+
+## START · Lightbeam demo upload per-part MIME · 2026-11-27
+
+Own `exchange/multipart_contracts.go`, `exchange/multipart_source.go` and
+focused tests. Lightbeam's native probe saw both parts as
+`application/octet-stream`. Deliri's mounted upload expects
+`application/json` for the manifest and `application/zip` for the bundle.
+Reuse the existing validated HTTP media type and native multipart framing.
+Keep the omitted-media wire bytes and source ownership behavior.
